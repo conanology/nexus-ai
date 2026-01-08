@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(dir /b \"D:\\\\05_Work\\\\youtube-automation\\\\docs\")",
+      "Skill(bmad:bmm:workflows:generate-project-context)",
+      "Bash(cat:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(where pnpm)",
+      "Bash(where npm:*)",
+      "Bash(where:*)",
+      "Bash(npm install:*)",
+      "Bash(npx create-turbo@latest:*)",
+      "Bash(dir /b \"D:\\\\05_Work\\\\youtube-automation\")",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm build:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(pushd:*)",
+      "Bash(gcloud:*)",
+      "Bash(cmd /c \"gcloud --version\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" config set project nexus-ai-conan-01)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" services enable:*)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" storage buckets create gs://nexus-ai-artifacts --location=us-central1 --uniform-bucket-level-access)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" firestore databases create --location=us-central1)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" secrets create nexus-gemini-api-key --replication-policy=\"automatic\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" secrets create nexus-youtube-oauth --replication-policy=\"automatic\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" secrets create nexus-twitter-oauth --replication-policy=\"automatic\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" secrets create nexus-discord-webhook --replication-policy=\"automatic\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" iam service-accounts create nexus-ai-runtime --display-name=\"NEXUS-AI Runtime Service Account\")",
+      "Bash(cmd /c \"\"\"C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\"\" iam service-accounts create nexus-ai-runtime --display-name=\"\"NEXUS-AI Runtime Service Account\"\"\")",
+      "Bash(powershell -Command \"& ''C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd'' iam service-accounts create nexus-ai-runtime --display-name=''NEXUS-AI Runtime Service Account''\")",
+      "Bash(powershell -Command \"& ''C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd'' projects add-iam-policy-binding nexus-ai-conan-01 --member=''serviceAccount:nexus-ai-runtime@nexus-ai-conan-01.iam.gserviceaccount.com'' --role=''roles/datastore.user'' --quiet\")",
+      "Bash(powershell -Command \"& ''C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd'' projects add-iam-policy-binding nexus-ai-conan-01 --member=''serviceAccount:nexus-ai-runtime@nexus-ai-conan-01.iam.gserviceaccount.com'' --role=''roles/storage.objectAdmin'' --quiet\")",
+      "Bash(powershell -Command \"& ''C:\\\\Program Files \\(x86\\)\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd'' projects add-iam-policy-binding nexus-ai-conan-01 --member=''serviceAccount:nexus-ai-runtime@nexus-ai-conan-01.iam.gserviceaccount.com'' --role=''roles/secretmanager.secretAccessor'' --quiet\")",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}
