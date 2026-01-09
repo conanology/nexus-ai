@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git config:*)",
+      "Bash(wsl whoami:*)",
+      "Bash(wsl adduser:*)",
+      "Bash(wsl cat /etc/wsl.conf)",
+      "Bash(wsl bash -c \"echo -e ''[user]\\\\ndefault=acona'' | sudo tee /etc/wsl.conf\")",
+      "Bash(wsl sh -c \"printf ''[user]\\\\ndefault=acona\\\\n'' > /etc/wsl.conf\")",
+      "Bash(wsl pwd:*)",
+      "Bash(wsl which:*)",
+      "Bash(wsl bash -c \"curl -fsSL https://raw.githubusercontent.com/anthropics/claude-code/main/install.sh | sh\")",
+      "Bash(wsl sh -c \"apk add bash curl\")",
+      "Bash(wsl cat:*)",
+      "Bash(pnpm install)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm dlx:*)"
+    ]
+  }
+}
