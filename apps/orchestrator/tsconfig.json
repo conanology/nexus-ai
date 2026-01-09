@@ -1,0 +1,8 @@
+{
+  "extends": "@nexus-ai/config/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"]
+}
