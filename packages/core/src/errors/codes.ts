@@ -108,6 +108,19 @@ export const NEXUS_NOTIFICATION_RATE_LIMIT = 'NEXUS_NOTIFICATION_RATE_LIMIT';
 export const NEXUS_NOTIFICATION_INVALID_CHANNEL = 'NEXUS_NOTIFICATION_INVALID_CHANNEL';
 
 // =============================================================================
+// Retry Domain
+// =============================================================================
+export const NEXUS_RETRY_EXHAUSTED = 'NEXUS_RETRY_EXHAUSTED';
+export const NEXUS_RETRY_LOGIC_ERROR = 'NEXUS_RETRY_LOGIC_ERROR';
+export const NEXUS_RETRY_INVALID_OPTIONS = 'NEXUS_RETRY_INVALID_OPTIONS';
+
+// =============================================================================
+// Fallback Domain
+// =============================================================================
+export const NEXUS_FALLBACK_EXHAUSTED = 'NEXUS_FALLBACK_EXHAUSTED';
+export const NEXUS_FALLBACK_NO_PROVIDERS = 'NEXUS_FALLBACK_NO_PROVIDERS';
+
+// =============================================================================
 // Generic / Unknown
 // =============================================================================
 export const NEXUS_UNKNOWN_ERROR = 'NEXUS_UNKNOWN_ERROR';
