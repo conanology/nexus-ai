@@ -6,5 +6,8 @@
 // Re-export all types
 export * from './types/index.js';
 
+// Re-export error handling utilities
+export * from './errors/index.js';
+
 // Version constant
 export const NEXUS_VERSION = '0.1.0';
