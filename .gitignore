@@ -15,6 +15,9 @@ node_modules
 # Testing
 coverage
 
+_bmad/
+.agent/
+.claude/
 # Turbo
 .turbo
 

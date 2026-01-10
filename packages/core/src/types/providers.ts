@@ -66,6 +66,9 @@ export interface LLMResult {
  * Large Language Model provider interface
  */
 export interface LLMProvider {
+  /** Provider name for tracking (required for withFallback) */
+  readonly name: string;
+
   /**
    * Generate text from prompt
    * @param prompt - Input prompt
@@ -140,6 +143,9 @@ export interface TTSResult {
  * Text-to-Speech provider interface
  */
 export interface TTSProvider {
+  /** Provider name for tracking (required for withFallback) */
+  readonly name: string;
+
   /**
    * Synthesize text to audio
    * @param text - Text to synthesize (may contain SSML)
@@ -196,13 +202,16 @@ export interface ImageResult {
  * Image generation provider interface
  */
 export interface ImageProvider {
+  /** Provider name for tracking (required for withFallback) */
+  readonly name: string;
+
   /**
    * Generate images from text prompt
    * @param prompt - Text description
-   * @param options - Generation options
+   * @param options - Generation options (optional, defaults applied by provider)
    * @returns Generated image references with metadata
    */
-  generate(prompt: string, options: ImageOptions): Promise<ImageResult>;
+  generate(prompt: string, options?: ImageOptions): Promise<ImageResult>;
 
   /**
    * Estimate cost before generation

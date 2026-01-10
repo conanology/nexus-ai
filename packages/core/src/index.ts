@@ -12,5 +12,11 @@ export * from './errors/index.js';
 // Re-export utility functions (retry, fallback, etc.)
 export * from './utils/index.js';
 
+// Re-export provider implementations and registry
+export * from './providers/index.js';
+
+// Re-export secret management
+export * from './secrets/index.js';
+
 // Version constant
 export const NEXUS_VERSION = '0.1.0';
