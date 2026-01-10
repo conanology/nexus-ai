@@ -1,6 +1,6 @@
 # Story 1.1: Initialize Monorepo
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -98,14 +98,14 @@ CLAUDE_4_5_SONNET
 
 ### File List
 *   `package.json` - Root package with workspaces and Turborepo scripts
-*   `pnpm-workspace.yaml` - Workspace configuration
+*   `pnpm-workspace.yaml` - Workspace configuration (includes packages/** for nested packages)
 *   `turbo.json` - Turborepo pipeline configuration (build, test, lint, dev tasks)
 *   `.nvmrc` - Node.js 20.18.2 LTS version
 *   `tsconfig.base.json` - Shared TypeScript config with strict mode
-*   `.gitignore` - Git ignore rules
+*   `.gitignore` - Git ignore rules (includes OS files for Mac/Windows/Linux)
 *   `vitest.config.ts` - Test configuration
 *   `tests/monorepo-setup.test.ts` - Monorepo setup validation tests
-*   `tests/acceptance-criteria.test.ts` - Full AC validation test suite
+*   `tests/acceptance-criteria.test.ts` - Full AC validation test suite (fixed flaky build test)
 *   `packages/config/package.json` - @nexus-ai/config package
 *   `packages/config/tsconfig.json` - Config package TypeScript settings
 *   `packages/core/package.json` - @nexus-ai/core package
@@ -114,7 +114,12 @@ CLAUDE_4_5_SONNET
 *   `apps/orchestrator/package.json` - @nexus-ai/orchestrator app
 *   `apps/orchestrator/tsconfig.json` - Orchestrator TypeScript settings
 *   `apps/orchestrator/src/index.ts` - Orchestrator entry point
-*   `apps/video-studio/package.json` - @nexus-ai/video-studio app (Remotion pending)
+*   `apps/video-studio/package.json` - @nexus-ai/video-studio app (Remotion 4.x configured)
+*   `apps/video-studio/tsconfig.json` - Video studio TypeScript settings with JSX
+*   `apps/video-studio/remotion.config.ts` - Remotion configuration
+*   `apps/video-studio/src/Root.tsx` - Remotion root composition registry
+*   `apps/video-studio/src/HelloWorld.tsx` - Sample Remotion composition
 
 ### Change Log
 *   2026-01-09: Initial monorepo setup complete with Turborepo v2.7.3, pnpm workspaces, strict TypeScript configuration, and comprehensive test suite (24 tests passing)
+*   2026-01-09: Code review fixes applied - properly committed all files, set up Remotion 4.x in video-studio, enhanced .gitignore, fixed workspace config for nested packages, fixed flaky test (commit: 0140038)
