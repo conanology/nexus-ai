@@ -17,6 +17,14 @@
     "./errors": {
       "types": "./dist/errors/index.d.ts",
       "default": "./dist/errors/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "default": "./dist/storage/index.js"
+    },
+    "./secrets": {
+      "types": "./dist/secrets/index.d.ts",
+      "default": "./dist/secrets/index.js"
     }
   },
   "scripts": {
@@ -33,6 +41,11 @@
   ],
   "author": "Cryptology",
   "license": "MIT",
+  "dependencies": {
+    "@google-cloud/firestore": "^7.11.0",
+    "@google-cloud/secret-manager": "^5.6.0",
+    "@google-cloud/storage": "^7.15.0"
+  },
   "devDependencies": {
     "@nexus-ai/config": "workspace:*",
     "typescript": "^5.3.0",

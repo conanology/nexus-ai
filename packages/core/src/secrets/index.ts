@@ -3,4 +3,10 @@
  * @module @nexus-ai/core/secrets
  */
 
-export { getSecret, hasSecret } from './get-secret.js';
+export {
+  getSecret,
+  hasSecret,
+  clearSecretCache,
+  isSecretCached,
+  getSecretCacheSize,
+} from './get-secret.js';
