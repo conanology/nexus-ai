@@ -10,19 +10,13 @@
  */
 
 import { NexusError } from '../errors/index.js';
+import { createLogger } from '../observability/logger.js';
 
 // In-memory cache for secrets (persists for process duration)
 const secretCache = new Map<string, string>();
 
-// Debug logging helper (uses console.debug which can be filtered)
-const DEBUG = process.env.NEXUS_DEBUG === 'true' || process.env.DEBUG?.includes('nexus:secrets');
-
-function debugLog(message: string, context?: Record<string, unknown>): void {
-  if (DEBUG) {
-    const contextStr = context ? ` ${JSON.stringify(context)}` : '';
-    console.debug(`[nexus:secrets] ${message}${contextStr}`);
-  }
-}
+// Logger for secrets module
+const logger = createLogger('secrets');
 
 // Lazy-initialized Secret Manager client (typed as unknown to avoid SDK type conflicts)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,10 +81,10 @@ export async function getSecret(secretName: string): Promise<string> {
   // 1. Check in-memory cache first (fastest path)
   const cached = secretCache.get(secretName);
   if (cached !== undefined) {
-    debugLog('Cache hit', { secretName });
+    logger.debug({ secretName, cached: true }, 'Secret cache hit');
     return cached;
   }
-  debugLog('Cache miss', { secretName });
+  logger.debug({ secretName, cached: false }, 'Secret cache miss');
 
   // 2. Try environment variable fallback (for local development)
   const envVarName = toEnvVarName(secretName);
@@ -99,7 +93,7 @@ export async function getSecret(secretName: string): Promise<string> {
   if (envValue !== undefined && envValue !== '') {
     // Cache the env var value for subsequent calls
     secretCache.set(secretName, envValue);
-    debugLog('Retrieved from environment variable', { secretName, envVarName });
+    logger.debug({ secretName, envVarName, source: 'environment' }, 'Secret retrieved from environment variable');
     return envValue;
   }
 
@@ -115,7 +109,7 @@ export async function getSecret(secretName: string): Promise<string> {
   }
 
   try {
-    debugLog('Fetching from Secret Manager', { secretName, projectId });
+    logger.debug({ secretName, projectId, source: 'secret-manager' }, 'Fetching secret from Secret Manager');
     const client = await getSecretManagerClient();
     const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
     const [version] = await client.accessSecretVersion({ name });
@@ -138,7 +132,7 @@ export async function getSecret(secretName: string): Promise<string> {
 
     // Cache for subsequent calls (no TTL - secrets are stable)
     secretCache.set(secretName, value);
-    debugLog('Retrieved from Secret Manager', { secretName });
+    logger.debug({ secretName, source: 'secret-manager' }, 'Secret retrieved from Secret Manager');
     return value;
   } catch (error) {
     // Re-throw NexusError as-is

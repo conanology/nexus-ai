@@ -5,6 +5,10 @@
 
 import { ErrorSeverity } from '../types/errors.js';
 import { NEXUS_UNKNOWN_ERROR } from './codes.js';
+import { createLogger } from '../observability/logger.js';
+
+// Logger for error module - used for development warnings
+const logger = createLogger('errors');
 
 /**
  * Regex pattern for validating error codes: NEXUS_{DOMAIN}_{TYPE}
@@ -75,9 +79,9 @@ export class NexusError extends Error {
       // In development, warn about invalid codes but don't throw
       // to avoid breaking error handling itself
       if (process.env.NODE_ENV !== 'production') {
-        console.warn(
-          `[NexusError] Invalid error code format: "${code}". ` +
-            'Expected format: NEXUS_{DOMAIN}_{TYPE}'
+        logger.warn(
+          { code, expectedFormat: 'NEXUS_{DOMAIN}_{TYPE}' },
+          `Invalid error code format: "${code}"`
         );
       }
     }
