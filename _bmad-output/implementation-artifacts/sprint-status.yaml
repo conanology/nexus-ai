@@ -49,14 +49,14 @@ development_status:
   1-5-implement-provider-abstraction: done
   1-6-set-up-gcp-infrastructure: done
   1-7-implement-structured-logging: done
-  1-8-implement-cost-tracking: backlog
-  1-9-implement-quality-gate-framework: backlog
-  1-10-create-execute-stage-wrapper: backlog
+  1-8-implement-cost-tracking: done
+  1-9-implement-quality-gate-framework: done
+  1-10-create-execute-stage-wrapper: done
   epic-1-retrospective: optional
 
   # Epic 2: Content Intelligence Pipeline
-  epic-2: backlog
-  2-1-create-news-sourcing-package: backlog
+  epic-2: in-progress
+  2-1-create-news-sourcing-package: ready-for-dev
   2-2-implement-github-trending-source: backlog
   2-3-implement-huggingface-papers-source: backlog
   2-4-implement-hacker-news-source: backlog
