@@ -1,7 +1,75 @@
 /**
- * Quality metrics and gate types for NEXUS-AI
- * Stage-specific quality measurements and validation results
+ * Quality gate interfaces and types
  */
+
+/**
+ * Status of a quality gate check
+ */
+export enum QualityStatus {
+  PASS = 'PASS',
+  WARN = 'WARN',
+  FAIL = 'FAIL',
+}
+
+/**
+ * Result of a quality gate execution
+ */
+export interface QualityGateResult {
+  /** Gate outcome */
+  status: QualityStatus;
+  /** Stage measurements */
+  metrics: Record<string, unknown>;
+  /** Warning messages */
+  warnings: string[];
+  /** Failure reason if FAIL */
+  reason?: string;
+  /** Stage that was checked */
+  stage: string;
+}
+
+/**
+ * Interface for a quality gate
+ */
+export interface QualityGate {
+  /**
+   * Check quality for a specific stage
+   * @param stageName Name of the stage
+   * @param output Output data from the stage
+   */
+  check(stageName: string, output: any): Promise<QualityGateResult>;
+}
+
+/**
+ * Decision on whether to publish content
+ */
+export enum PublishDecision {
+  /** No issues, publish immediately */
+  AUTO_PUBLISH = 'AUTO_PUBLISH',
+  /** Minor issues, publish but log warning */
+  AUTO_PUBLISH_WITH_WARNING = 'AUTO_PUBLISH_WITH_WARNING',
+  /** Major issues, require human review */
+  HUMAN_REVIEW = 'HUMAN_REVIEW',
+}
+
+/**
+ * Result of the pre-publish quality check
+ */
+export interface PrePublishResult {
+  /** Final decision */
+  decision: PublishDecision;
+  /** Quality issues detected */
+  issues: Array<{
+    stage: string;
+    severity: 'warning' | 'error';
+    message: string;
+  }>;
+  /** Fallback providers used (format: "stage:provider") */
+  fallbacksUsed: string[];
+  /** Stages that experienced degradation */
+  degradedStages: string[];
+  /** Human review instructions */
+  recommendedAction?: string;
+}
 
 /**
  * Base quality metrics interface
@@ -13,22 +81,6 @@ export interface QualityMetrics {
   timestamp: string;
   /** Stage-specific measurements */
   measurements: Record<string, unknown>;
-}
-
-/**
- * Quality gate validation result
- */
-export interface QualityGateResult {
-  /** Gate outcome */
-  status: 'PASS' | 'WARN' | 'FAIL';
-  /** Stage measurements */
-  metrics: Record<string, unknown>;
-  /** Warning messages */
-  warnings: string[];
-  /** Failure reason if FAIL */
-  reason?: string;
-  /** Stage that was checked */
-  stage: string;
 }
 
 /**
@@ -122,7 +174,7 @@ export interface PronunciationQualityMetrics extends QualityMetrics {
     totalTerms: number;
     /** Terms in dictionary */
     knownTerms: number;
-    /** Terms not in dictionary */
+    /** Terms in dictionary */
     unknownTerms: number;
     /** Accuracy percentage (MUST exceed 98%) */
     accuracyPct: number;
@@ -131,28 +183,4 @@ export interface PronunciationQualityMetrics extends QualityMetrics {
     /** New dictionary entries added */
     termsAdded: number;
   };
-}
-
-/**
- * Pre-publish quality gate decision
- * Determines whether video can auto-publish or needs human review
- */
-export interface PrePublishQualityGate {
-  /** Final decision */
-  decision: 'AUTO_PUBLISH' | 'AUTO_PUBLISH_WITH_WARNING' | 'HUMAN_REVIEW';
-  /** Quality issues detected */
-  issues: Array<{
-    /** Stage where issue occurred */
-    stage: string;
-    /** Issue severity */
-    severity: 'warning' | 'error';
-    /** Issue description */
-    message: string;
-  }>;
-  /** Fallback providers used (format: "stage:provider") */
-  fallbacksUsed: string[];
-  /** Stages that experienced degradation */
-  degradedStages: string[];
-  /** Human review instructions */
-  recommendedAction?: string;
 }

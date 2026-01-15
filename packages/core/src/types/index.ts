@@ -32,14 +32,18 @@ export type {
 // Quality types
 export type {
   QualityMetrics,
-  QualityGateResult,
   ScriptQualityMetrics,
   TTSQualityMetrics,
   RenderQualityMetrics,
   ThumbnailQualityMetrics,
   PronunciationQualityMetrics,
-  PrePublishQualityGate,
-} from './quality.js';
+  PrePublishResult,
+  QualityGateResult,
+  QualityGate
+} from '../quality/types.js';
 
-// Error types
-export { ErrorSeverity } from './errors.js';
+export {
+  QualityStatus,
+  PublishDecision
+} from '../quality/types.js';
+
