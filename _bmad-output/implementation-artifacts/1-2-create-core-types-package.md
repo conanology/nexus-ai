@@ -255,7 +255,7 @@ No debugging required - implementation completed without errors.
 - `RenderQualityMetrics` - NFR7 frame drops and audio sync validation
 - `ThumbnailQualityMetrics` - NFR22 exactly 3 variants validation
 - `PronunciationQualityMetrics` - NFR18 >98% accuracy validation
-- `PrePublishQualityGate` - Auto-publish vs human review decision logic
+- `PrePublishResult` - Auto-publish vs human review decision logic
 
 ✅ **Error Types Stub Created** (packages/core/src/types/errors.ts)
 - `ErrorSeverity` enum with RETRYABLE, FALLBACK, DEGRADED, RECOVERABLE, CRITICAL levels
@@ -294,13 +294,14 @@ No debugging required - implementation completed without errors.
 **Created:**
 - packages/core/src/types/pipeline.ts
 - packages/core/src/types/providers.ts
-- packages/core/src/types/quality.ts
 - packages/core/src/types/errors.ts
 - packages/core/src/types/index.ts
+- packages/core/src/quality/types.ts (quality gate types)
 - packages/core/src/types/__tests__/pipeline.test.ts
 - packages/core/src/types/__tests__/providers.test.ts
-- packages/core/src/types/__tests__/quality.test.ts
 - packages/core/src/types/__tests__/errors.test.ts
+- packages/core/src/quality/__tests__/types.test.ts
+- packages/core/src/quality/__tests__/gates.test.ts
 - packages/core/src/__tests__/package-exports.test.ts
 
 **Modified:**
@@ -311,6 +312,8 @@ No debugging required - implementation completed without errors.
 - packages/core/dist/types/*.d.ts (TypeScript declarations)
 - packages/core/dist/types/*.js (Compiled JavaScript)
 - packages/core/dist/types/*.d.ts.map (Source maps)
+- packages/core/dist/quality/*.d.ts (Quality types declarations)
+- packages/core/dist/quality/*.js (Quality types compiled)
 
 ---
 
@@ -790,10 +793,10 @@ if (gateResult.status === 'FAIL') {
 
 ---
 
-**5d. PrePublishQualityGate (Orchestrator)**
+**5d. PrePublishResult (Orchestrator)**
 
 ```typescript
-interface PrePublishQualityGate {
+interface PrePublishResult {
   decision: 'AUTO_PUBLISH' | 'AUTO_PUBLISH_WITH_WARNING' | 'HUMAN_REVIEW';
   issues: Array<{
     stage: string;

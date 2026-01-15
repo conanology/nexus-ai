@@ -47,3 +47,5 @@ export {
   PublishDecision
 } from '../quality/types.js';
 
+export { ErrorSeverity } from './errors.js';
+
