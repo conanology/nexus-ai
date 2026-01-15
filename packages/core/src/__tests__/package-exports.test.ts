@@ -26,7 +26,7 @@ describe('Package Exports', () => {
     // If types aren't properly exported, this won't compile
     type StageInput = import('../types/pipeline.js').StageInput<{ test: string }>;
     type StageOutput = import('../types/pipeline.js').StageOutput<{ result: string }>;
-    type QualityMetrics = import('../types/quality.js').QualityMetrics;
+    type QualityMetrics = import('../quality/types.js').QualityMetrics;
 
     // Type assertions to verify types exist
     const input: StageInput = {
@@ -45,9 +45,9 @@ describe('Package Exports', () => {
         measurements: {},
       },
       cost: {
-        service: 'test-provider',
-        tokens: {},
-        cost: 0.001,
+        stage: 'test',
+        totalCost: 0.001,
+        breakdown: [],
         timestamp: new Date().toISOString(),
       },
       durationMs: 1000,

@@ -30,6 +30,8 @@ export interface QualityGateResult {
 /**
  * Interface for a quality gate
  */
+export type QualityGateName = 'script-gen' | 'tts' | 'render' | 'thumbnail' | string;
+
 export interface QualityGate {
   /**
    * Check quality for a specific stage

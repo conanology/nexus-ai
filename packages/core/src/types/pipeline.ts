@@ -3,8 +3,8 @@
  * Defines standardized contracts for stage input/output and pipeline state
  */
 
-import type { CostBreakdown } from './providers.js';
-import type { QualityMetrics } from './quality.js';
+import type { StageCostSummary } from '../observability/cost-tracker.js';
+import type { QualityMetrics } from '../quality/types.js';
 import { ErrorSeverity } from './errors.js';
 
 /**
@@ -94,7 +94,7 @@ export interface StageOutput<T> {
   /** Quality metrics from quality gate */
   quality: QualityMetrics;
   /** Cost breakdown from CostTracker */
-  cost: CostBreakdown;
+  cost: StageCostSummary;
   /** Execution duration in milliseconds */
   durationMs: number;
   /** Provider execution information */

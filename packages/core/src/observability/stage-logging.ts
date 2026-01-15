@@ -82,7 +82,7 @@ export function logStageComplete<T>(
     provider: output.provider.name,
     tier: output.provider.tier,
     attempts: output.provider.attempts,
-    cost: output.cost.cost,
+    cost: output.cost.totalCost,
   };
 
   // Include warnings if any

@@ -180,12 +180,10 @@ export class CostTracker {
     // Validate pipelineId format (YYYY-MM-DD) and that it's a valid date
     const datePattern = /^\d{4}-\d{2}-\d{2}$/;
     if (!datePattern.test(pipelineId)) {
-      throw new NexusError(
+      throw NexusError.critical(
         'NEXUS_VALIDATION_ERROR',
         `Invalid pipelineId format: "${pipelineId}". Expected YYYY-MM-DD format.`,
-        'CRITICAL',
         'cost-tracker',
-        false,
         { pipelineId, expectedFormat: 'YYYY-MM-DD' }
       );
     }
@@ -193,12 +191,10 @@ export class CostTracker {
     // Validate it's a valid date (not just format)
     const date = new Date(pipelineId);
     if (isNaN(date.getTime()) || pipelineId !== date.toISOString().split('T')[0]) {
-      throw new NexusError(
+      throw NexusError.critical(
         'NEXUS_VALIDATION_ERROR',
         `Invalid pipelineId date: "${pipelineId}". Date is not valid.`,
-        'CRITICAL',
         'cost-tracker',
-        false,
         { pipelineId, expectedFormat: 'YYYY-MM-DD (valid date)' }
       );
     }

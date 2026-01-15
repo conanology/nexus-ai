@@ -1,6 +1,6 @@
 # Story 1.10: Create Execute Stage Wrapper
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -44,32 +44,32 @@ const output = await executeStage(input, 'test-stage', async (data) => {
 
 ## Tasks / Subtasks
 
-- [ ] Create Wrapper Module (AC: Function Signature)
-  - [ ] Create `packages/core/src/utils/execute-stage.ts`
-  - [ ] Define generic `executeStage` function
-  - [ ] Import dependencies: `StageInput`, `StageOutput`, `logger`, `CostTracker`, `NexusError`, `qualityGate`
+- [x] Create Wrapper Module (AC: Function Signature)
+  - [x] Create `packages/core/src/utils/execute-stage.ts`
+  - [x] Define generic `executeStage` function
+  - [x] Import dependencies: `StageInput`, `StageOutput`, `logger`, `CostTracker`, `NexusError`, `qualityGate`
 
-- [ ] Implement Execution Logic (AC: Wrapper automation)
-  - [ ] Add start logging (`logger.info('Stage started'...)`)
-  - [ ] Initialize `CostTracker`
-  - [ ] Wrap execution in `try/catch` block
-  - [ ] Calculate `durationMs`
+- [x] Implement Execution Logic (AC: Wrapper automation)
+  - [x] Add start logging (`logger.info('Stage started'...)`)
+  - [x] Initialize `CostTracker`
+  - [x] Wrap execution in `try/catch` block
+  - [x] Calculate `durationMs`
 
-- [ ] Implement Quality & Cost Integration (AC: Quality/Cost)
-  - [ ] Integrate `tracker.recordApiCall` (passed via context or assumed from provider result)
-  - [ ] Call `qualityGate.check(stageName, result)`
-  - [ ] Map gate warnings and metrics to `StageOutput`
+- [x] Implement Quality & Cost Integration (AC: Quality/Cost)
+  - [x] Integrate `tracker.recordApiCall` (passed via context or assumed from provider result)
+  - [x] Call `qualityGate.check(stageName, result)`
+  - [x] Map gate warnings and metrics to `StageOutput`
 
-- [ ] Implement Error Handling (AC: Error wrapping)
-  - [ ] Catch all errors
-  - [ ] Log `Stage failed` with full context
-  - [ ] Re-throw as `NexusError.fromError(error, stageName)`
+- [x] Implement Error Handling (AC: Error wrapping)
+  - [x] Catch all errors
+  - [x] Log `Stage failed` with full context
+  - [x] Re-throw as `NexusError.fromError(error, stageName)`
 
-- [ ] Testing (AC: Integration test)
-  - [ ] Create `packages/core/src/utils/__tests__/execute-stage.test.ts`
-  - [ ] Test successful execution flow
-  - [ ] Test error wrapping/handling
-  - [ ] Test quality gate failure handling (should throw `NexusError.degraded` if gate implies it, or return FAIL status)
+- [x] Testing (AC: Integration test)
+  - [x] Create `packages/core/src/utils/__tests__/execute-stage.test.ts`
+  - [x] Test successful execution flow
+  - [x] Test error wrapping/handling
+  - [x] Test quality gate failure handling (should throw `NexusError.degraded` if gate implies it, or return FAIL status)
 
 ## Dev Notes
 
@@ -133,4 +133,63 @@ export async function executeStage<TIn, TOut>(
 
 ### Completion Notes List
 
+- Implemented `executeStage` wrapper adhering to all ACs.
+- Fixed `CostTracker` constructor usage in `observability/cost-tracker.ts` which was calling private constructor incorrectly.
+- Updated `StageOutput.cost` type to `StageCostSummary` in `types/pipeline.ts` to match architecture.
+- Exported `ErrorSeverity` from `types/index.ts` to fix broken exports.
+- Exported `QualityGateName` type from `quality/types.ts`.
+- Verified all tests pass (including existing suite).
+
 ### File List
+
+- packages/core/src/utils/execute-stage.ts
+- packages/core/src/utils/__tests__/execute-stage.test.ts
+- packages/core/src/types/pipeline.ts
+- packages/core/src/observability/cost-tracker.ts
+- packages/core/src/quality/types.ts
+- packages/core/src/types/index.ts
+- packages/core/src/utils/index.ts
+- packages/core/src/__tests__/package-exports.test.ts
+
+## Retrospective Code Review
+
+### Issues Found
+
+**Medium Severity:**
+- **File Location Mismatch**: AC claims file is at `packages/core/src/execute-stage/execute-stage.ts` but actual implementation is at `packages/core/src/utils/execute-stage.ts`
+
+**Low Severity:**
+- **Import Path Inconsistency**: Documentation shows import from `@nexus-ai/core/execute-stage` but actual barrel export is from `@nexus-ai/core/utils`
+
+### Fixes Applied
+
+1. **Updated File List**: Corrected file path to match actual implementation location
+2. **Updated Import Documentation**: Fixed import path to reflect actual barrel export location
+
+### Code Quality Assessment
+
+**Excellent Implementation:**
+- ✅ Generic function with proper TypeScript typing
+- ✅ Comprehensive error handling with NexusError wrapping
+- ✅ Quality gate integration with configurable gates
+- ✅ Cost tracking integration
+- ✅ Structured logging with safe error serialization
+- ✅ Provider info extraction with fallback defaults
+- ✅ Complete test coverage (4 tests covering success, error, quality gate fail/pass scenarios)
+
+**Technical Excellence:**
+- Clean separation of concerns
+- Proper async/await usage
+- Safe error handling avoiding secret leakage
+- Well-structured test mocks
+- Comprehensive AC fulfillment
+
+### Status
+Implementation is excellent; only documentation accuracy needed fixes.
+
+## Change Log
+
+- 2026-01-15: Implemented `executeStage` wrapper, fixed `CostTracker` and types. (Cryptology)
+- 2026-01-15: Code Review - Fixed security vulnerability in error logging, added quality gate pass test, and updated file list. (Cryptology)
+- 2026-01-16: Retrospective Code Review - Fixed file location and import path documentation accuracy. (opencode)
+

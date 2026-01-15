@@ -13,8 +13,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Logger } from 'pino';
 import type { StageInput, StageOutput, StageConfig } from '../../types/pipeline.js';
-import type { QualityMetrics } from '../../types/quality.js';
-import type { CostBreakdown } from '../../types/providers.js';
+import type { QualityMetrics } from '../../quality/types.js';
+import type { StageCostSummary } from '../cost-tracker.js';
 import {
   logStageStart,
   logStageComplete,
@@ -69,10 +69,17 @@ function createTestStageOutput<T>(data: T, overrides?: Partial<StageOutput<T>>):
     measurements: {},
   };
 
-  const cost: CostBreakdown = {
-    service: 'gemini-tts',
-    tokens: { input: 100, output: 0 },
-    cost: 0.0025,
+  const cost: StageCostSummary = {
+    stage: 'tts',
+    totalCost: 0.0025,
+    breakdown: [
+      {
+        service: 'gemini-tts',
+        cost: 0.0025,
+        tokens: { input: 100, output: 0 },
+        callCount: 1,
+      },
+    ],
     timestamp: new Date().toISOString(),
   };
 

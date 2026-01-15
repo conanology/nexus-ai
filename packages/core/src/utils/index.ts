@@ -24,3 +24,6 @@ export type {
   FallbackResult,
   NamedProvider,
 } from './with-fallback.js';
+
+// Stage Execution Wrapper
+export { executeStage } from './execute-stage.js';
