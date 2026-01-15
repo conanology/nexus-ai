@@ -56,7 +56,7 @@ development_status:
 
   # Epic 2: Content Intelligence Pipeline
   epic-2: in-progress
-  2-1-create-news-sourcing-package: review
+  2-1-create-news-sourcing-package: done
   2-2-implement-github-trending-source: backlog
   2-3-implement-huggingface-papers-source: backlog
   2-4-implement-hacker-news-source: backlog

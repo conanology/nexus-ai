@@ -107,6 +107,22 @@ importers:
         specifier: ^1.1.0
         version: 1.6.1(@types/node@20.19.27)(terser@5.44.1)
 
+  packages/news-sourcing:
+    dependencies:
+      '@nexus-ai/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.1.0
+        version: 1.6.1(@types/node@20.19.27)(terser@5.44.1)
+
 packages:
 
   '@babel/helper-string-parser@7.27.1':
@@ -2461,6 +2477,9 @@ packages:
 
   zod@3.22.3:
     resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
+
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
 
@@ -4855,3 +4874,5 @@ snapshots:
   yocto-queue@1.2.2: {}
 
   zod@3.22.3: {}
+
+  zod@3.25.76: {}
