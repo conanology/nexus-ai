@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 
 const projectRoot = join(__dirname, '..');
 
@@ -94,20 +95,22 @@ describe('Acceptance Criteria Validation', () => {
       expect(existsSync(join(projectRoot, 'node_modules'))).toBe(true);
     });
 
-    it('should be buildable (dist outputs exist after pnpm build)', () => {
-      // Note: This test verifies build outputs exist if pnpm build was run
-      // If running tests before build, this will be skipped
+    it('should be buildable (verifies pnpm build produces dist outputs)', () => {
+      // Run build command
+      try {
+        execSync('pnpm build', { encoding: 'utf-8', cwd: projectRoot });
+        console.log('Build completed successfully');
+      } catch (error) {
+        throw new Error(`Build failed: ${error}`);
+      }
+
+      // Verify build outputs exist
       const coreDistExists = existsSync(join(projectRoot, 'packages', 'core', 'dist'));
       const orchestratorDistExists = existsSync(join(projectRoot, 'apps', 'orchestrator', 'dist'));
 
-      if (!coreDistExists || !orchestratorDistExists) {
-        console.warn('Build outputs not found. Run `pnpm build` first for full validation.');
-        return; // Skip if not built yet
-      }
-
       expect(coreDistExists).toBe(true);
       expect(orchestratorDistExists).toBe(true);
-    });
+    }, 120000); // 2 minute timeout for builds
   });
 
   describe('AC5: Naming Conventions', () => {
