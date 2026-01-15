@@ -1,8 +1,9 @@
 {
-  "extends": "@nexus-ai/config/tsconfig.json",
+  "extends": "../../packages/config/tsconfig.json",
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/**/__tests__/**", "tests/**/*", "**/*.test.ts"]
 }

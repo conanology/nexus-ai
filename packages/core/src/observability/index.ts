@@ -51,6 +51,15 @@ export {
   logFallbackUsed,
 } from './stage-logging.js';
 
+// Cost tracking
+export {
+  CostTracker,
+  type StageCostSummary,
+  type ServiceCostBreakdown,
+  type VideoCosts,
+  type DailyCostSummary,
+} from './cost-tracker.js';
+
 // Type definitions
 export type {
   LogContext,
