@@ -1,0 +1,1298 @@
+[
+  {
+    "term": "yann lecun",
+    "ipa": "jɑn ləˈkʌn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "geoffrey hinton",
+    "ipa": "ˈdʒɛfri ˈhɪntən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "yoshua bengio",
+    "ipa": "ˈjoʊʃuə bɛnˈdʒioʊ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "andrew ng",
+    "ipa": "ˈændruː ɛŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "ilya sutskever",
+    "ipa": "ˈɪljə sʊtsˈkɛvər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "demis hassabis",
+    "ipa": "ˈdɛmɪs hæsəˈbiːs",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "fei-fei li",
+    "ipa": "feɪ feɪ liː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "ian goodfellow",
+    "ipa": "ˈiːən ˈɡʊdˌfɛloʊ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "andrej karpathy",
+    "ipa": "ˈɑndreɪ kɑrˈpɑːθi",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "dario amodei",
+    "ipa": "ˈdɑːrioʊ æməˈdeɪi",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "sam altman",
+    "ipa": "sæm ˈɔːltmən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "mixtral",
+    "ipa": "mɪkˈstrɑːl",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "llama",
+    "ipa": "ˈjɑːmə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "claude",
+    "ipa": "klɔːd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gpt",
+    "ipa": "dʒiː piː tiː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "bert",
+    "ipa": "bɜːrt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gpt-4",
+    "ipa": "dʒiː piː tiː fɔːr",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gpt-3",
+    "ipa": "dʒiː piː tiː θriː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "palm",
+    "ipa": "pɑːm",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gemini",
+    "ipa": "ˈdʒɛmɪnaɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "bard",
+    "ipa": "bɑːrd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "dall-e",
+    "ipa": "ˈdɑːli",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "midjourney",
+    "ipa": "mɪdˈdʒɜːrni",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "stable diffusion",
+    "ipa": "ˈsteɪbəl dɪˈfjuːʒən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "whisper",
+    "ipa": "ˈwɪspər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "codex",
+    "ipa": "ˈkoʊdɛks",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "copilot",
+    "ipa": "ˈkoʊpaɪlət",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "anthropic",
+    "ipa": "ænθrəˈpɪk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "openai",
+    "ipa": "ˈoʊpən eɪ aɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "deepmind",
+    "ipa": "ˈdiːpmaɪnd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "mistral ai",
+    "ipa": "mɪˈstrɑːl eɪ aɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "cohere",
+    "ipa": "koʊˈhɪər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "hugging face",
+    "ipa": "ˈhʌɡɪŋ feɪs",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "stability ai",
+    "ipa": "stəˈbɪləti eɪ aɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "nvidia",
+    "ipa": "ɛnˈvɪdiə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "meta ai",
+    "ipa": "ˈmɛtə eɪ aɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "google ai",
+    "ipa": "ˈɡuːɡəl eɪ aɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "microsoft ai",
+    "ipa": "ˈmaɪkrəsɔːft eɪ aɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "transformer",
+    "ipa": "trænsˈfɔːrmər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "attention mechanism",
+    "ipa": "əˈtɛnʃən ˈmɛkənɪzəm",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "self-attention",
+    "ipa": "sɛlf əˈtɛnʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "multi-head attention",
+    "ipa": "ˈmʌlti hɛd əˈtɛnʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "quantization",
+    "ipa": "ˌkwɒntaɪˈzeɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "moe",
+    "ipa": "ɛm oʊ iː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "mixture of experts",
+    "ipa": "ˈmɪkstʃər əv ˈɛkspɜːrts",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "rlhf",
+    "ipa": "ɑːr ɛl eɪtʃ ɛf",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "reinforcement learning from human feedback",
+    "ipa": "ˌriːɪnˈfɔːrsmənt ˈlɜːrnɪŋ frəm ˈhjuːmən ˈfiːdbæk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "llm",
+    "ipa": "ɛl ɛl ɛm",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "large language model",
+    "ipa": "lɑːrdʒ ˈlæŋɡwɪdʒ ˈmɒdəl",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "tokenization",
+    "ipa": "ˌtoʊkənaɪˈzeɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "embeddings",
+    "ipa": "ɪmˈbɛdɪŋz",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "fine-tuning",
+    "ipa": "faɪn ˈtjuːnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "pre-training",
+    "ipa": "priː ˈtreɪnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "zero-shot",
+    "ipa": "ˈzɪəroʊ ʃɒt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "few-shot",
+    "ipa": "fjuː ʃɒt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "prompt engineering",
+    "ipa": "prɒmpt ˌɛndʒɪˈnɪərɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "chain of thought",
+    "ipa": "tʃeɪn əv θɔːt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "in-context learning",
+    "ipa": "ɪn ˈkɒntɛkst ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "retrieval augmented generation",
+    "ipa": "rɪˈtriːvəl ɔːɡˈmɛntɪd ˌdʒɛnəˈreɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "rag",
+    "ipa": "ræɡ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "neural network",
+    "ipa": "ˈnjʊərəl ˈnɛtwɜːrk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "convolutional neural network",
+    "ipa": "ˌkɒnvəˈluːʃənəl ˈnjʊərəl ˈnɛtwɜːrk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "cnn",
+    "ipa": "siː ɛn ɛn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "recurrent neural network",
+    "ipa": "rɪˈkɜːrənt ˈnjʊərəl ˈnɛtwɜːrk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "rnn",
+    "ipa": "ɑːr ɛn ɛn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "lstm",
+    "ipa": "ɛl ɛs tiː ɛm",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gru",
+    "ipa": "dʒiː ɑːr juː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gan",
+    "ipa": "ɡæn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "generative adversarial network",
+    "ipa": "ˈdʒɛnərətɪv ædˈvɜːrsəriəl ˈnɛtwɜːrk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "vae",
+    "ipa": "viː eɪ iː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "variational autoencoder",
+    "ipa": "ˌvɛəriˈeɪʃənəl ˌɔːtoʊɪnˈkoʊdər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "diffusion model",
+    "ipa": "dɪˈfjuːʒən ˈmɒdəl",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "denoising",
+    "ipa": "diːˈnɔɪzɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "latent space",
+    "ipa": "ˈleɪtənt speɪs",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "backpropagation",
+    "ipa": "ˌbækprɒpəˈɡeɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gradient descent",
+    "ipa": "ˈɡreɪdiənt dɪˈsɛnt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "stochastic gradient descent",
+    "ipa": "stoʊˈkæstɪk ˈɡreɪdiənt dɪˈsɛnt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "sgd",
+    "ipa": "ɛs dʒiː diː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "adam",
+    "ipa": "ˈædəm",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "optimizer",
+    "ipa": "ˈɒptɪmaɪzər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "learning rate",
+    "ipa": "ˈlɜːrnɪŋ reɪt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "batch size",
+    "ipa": "bætʃ saɪz",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "epoch",
+    "ipa": "ˈɛpɒk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "overfitting",
+    "ipa": "ˈoʊvərfɪtɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "underfitting",
+    "ipa": "ˈʌndərfɪtɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "regularization",
+    "ipa": "ˌrɛɡjʊləraɪˈzeɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "dropout",
+    "ipa": "ˈdrɒpaʊt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "batch normalization",
+    "ipa": "bætʃ ˌnɔːrməlaɪˈzeɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "layer normalization",
+    "ipa": "ˈleɪər ˌnɔːrməlaɪˈzeɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "activation function",
+    "ipa": "ˌæktɪˈveɪʃən ˈfʌŋkʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "relu",
+    "ipa": "ˈrɛluː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "sigmoid",
+    "ipa": "ˈsɪɡmɔɪd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "tanh",
+    "ipa": "tæn eɪtʃ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "softmax",
+    "ipa": "ˈsɒftmæks",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "cross-entropy",
+    "ipa": "krɒs ˈɛntrəpi",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "perplexity",
+    "ipa": "pərˈplɛksəti",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "bleu score",
+    "ipa": "bluː skɔːr",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "rouge score",
+    "ipa": "ruːʒ skɔːr",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "f1 score",
+    "ipa": "ɛf wʌn skɔːr",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "precision",
+    "ipa": "prɪˈsɪʒən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "recall",
+    "ipa": "rɪˈkɔːl",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "imagenet",
+    "ipa": "ˈɪmɪdʒnɛt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "resnet",
+    "ipa": "ˈrɛznɛt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "vgg",
+    "ipa": "viː dʒiː dʒiː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "alexnet",
+    "ipa": "ˈælɛksnɛt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "inception",
+    "ipa": "ɪnˈsɛpʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "mobilenet",
+    "ipa": "ˈmoʊbaɪlnɛt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "efficientnet",
+    "ipa": "ɪˈfɪʃəntnɛt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "yolo",
+    "ipa": "ˈjoʊloʊ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "object detection",
+    "ipa": "ˈɒbdʒɪkt dɪˈtɛkʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "semantic segmentation",
+    "ipa": "sɪˈmæntɪk ˌsɛɡmɛnˈteɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "instance segmentation",
+    "ipa": "ˈɪnstəns ˌsɛɡmɛnˈteɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "nlp",
+    "ipa": "ɛn ɛl piː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "natural language processing",
+    "ipa": "ˈnætʃərəl ˈlæŋɡwɪdʒ ˈproʊsɛsɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "named entity recognition",
+    "ipa": "neɪmd ˈɛntəti ˌrɛkəɡˈnɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "ner",
+    "ipa": "ɛn iː ɑːr",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "sentiment analysis",
+    "ipa": "ˈsɛntɪmənt əˈnæləsɪs",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "machine translation",
+    "ipa": "məˈʃiːn trænsˈleɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "question answering",
+    "ipa": "ˈkwɛstʃən ˈɑːnsərɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "summarization",
+    "ipa": "ˌsʌməraɪˈzeɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "text generation",
+    "ipa": "tɛkst ˌdʒɛnəˈreɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "language modeling",
+    "ipa": "ˈlæŋɡwɪdʒ ˈmɒdəlɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "word2vec",
+    "ipa": "wɜːrd tuː vɛk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "glove",
+    "ipa": "ɡlʌv",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "fasttext",
+    "ipa": "ˈfæsttɛkst",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "elmo",
+    "ipa": "ˈɛlmoʊ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "roberta",
+    "ipa": "roʊˈbɜːrtə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "t5",
+    "ipa": "tiː faɪv",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "xlnet",
+    "ipa": "ɛks ɛl nɛt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "electra",
+    "ipa": "ɪˈlɛktrə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "distilbert",
+    "ipa": "ˈdɪstəlbɜːrt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "albert",
+    "ipa": "ˈælbərt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "deberta",
+    "ipa": "dɪˈbɜːrtə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "bloom",
+    "ipa": "bluːm",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "falcon",
+    "ipa": "ˈfælkən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "vicuna",
+    "ipa": "vɪˈkuːnjə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "alpaca",
+    "ipa": "ælˈpækə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "guanaco",
+    "ipa": "ɡwɑːˈnɑːkoʊ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "chinchilla",
+    "ipa": "tʃɪnˈtʃɪlə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gopher",
+    "ipa": "ˈɡoʊfər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "megatron",
+    "ipa": "ˈmɛɡətrɒn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "pytorch",
+    "ipa": "paɪˈtɔːrtʃ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "tensorflow",
+    "ipa": "ˈtɛnsərfloʊ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "keras",
+    "ipa": "ˈkɛrəs",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "jax",
+    "ipa": "dʒæks",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "scikit-learn",
+    "ipa": "ˈsaɪkɪt lɜːrn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "numpy",
+    "ipa": "ˈnʌmpaɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "pandas",
+    "ipa": "ˈpændəz",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "matplotlib",
+    "ipa": "ˈmætplɒtlɪb",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "jupyter",
+    "ipa": "ˈdʒuːpɪtər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "cuda",
+    "ipa": "ˈkuːdə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "tensor",
+    "ipa": "ˈtɛnsər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "gpu",
+    "ipa": "dʒiː piː juː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "tpu",
+    "ipa": "tiː piː juː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "inference",
+    "ipa": "ˈɪnfərəns",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "autoregressive",
+    "ipa": "ˌɔːtoʊrɪˈɡrɛsɪv",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "encoder-decoder",
+    "ipa": "ɪnˈkoʊdər diːˈkoʊdər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "seq2seq",
+    "ipa": "siːk tuː siːk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "beam search",
+    "ipa": "biːm sɜːrtʃ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "greedy decoding",
+    "ipa": "ˈɡriːdi diːˈkoʊdɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "temperature",
+    "ipa": "ˈtɛmprətʃər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "top-k",
+    "ipa": "tɒp keɪ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "top-p",
+    "ipa": "tɒp piː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "nucleus sampling",
+    "ipa": "ˈnuːkliəs ˈsæmplɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "perceptron",
+    "ipa": "pərˈsɛptrɒn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "multilayer perceptron",
+    "ipa": "ˈmʌltiˌleɪər pərˈsɛptrɒn",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "mlp",
+    "ipa": "ɛm ɛl piː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "feedforward",
+    "ipa": "ˈfiːdfɔːrwərd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "residual connection",
+    "ipa": "rɪˈzɪdʒuəl kəˈnɛkʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "skip connection",
+    "ipa": "skɪp kəˈnɛkʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "positional encoding",
+    "ipa": "pəˈzɪʃənəl ɪnˈkoʊdɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "bpe",
+    "ipa": "biː piː iː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "byte pair encoding",
+    "ipa": "baɪt pɛər ɪnˈkoʊdɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "wordpiece",
+    "ipa": "ˈwɜːrdpiːs",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "sentencepiece",
+    "ipa": "ˈsɛntənspiːs",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "subword",
+    "ipa": "ˈsʌbwɜːrd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "vocabulary",
+    "ipa": "voʊˈkæbjəˌlɛri",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "context window",
+    "ipa": "ˈkɒntɛkst ˈwɪndoʊ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "sequence length",
+    "ipa": "ˈsiːkwəns lɛŋkθ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "attention head",
+    "ipa": "əˈtɛnʃən hɛd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "hidden dimension",
+    "ipa": "ˈhɪdən dɪˈmɛnʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "hidden state",
+    "ipa": "ˈhɪdən steɪt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "parameter count",
+    "ipa": "pəˈræmɪtər kaʊnt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "billion parameters",
+    "ipa": "ˈbɪljən pəˈræmɪtərz",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "multimodal",
+    "ipa": "ˌmʌltiˈmoʊdəl",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "vision transformer",
+    "ipa": "ˈvɪʒən trænsˈfɔːrmər",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "vit",
+    "ipa": "viː aɪ tiː",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "clip",
+    "ipa": "klɪp",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "contrastive learning",
+    "ipa": "kənˈtræstɪv ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "supervised learning",
+    "ipa": "ˈsuːpərvaɪzd ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "unsupervised learning",
+    "ipa": "ˌʌnsuːpərˈvaɪzd ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "self-supervised learning",
+    "ipa": "sɛlf ˈsuːpərvaɪzd ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "semi-supervised learning",
+    "ipa": "ˌsɛmi ˈsuːpərvaɪzd ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "reinforcement learning",
+    "ipa": "ˌriːɪnˈfɔːrsmənt ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "transfer learning",
+    "ipa": "trænsˈfɜːr ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "meta-learning",
+    "ipa": "ˈmɛtə ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "continual learning",
+    "ipa": "kənˈtɪnjuəl ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "lifelong learning",
+    "ipa": "ˈlaɪflɒŋ ˈlɜːrnɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "catastrophic forgetting",
+    "ipa": "ˌkætəˈstrɒfɪk fərˈɡɛtɪŋ",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "data augmentation",
+    "ipa": "ˈdeɪtə ˌɔːɡmɛnˈteɪʃən",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "synthetic data",
+    "ipa": "sɪnˈθɛtɪk ˈdeɪtə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "dataset",
+    "ipa": "ˈdeɪtəsɛt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "training data",
+    "ipa": "ˈtreɪnɪŋ ˈdeɪtə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "validation data",
+    "ipa": "ˌvælɪˈdeɪʃən ˈdeɪtə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "test data",
+    "ipa": "tɛst ˈdeɪtə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "benchmark",
+    "ipa": "ˈbɛntʃmɑːrk",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "leaderboard",
+    "ipa": "ˈliːdərbɔːrd",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "sota",
+    "ipa": "ˈsoʊtə",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "state of the art",
+    "ipa": "steɪt əv ði ɑːrt",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "arxiv",
+    "ipa": "ˈɑːrkaɪv",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "neurips",
+    "ipa": "ˈnjʊərɪps",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "icml",
+    "ipa": "aɪ siː ɛm ɛl",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "iclr",
+    "ipa": "aɪ siː ɛl ɑːr",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "cvpr",
+    "ipa": "siː viː piː ɑːr",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "acl",
+    "ipa": "eɪ siː ɛl",
+    "verified": true,
+    "source": "seed"
+  },
+  {
+    "term": "emnlp",
+    "ipa": "iː ɛm ɛn ɛl piː",
+    "verified": true,
+    "source": "seed"
+  }
+]
