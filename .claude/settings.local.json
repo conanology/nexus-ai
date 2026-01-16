@@ -30,7 +30,9 @@
       "Bash(pnpm run build:*)",
       "Bash(test:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm vitest run:*)"
+      "Bash(pnpm vitest run:*)",
+      "Bash(pnpm test:run:*)",
+      "Bash(pnpm run:*)"
     ]
   }
 }

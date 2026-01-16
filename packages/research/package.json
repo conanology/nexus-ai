@@ -1,0 +1,31 @@
+{
+  "name": "@nexus-ai/research",
+  "version": "0.1.0",
+  "description": "Research brief generation stage for NEXUS-AI pipeline",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "author": "Cryptology",
+  "license": "MIT",
+  "dependencies": {
+    "@nexus-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.1.0"
+  }
+}

@@ -159,7 +159,7 @@ export class QualityGateRegistry implements QualityGate {
     // thumbnail: 3 variants
     this.registerGate('thumbnail', (output: any) => {
       const variants = Array.isArray(output.data) ? output.data.length : (output.data?.variants?.length || 0);
-      
+
       let status = QualityStatus.PASS;
       let reason: string | undefined;
 
@@ -174,6 +174,88 @@ export class QualityGateRegistry implements QualityGate {
         warnings: [],
         reason,
         stage: 'thumbnail'
+      };
+    });
+
+    // news-sourcing: verify topic selection succeeded or fallback identified
+    this.registerGate('news-sourcing', (output: any) => {
+      const data = output.data || output;
+      const selected = data.selected;
+      const fallback = data.fallback || false;
+      const candidateCount = data.candidates?.length || 0;
+      const deepDiveCount = data.deepDiveCandidates?.length || 0;
+
+      let status = QualityStatus.PASS;
+      const warnings: string[] = [];
+      let reason: string | undefined;
+
+      // If not fallback, must have a selected topic
+      if (!fallback && !selected) {
+        status = QualityStatus.FAIL;
+        reason = 'No topic selected and fallback not triggered';
+      }
+
+      // If fallback, should have deep dive candidates identified
+      if (fallback && deepDiveCount === 0) {
+        warnings.push('Fallback triggered but no deep dive candidates identified');
+      }
+
+      // Warn if very low candidate count
+      if (candidateCount < 3 && !fallback) {
+        warnings.push(`Low candidate count: ${candidateCount}`);
+      }
+
+      return {
+        status,
+        metrics: {
+          selected: !!selected,
+          fallback,
+          candidateCount,
+          deepDiveCount,
+        },
+        warnings,
+        reason,
+        stage: 'news-sourcing',
+      };
+    });
+
+    // research: minimum word count and content presence check
+    this.registerGate('research', (output: any) => {
+      const data = output.data || output;
+      const wordCount = data.wordCount || 0;
+      const brief = data.brief || '';
+      const minWords = 1800; // Minimum acceptable word count
+
+      let status = QualityStatus.PASS;
+      const warnings: string[] = [];
+      let reason: string | undefined;
+
+      // Check minimum word count
+      if (wordCount < minWords) {
+        status = QualityStatus.FAIL;
+        reason = `Research brief word count ${wordCount} is below minimum ${minWords}`;
+      }
+
+      // Warn if content is missing
+      if (!brief || brief.trim().length === 0) {
+        status = QualityStatus.FAIL;
+        reason = 'Research brief is empty';
+      }
+
+      // Warn if word count is too high (over 2,500 words)
+      if (wordCount > 2500) {
+        warnings.push(`Word count ${wordCount} exceeds recommended maximum of 2,500`);
+      }
+
+      return {
+        status,
+        metrics: {
+          wordCount,
+          briefLength: brief.length,
+        },
+        warnings,
+        reason,
+        stage: 'research',
       };
     });
   }

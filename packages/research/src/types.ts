@@ -1,0 +1,55 @@
+/**
+ * Research stage types
+ * @module @nexus-ai/research/types
+ */
+
+/**
+ * Input data for the research stage
+ */
+export interface ResearchInput {
+  /** Selected topic metadata */
+  topic: {
+    /** Topic URL */
+    url: string;
+    /** Topic title */
+    title: string;
+    /** Topic description/snippet */
+    description?: string;
+    /** Source of the topic (e.g., 'github-trending', 'hackernews') */
+    source?: string;
+    /** Additional metadata from the news sourcing stage */
+    metadata?: Record<string, unknown>;
+  };
+}
+
+/**
+ * Output data from the research stage
+ */
+export interface ResearchOutput {
+  /** Generated research brief (markdown format) */
+  brief: string;
+  /** Word count of the brief */
+  wordCount: number;
+  /** GCS URL where the brief is stored */
+  artifactUrl: string;
+  /** Provider information */
+  provider: {
+    name: string;
+    tier: 'primary' | 'fallback';
+    attempts: number;
+  };
+}
+
+/**
+ * Research prompt configuration
+ */
+export interface ResearchPromptConfig {
+  /** Topic URL */
+  url: string;
+  /** Topic title */
+  title: string;
+  /** Topic description */
+  description?: string;
+  /** Additional context */
+  metadata?: Record<string, unknown>;
+}

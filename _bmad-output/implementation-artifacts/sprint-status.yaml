@@ -63,8 +63,8 @@ development_status:
   2-5-implement-reddit-source: done
   2-6-implement-arxiv-rss-source: done
   2-7-implement-freshness-scoring: done
-  2-8-implement-topic-selection: backlog
-  2-9-create-research-stage: backlog
+  2-8-implement-topic-selection: done
+  2-9-create-research-stage: review
   2-10-create-script-generation-stage: backlog
   2-11-create-pronunciation-dictionary: backlog
   2-12-implement-term-extraction-and-flagging: backlog
