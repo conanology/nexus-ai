@@ -37,7 +37,8 @@
       "Bash(pnpm -F @nexus-ai/script-gen build:*)",
       "Bash(pnpm -F @nexus-ai/script-gen test:run:*)",
       "Bash(pnpm -F @nexus-ai/core test:run:*)",
-      "Bash(pnpm -F @nexus-ai/research test:run:*)"
+      "Bash(pnpm -F @nexus-ai/research test:run:*)",
+      "Bash(pnpm --filter @nexus-ai/pronunciation test:run:*)"
     ]
   }
 }
