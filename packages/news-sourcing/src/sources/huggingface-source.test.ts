@@ -15,7 +15,7 @@ vi.mock('@nexus-ai/core', () => {
   }
 
   return {
-    withRetry: vi.fn((fn) => fn()),
+    withRetry: vi.fn(async (fn) => ({ result: await fn() })),
     logger: {
       info: vi.fn(),
       warn: vi.fn(),
@@ -79,7 +79,7 @@ describe('HuggingFacePapersSource', () => {
       json: async () => mockPapers,
     } as Response);
 
-    const items = await source.fetch();
+    const items = await source.fetch('test-pipeline-id');
 
     expect(items).toHaveLength(2);
     
@@ -131,7 +131,7 @@ describe('HuggingFacePapersSource', () => {
       json: async () => mockPapers,
     } as Response);
 
-    const items = await source.fetch();
+    const items = await source.fetch('test-pipeline-id');
     expect(items).toHaveLength(1);
     expect(items[0].title).toBe('Fresh Paper');
   });
@@ -153,7 +153,7 @@ describe('HuggingFacePapersSource', () => {
       json: async () => mockPapers,
     } as Response);
 
-    const items = await source.fetch();
+    const items = await source.fetch('test-pipeline-id');
     expect(items).toHaveLength(10);
   });
 
@@ -164,12 +164,12 @@ describe('HuggingFacePapersSource', () => {
       statusText: 'Too Many Requests'
     } as Response);
 
-    await expect(source.fetch()).rejects.toThrow('RETRYABLE: NEXUS_HF_API_ERROR');
+    await expect(source.fetch('test-pipeline-id')).rejects.toThrow('RETRYABLE: NEXUS_HF_API_ERROR');
   });
 
   it('should handle Network errors retryably', async () => {
      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network Error'));
-     await expect(source.fetch()).rejects.toThrow('RETRYABLE: NEXUS_HF_API_ERROR');
+     await expect(source.fetch('test-pipeline-id')).rejects.toThrow('RETRYABLE: NEXUS_HF_API_ERROR');
   });
 
   it('should handle Parse errors critically', async () => {
@@ -178,7 +178,7 @@ describe('HuggingFacePapersSource', () => {
       json: async () => { throw new Error('Invalid JSON') }
     } as Response);
 
-    await expect(source.fetch()).rejects.toThrow('CRITICAL: NEXUS_HF_PARSE_ERROR');
+    await expect(source.fetch('test-pipeline-id')).rejects.toThrow('CRITICAL: NEXUS_HF_PARSE_ERROR');
   });
 
   it('should handle 404 errors gracefully and return empty array', async () => {
@@ -188,9 +188,9 @@ describe('HuggingFacePapersSource', () => {
       statusText: 'Not Found'
     } as Response);
 
-    const items = await source.fetch();
+    const items = await source.fetch('test-pipeline-id');
     expect(items).toEqual([]);
-    expect(logger.warn).toHaveBeenCalledWith('HuggingFace Daily Papers endpoint not found', { status: 404 });
+    expect(logger.warn).toHaveBeenCalledWith({ status: 404 }, 'HuggingFace Daily Papers endpoint not found');
   });
 
   it('should handle 500 server errors retryably', async () => {
@@ -200,7 +200,7 @@ describe('HuggingFacePapersSource', () => {
       statusText: 'Internal Server Error'
     } as Response);
 
-    await expect(source.fetch()).rejects.toThrow('RETRYABLE: NEXUS_HF_API_ERROR');
+    await expect(source.fetch('test-pipeline-id')).rejects.toThrow('RETRYABLE: NEXUS_HF_API_ERROR');
   });
 
   it('should handle papers without arXiv IDs correctly', async () => {
@@ -222,7 +222,7 @@ describe('HuggingFacePapersSource', () => {
       json: async () => mockPapers,
     } as Response);
 
-    const items = await source.fetch();
+    const items = await source.fetch('test-pipeline-id');
     expect(items[0].metadata.arxivUrl).toBeUndefined();
   });
 
@@ -245,7 +245,7 @@ describe('HuggingFacePapersSource', () => {
       json: async () => mockPapers,
     } as Response);
 
-    const items = await source.fetch();
+    const items = await source.fetch('test-pipeline-id');
     expect(items[0].metadata.abstract).toBe('');
   });
 });

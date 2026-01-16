@@ -5,14 +5,13 @@ export class GitHubTrendingSource implements NewsSource {
   readonly name = 'github-trending';
   readonly authorityWeight = 0.8;
 
-  async fetch(): Promise<NewsItem[]> {
-    const pipelineId = new Date().toISOString().split('T')[0];
+  async fetch(pipelineId: string): Promise<NewsItem[]> {
     const tracker = new CostTracker(pipelineId, 'github-source');
 
-    logger.info('Fetching trending repos', { 
-      pipelineId, 
-      source: this.name 
-    });
+    logger.info({
+      pipelineId,
+      source: this.name
+    }, 'Fetching trending repos');
 
     try {
       const token = await getSecret('nexus-github-token');
@@ -32,7 +31,7 @@ export class GitHubTrendingSource implements NewsSource {
       url.searchParams.append('order', 'desc');
       url.searchParams.append('per_page', '10');
 
-      return await withRetry(async () => {
+      const { result } = await withRetry(async () => {
         const response = await fetch(url.toString(), {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -40,7 +39,7 @@ export class GitHubTrendingSource implements NewsSource {
           }
         });
 
-        tracker.recordApiCall('github', 0, 0);
+        tracker.recordApiCall('github', {}, 0);
 
         if (!response.ok) {
            // 403 can be rate limit or forbidden. 429 is always rate limit.
@@ -69,12 +68,17 @@ export class GitHubTrendingSource implements NewsSource {
         stage: 'news-sourcing'
       });
 
+      return result;
+
     } catch (error) {
-      logger.error('Failed to fetch trending repos', { 
-        pipelineId, 
-        source: this.name,
-        error 
-      });
+      logger.error(
+        {
+          pipelineId,
+          source: this.name,
+          error
+        },
+        'Failed to fetch trending repos'
+      );
       throw error;
     }
   }

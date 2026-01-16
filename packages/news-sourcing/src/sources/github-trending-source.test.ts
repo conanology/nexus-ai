@@ -6,7 +6,7 @@ import { getSecret, withRetry, logger, CostTracker, NexusError } from '@nexus-ai
 // Mock dependencies
 vi.mock('@nexus-ai/core', () => ({
   getSecret: vi.fn(),
-  withRetry: vi.fn((fn) => fn()),
+  withRetry: vi.fn(async (fn) => ({ result: await fn() })),
   logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -48,7 +48,7 @@ describe('GitHubTrendingSource', () => {
         headers: new Headers(),
     } as Response);
 
-    await source.fetch();
+    await source.fetch('test-pipeline-id');
 
     expect(getSecret).toHaveBeenCalledWith('nexus-github-token');
     expect(CostTracker).toHaveBeenCalled();
@@ -90,7 +90,7 @@ describe('GitHubTrendingSource', () => {
       json: async () => ({ items: mockItems }),
     } as Response);
 
-    const items = await source.fetch();
+    const items = await source.fetch('test-pipeline-id');
 
     expect(items).toHaveLength(10);
     const item = items[0];
@@ -115,7 +115,7 @@ describe('GitHubTrendingSource', () => {
       statusText: 'Forbidden'
     } as Response);
 
-    await expect(source.fetch()).rejects.toThrow('RETRYABLE: NEXUS_GITHUB_RATE_LIMIT');
+    await expect(source.fetch('test-pipeline-id')).rejects.toThrow('RETRYABLE: NEXUS_GITHUB_RATE_LIMIT');
   });
 
   it('should throw fallback error on other api errors', async () => {
@@ -127,6 +127,6 @@ describe('GitHubTrendingSource', () => {
       statusText: 'Internal Server Error'
     } as Response);
 
-    await expect(source.fetch()).rejects.toThrow('FALLBACK: NEXUS_GITHUB_API_ERROR');
+    await expect(source.fetch('test-pipeline-id')).rejects.toThrow('FALLBACK: NEXUS_GITHUB_API_ERROR');
   });
 });

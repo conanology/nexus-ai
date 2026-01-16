@@ -19,7 +19,8 @@ import { MockSource } from './sources/mock-source.js';
  */
 async function newsSourcingLogic(
   data: NewsSourcingConfig,
-  _config: StageConfig
+  _config: StageConfig,
+  pipelineId: string
 ): Promise<NewsSourcingData> {
   const { enabledSources, minViralityScore = 0 } = data;
   const items: NewsItem[] = [];
@@ -31,7 +32,7 @@ async function newsSourcingLogic(
   for (const source of sources) {
     try {
       logger.info({ source: source.name }, 'Fetching news from source');
-      const fetchedItems = await source.fetch();
+      const fetchedItems = await source.fetch(pipelineId);
       
       const filteredItems = fetchedItems.filter(item => {
         const score = calculateFreshnessScore(item, source.authorityWeight);
@@ -65,9 +66,12 @@ async function newsSourcingLogic(
 export async function executeNewsSourcing(
   input: StageInput<NewsSourcingConfig>
 ): Promise<StageOutput<NewsSourcingData>> {
+  const logicWithContext = (data: NewsSourcingConfig, config: StageConfig) => 
+    newsSourcingLogic(data, config, input.pipelineId);
+
   return executeStage<NewsSourcingConfig, NewsSourcingData>(
     input,
     'news-sourcing',
-    newsSourcingLogic
+    logicWithContext
   );
 }

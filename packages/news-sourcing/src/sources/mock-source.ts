@@ -9,7 +9,7 @@ export class MockSource implements NewsSource {
     public authorityWeight: number = 0.5
   ) {}
 
-  async fetch(): Promise<NewsItem[]> {
+  async fetch(pipelineId: string): Promise<NewsItem[]> {
     return [
       {
         title: `Mock News from ${this.name} 1`,

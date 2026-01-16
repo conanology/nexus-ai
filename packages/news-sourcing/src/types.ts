@@ -23,7 +23,7 @@ export interface NewsSource {
   /** Initial authority weight for scoring (0-1) */
   authorityWeight: number;
   /** Fetch items from this source */
-  fetch(): Promise<NewsItem[]>;
+  fetch(pipelineId: string): Promise<NewsItem[]>;
 }
 
 export interface NewsSourcingConfig {

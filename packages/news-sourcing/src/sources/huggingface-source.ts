@@ -24,14 +24,13 @@ export class HuggingFacePapersSource implements NewsSource {
   authorityWeight = 0.9;
   private readonly endpoint = 'https://huggingface.co/api/daily_papers';
 
-  async fetch(): Promise<NewsItem[]> {
-    const pipelineId = new Date().toISOString().split('T')[0];
+  async fetch(pipelineId: string): Promise<NewsItem[]> {
     const tracker = new CostTracker(pipelineId, 'news-sourcing');
 
-    logger.info('Fetching from HuggingFace Daily Papers', { source: this.name });
+    logger.info({ source: this.name }, 'Fetching from HuggingFace Daily Papers');
 
     try {
-      const response = await withRetry(
+      const { result: response } = await withRetry(
         async () => {
           try {
             const res = await fetch(this.endpoint);
@@ -47,7 +46,7 @@ export class HuggingFacePapersSource implements NewsSource {
               // 404 or other 4xx - treat as empty/skip or warning, but usually critical if API endpoint is wrong.
               // Story says "404 Not Found: Log warning, return empty array".
               if (res.status === 404) {
-                 logger.warn('HuggingFace Daily Papers endpoint not found', { status: 404 });
+                 logger.warn({ status: 404 }, 'HuggingFace Daily Papers endpoint not found');
                  return [];
               }
                // Other errors
@@ -59,7 +58,7 @@ export class HuggingFacePapersSource implements NewsSource {
             }
             
             // Track "cost" - 0 cost, 1 call
-            tracker.recordApiCall('huggingface-api', 1, 0);
+            tracker.recordApiCall('huggingface-api', {}, 0);
 
             const data = await res.json().catch(err => {
                 throw NexusError.critical(
@@ -102,16 +101,16 @@ export class HuggingFacePapersSource implements NewsSource {
         .sort((a, b) => b.viralityScore - a.viralityScore) // Optional: sort by score? Not strictly required but good.
         .slice(0, 10);
 
-      logger.info('Fetched HuggingFace papers', { 
+      logger.info({ 
           count: items.length, 
           source: this.name 
-      });
+      }, 'Fetched HuggingFace papers');
 
       return items;
 
     } catch (error) {
        // Log and rethrow
-       logger.error('Failed to fetch from HuggingFace', { error });
+       logger.error({ error }, 'Failed to fetch from HuggingFace');
        throw error;
     }
   }
@@ -148,7 +147,7 @@ export class HuggingFacePapersSource implements NewsSource {
 
     // Validate that the date is valid
     if (isNaN(pubDate)) {
-      logger.warn('Invalid publishedAt date', { publishedAt });
+      logger.warn({ publishedAt }, 'Invalid publishedAt date');
       return false;
     }
 
