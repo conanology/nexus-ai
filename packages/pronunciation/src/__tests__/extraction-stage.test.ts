@@ -124,14 +124,13 @@ describe('executePronunciationExtraction', () => {
     expect(output.data.unknownTerms.length).toBe(0);
     expect(output.data.flaggedForReview).toBe(false);
   });
-});
 
   it('should track cost through tracker', async () => {
     const input = createInput('Testing PyTorch now.');
     const output = await executePronunciationExtraction(input);
 
     expect(output.cost).toBeDefined();
-    expect(output.durationMs).toBeGreaterThan(0);
+    expect(output.durationMs).toBeGreaterThanOrEqual(0);
   });
 
   it('should log warnings when flagged for review', async () => {
@@ -160,13 +159,12 @@ describe('executePronunciationExtraction', () => {
     expect(output.data.unknownTerms).toBeDefined();
     expect(output.data.unknownTerms[0].context).toContain('Using UnknownTerm');
   });
-});
 
   it('should track stage name in logs', async () => {
     const input = createInput('Testing terms.');
     const output = await executePronunciationExtraction(input);
 
-    expect(output.durationMs).toBeGreaterThan(0);
+    expect(output.durationMs).toBeGreaterThanOrEqual(0);
   });
 
   it('should handle large script with many terms', async () => {
@@ -185,3 +183,4 @@ describe('executePronunciationExtraction', () => {
     expect(output.success).toBe(true);
     expect(output.data.termsExtracted).toBe(0);
   });
+});

@@ -41,7 +41,7 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: Core Platform Foundation
-  epic-1: in-progress
+  epic-1: done
   1-1-initialize-monorepo: done
   1-2-create-core-types-package: done
   1-3-implement-error-handling-framework: done
@@ -55,7 +55,7 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Content Intelligence Pipeline
-  epic-2: in-progress
+  epic-2: done
   2-1-create-news-sourcing-package: done
   2-2-implement-github-trending-source: done
   2-3-implement-huggingface-papers-source: done
@@ -68,7 +68,7 @@ development_status:
   2-10-create-script-generation-stage: done
   2-11-create-pronunciation-dictionary: done
   2-12-implement-term-extraction-and-flagging: done
-  2-13-implement-ssml-tagging: backlog
+  2-13-implement-ssml-tagging: done
   epic-2-retrospective: optional
 
   # Epic 3: Media Production Pipeline

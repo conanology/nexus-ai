@@ -6,7 +6,10 @@ import {
   CostTracker,
 } from '@nexus-ai/core';
 import { PronunciationClient } from './pronunciation-client.js';
-import { extractTerms } from './extractor.js';
+import { ReviewQueueClient } from './review-queue.js';
+import { extractTerms, extractContext } from './extractor.js';
+import { tagScript } from './ssml-tagger.js';
+import type { PronunciationEntry } from './types.js';
 
 /**
  * Input for the pronunciation stage
@@ -60,7 +63,7 @@ export async function executePronunciation(
 
       // 2. Look up terms in dictionary
       const flaggedTerms: string[] = [];
-      const pronunciationMap = new Map<string, string>();
+      const pronunciationMap = new Map<string, PronunciationEntry>();
 
       // Load dictionary once
       await client.getDictionary(tracker);
@@ -68,7 +71,7 @@ export async function executePronunciation(
       for (const term of terms) {
         const entry = await client.lookupTerm(term, tracker);
         if (entry) {
-          pronunciationMap.set(term.toLowerCase(), entry.ssml);
+          pronunciationMap.set(term.toLowerCase(), entry);
         } else {
           flaggedTerms.push(term);
         }
@@ -77,11 +80,21 @@ export async function executePronunciation(
       // 3. Flag unknown terms for review if threshold exceeded (>3)
       if (flaggedTerms.length > 3) {
         logger.warn({ flaggedCount: flaggedTerms.length }, 'High number of unknown terms flagged');
-        // In a real implementation, this would create a review item in Firestore
+
+        // Add unknown terms to review queue with context
+        const reviewQueueClient = new ReviewQueueClient();
+        for (const term of flaggedTerms) {
+          const context = extractContext(data.script, term);
+          await reviewQueueClient.addToReviewQueue({
+            term,
+            context,
+            pipelineId: input.pipelineId
+          });
+        }
       }
 
       // 4. Generate SSML-tagged script
-      const ssmlScript = tagScript(data.script, pronunciationMap);
+      const ssmlScript = tagScript(data.script, pronunciationMap, { processHints: true });
 
       // 5. Calculate quality metrics
       const accuracy = terms.size > 0 
@@ -102,35 +115,10 @@ export async function executePronunciation(
             unknownTerms: flaggedTerms.length,
             accuracy,
           },
-          status: accuracy >= 98 ? 'PASS' : 'WARN',
+          status: accuracy >= 98 ? 'PASS' : 'DEGRADED',
         },
       };
     },
     { qualityGate: 'pronunciation' }
   );
-}
-
-
-
-/**
- * Replace terms in script with SSML tags
- */
-function tagScript(script: string, pronunciationMap: Map<string, string>): string {
-  let taggedScript = script;
-  
-  // Sort terms by length descending to avoid partial replacements (e.g., "GPT-4" before "GPT")
-  const sortedTerms = Array.from(pronunciationMap.keys()).sort((a, b) => b.length - a.length);
-  
-  for (const term of sortedTerms) {
-    const ssml = pronunciationMap.get(term)!;
-    // Use word boundaries and case-insensitive matching
-    const regex = new RegExp(`\b${escapeRegExp(term)}\b`, 'gi');
-    taggedScript = taggedScript.replace(regex, ssml);
-  }
-  
-  return taggedScript;
-}
-
-function escapeRegExp(string: string): string {
-  return string.replace(/[.*+?^${}()|[\\]/g, '\\$&');
 }

@@ -138,13 +138,15 @@ export function extractTerms(
 
   // Patterns to match technical terms (order matters - more specific first)
   const patterns = [
-    // Terms with numbers and suffixes: GPT-4, GPT-3.5-turbo, LLaMA-2 (MOST SPECIFIC)
-    { regex: /\b([A-Z][a-zA-Z]*-\d+(?:\.\d+)?(?:-[a-z0-9]+)?)\b/g, name: 'with-numbers' },
-    // CamelCase/PascalCase: PyTorch, HuggingFace, TensorFlow
-    { regex: /\b([A-Z][a-z]+[A-Z][a-zA-Z]*)\b/g, name: 'camelcase' },
+    // CamelCase/PascalCase: PyTorch, HuggingFace, TensorFlow, LLaMA
+    { regex: /\b([A-Z][a-zA-Z0-9]*[a-z]+[A-Z][a-zA-Z0-9]*)\b/g, name: 'camelcase' },
+    // Terms with numbers and suffixes: GPT-4, GPT-3.5-turbo, LLaMA-2
+    { regex: /\b([A-Z][a-zA-Z0-9]*[-.][a-zA-Z0-9.-]*[a-zA-Z0-9])\b/g, name: 'complex' },
+    // Special terms: C++, C#, .NET
+    { regex: /(?:\b|(?<=\s))(C\+\+|C#|\.NET)(?=[^a-zA-Z0-9]|$)/g, name: 'special' },
     // Acronyms: RLHF, LLM, GPT (2+ uppercase letters)
     { regex: /\b([A-Z]{2,})\b/g, name: 'acronym' },
-    // Capitalized technical names: Llama, Gemini (MOST GENERAL)
+    // Capitalized technical names: Llama, Gemini
     { regex: /\b([A-Z][a-z]+)\b/g, name: 'capitalized' },
   ];
 
@@ -155,7 +157,7 @@ export function extractTerms(
     // Track matched positions to avoid overlapping matches
     const matchedRanges: Array<{ start: number; end: number }> = [];
 
-    for (const { regex } of patterns) {
+    for (const { regex, name } of patterns) {
       regex.lastIndex = 0;
       let match: RegExpExecArray | null;
 
@@ -164,14 +166,16 @@ export function extractTerms(
         const matchIndex = match.index;
         const matchEnd = matchIndex + term.length;
 
-        // Skip if at sentence start
-        if (isAtSentenceStart(trimmed, matchIndex)) {
+        // Skip if at sentence start, but ONLY for generic capitalized words
+        // Acronyms, CamelCase, and complex terms are almost certainly technical
+        if (name === 'capitalized' && isAtSentenceStart(trimmed, matchIndex)) {
           continue;
         }
 
         // Skip if this position was already matched by a more specific pattern
         const overlaps = matchedRanges.some(
-          (range) => matchIndex >= range.start && matchIndex < range.end
+          (range) => (matchIndex >= range.start && matchIndex < range.end) || 
+                     (range.start >= matchIndex && range.start < matchEnd)
         );
         if (overlaps) {
           continue;

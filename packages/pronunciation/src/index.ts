@@ -17,3 +17,5 @@ export type {
   PronunciationExtractionInput,
   PronunciationExtractionOutput,
 } from './extraction-stage.js';
+export { tagScript, escapeXml, parsePronunciationHints } from './ssml-tagger.js';
+export type { PronunciationHint, SSMLTagOptions } from './ssml-tagger.js';

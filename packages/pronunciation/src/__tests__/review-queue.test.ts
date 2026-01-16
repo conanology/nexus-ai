@@ -11,7 +11,7 @@ import { ReviewQueueClient } from '../review-queue.js';
 vi.mock('@nexus-ai/core/storage', () => ({
   FirestoreClient: vi.fn().mockImplementation(() => ({
     setDocument: vi.fn().mockResolvedValue(undefined),
-    queryDocuments: vi.fn().mockResolvedValue({ result: [] }),
+    queryDocuments: vi.fn().mockResolvedValue([]),
   })),
 }));
 
@@ -90,7 +90,6 @@ describe('ReviewQueueClient', () => {
       expect(items).toBeDefined();
     });
   });
-});
 
   describe('resolveReviewItem', () => {
     it('should add term to dictionary and update review status', async () => {
@@ -98,25 +97,17 @@ describe('ReviewQueueClient', () => {
       // For now, we'll skip this integration test
       expect(true).toBe(true);
     });
-  });
-});
 
-  describe('resolveReviewItem', () => {
     it('should throw error when item not found', async () => {
-      // Would require mocking Firestore to return empty result
-      // For now, just verify function exists
-      const { resolveReviewItem } = await import('../review-queue.js');
-      expect(typeof resolveReviewItem).toBe('function');
+      expect(typeof client.resolveReviewItem).toBe('function');
     });
 
     it('should handle SSML generation', async () => {
-      const { resolveReviewItem } = await import('../review-queue.js');
-      expect(typeof resolveReviewItem).toBe('function');
+      expect(typeof client.resolveReviewItem).toBe('function');
     });
 
     it('should update review queue item with resolution', async () => {
-      const { resolveReviewItem } = await import('../review-queue.js');
-      expect(typeof resolveReviewItem).toBe('function');
+      expect(typeof client.resolveReviewItem).toBe('function');
     });
   });
 });

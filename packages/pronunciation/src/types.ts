@@ -16,8 +16,8 @@ export interface PronunciationEntry {
   ssml: string;
   /** Human-verified status */
   verified: boolean;
-  /** Source of entry: seed, auto, or manual */
-  source: 'seed' | 'auto' | 'manual';
+  /** Source of entry: seed, auto, manual, or inline-hint */
+  source: 'seed' | 'auto' | 'manual' | 'inline-hint';
   /** Number of times this term has been used */
   usageCount: number;
   /** Last time this term was used (ISO 8601) */
@@ -37,7 +37,7 @@ export interface AddTermInput {
   /** Optional SSML (will be generated if not provided) */
   ssml?: string;
   /** Source of entry (defaults to 'manual') */
-  source?: 'seed' | 'auto' | 'manual';
+  source?: 'seed' | 'auto' | 'manual' | 'inline-hint';
   /** Whether this entry is verified (defaults to false) */
   verified?: boolean;
 }

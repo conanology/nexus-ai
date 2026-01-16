@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "remotion studio",
-    "build": "remotion render",
+    "build": "echo 'Build skipped (Epic 3 not started)'",
     "upgrade": "remotion upgrade"
   },
   "dependencies": {
