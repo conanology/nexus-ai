@@ -4,7 +4,7 @@ import { ArxivRSSSource } from './arxiv-rss-source';
 // Mock @nexus-ai/core
 vi.mock('@nexus-ai/core', async () => {
   return {
-    withRetry: vi.fn().mockImplementation((fn) => fn()),
+    withRetry: vi.fn(async (fn) => ({ result: await fn() })),
     logger: {
       info: vi.fn(),
       error: vi.fn(),

@@ -1,6 +1,15 @@
-import { NewsItem, NewsSource } from '../types';
+import { NewsItem, NewsSource } from '../types.js';
 import { withRetry, logger, CostTracker } from '@nexus-ai/core';
 import { XMLParser } from 'fast-xml-parser';
+
+interface ArxivRSSItem {
+  title?: string;
+  link?: string;
+  description?: string;
+  'dc:date'?: string;
+  'dc:creator'?: string | string[];
+  'dc:subject'?: string | string[];
+}
 
 export class ArxivRSSSource implements NewsSource {
   readonly name = 'arxiv-rss';
@@ -36,7 +45,7 @@ export class ArxivRSSSource implements NewsSource {
     }
     
     // Record API call (0 cost for RSS)
-    tracker.recordApiCall('arxiv-rss', { feeds: feeds.length }, 0);
+    tracker.recordApiCall('arxiv-rss', {}, 0);
 
     // Deduplicate by URL (arXiv ID) and Score
     const uniqueItems = new Map<string, NewsItem>();
@@ -47,10 +56,8 @@ export class ArxivRSSSource implements NewsSource {
         } else {
              // Cross-listing Bonus: +0.2 if present in both feeds
              const existing = uniqueItems.get(item.url)!;
-             // Ensure we don't double count if we somehow fetch same feed twice or logic changes, 
-             // but here it's effectively "seen again".
-             // Simple logic: if seen, add bonus.
-             existing.viralityScore = parseFloat((existing.viralityScore + 0.2).toFixed(2));
+             // Use precision-safe addition
+             existing.viralityScore = Math.round((existing.viralityScore + 0.2) * 100) / 100;
         }
     }
 
@@ -64,7 +71,7 @@ export class ArxivRSSSource implements NewsSource {
 
   private async fetchFeed(url: string, pipelineId: string): Promise<NewsItem[]> {
     try {
-      return await withRetry(async () => {
+      const { result } = await withRetry(async () => {
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -76,7 +83,6 @@ export class ArxivRSSSource implements NewsSource {
         try {
             const parsed = this.parser.parse(xml);
             // arXiv RSS structure: <rdf:RDF> <item> ... </item> </rdf:RDF>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const items = parsed?.['rdf:RDF']?.item;
             
             if (!items) return [];
@@ -84,8 +90,7 @@ export class ArxivRSSSource implements NewsSource {
             const itemsArray = Array.isArray(items) ? items : [items];
             
             return itemsArray
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .map((item: any) => this.mapToNewsItem(item))
+                .map((item: ArxivRSSItem) => this.mapToNewsItem(item))
                 .filter((item: NewsItem | null): item is NewsItem => item !== null);
 
         } catch (parseError) {
@@ -96,14 +101,15 @@ export class ArxivRSSSource implements NewsSource {
         maxRetries: 3,
         stage: 'news-sourcing'
       });
+
+      return result;
     } catch (error) {
       logger.error({ pipelineId, source: this.name, url, error }, 'Failed to fetch RSS feed');
       return [];
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapToNewsItem(raw: any): NewsItem | null {
+  private mapToNewsItem(raw: ArxivRSSItem): NewsItem | null {
       // Filter by date (< 24 hours)
       // arXiv uses dc:date in ISO format
       const dateStr = raw['dc:date'];
@@ -128,16 +134,11 @@ export class ArxivRSSSource implements NewsSource {
 
       // Authors
       // dc:creator can be string or array (if multiple tags)
-      // BUT fast-xml-parser with default settings might merge multiple tags?
-      // arXiv RSS: <dc:creator>A. Name</dc:creator> <dc:creator>B. Name</dc:creator>
-      // fast-xml-parser default: creates array for multiple tags of same name.
-      // If single tag, creates string.
       let authors: string[] = [];
       const creators = raw['dc:creator'];
       if (Array.isArray(creators)) {
           authors = creators.map(String);
       } else if (typeof creators === 'string') {
-          // Sometimes it might be comma separated in one tag? arXiv usually multiple tags.
           authors = [creators];
       }
 
@@ -155,7 +156,7 @@ export class ArxivRSSSource implements NewsSource {
 
       return {
           title,
-          url: link,
+          url: link || '',
           source: this.name,
           publishedAt: pubDate.toISOString(),
           viralityScore: 0.5, // Base Score

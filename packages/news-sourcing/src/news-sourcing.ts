@@ -1,17 +1,17 @@
-import { 
-  StageInput, 
-  StageOutput, 
+import {
+  StageInput,
+  StageOutput,
   StageConfig,
   executeStage,
   logger
 } from '@nexus-ai/core';
-import { 
-  NewsItem, 
-  NewsSourcingConfig, 
+import {
+  NewsItem,
+  NewsSourcingConfig,
   NewsSourcingData,
-  NewsSource 
+  NewsSource
 } from './types.js';
-import { calculateFreshnessScore } from './scoring.js';
+import { calculateFreshnessScore, sortNewsItems } from './scoring.js';
 import { MockSource } from './sources/mock-source.js';
 
 /**
@@ -29,11 +29,17 @@ async function newsSourcingLogic(
   // Initialize sources (in a real scenario, this would use a registry)
   const sources: NewsSource[] = enabledSources.map(name => new MockSource(name));
 
+  // Build a map of source names to authority weights for sorting
+  const sourceWeights: Record<string, number> = {};
+  sources.forEach(source => {
+    sourceWeights[source.name] = source.authorityWeight;
+  });
+
   for (const source of sources) {
     try {
       logger.info({ source: source.name }, 'Fetching news from source');
       const fetchedItems = await source.fetch(pipelineId);
-      
+
       const filteredItems = fetchedItems.filter(item => {
         const score = calculateFreshnessScore(item, source.authorityWeight);
         return score >= minViralityScore;
@@ -47,15 +53,15 @@ async function newsSourcingLogic(
     }
   }
 
-  // Sort by freshness score descending
-  items.sort((a, b) => {
-    // We need to find the source weight again or store it in the item for sorting
-    // For now, we'll re-calculate or assume default if not easily accessible
-    return calculateFreshnessScore(b) - calculateFreshnessScore(a);
-  });
+  // Sort by freshness score descending using the sortNewsItems utility
+  const getAuthorityWeight = (item: NewsItem): number => {
+    return sourceWeights[item.source] || 0.5; // Default fallback
+  };
+
+  const sortedItems = sortNewsItems(items, getAuthorityWeight);
 
   return {
-    items,
+    items: sortedItems,
     sourceCounts
   };
 }

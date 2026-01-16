@@ -62,7 +62,7 @@ development_status:
   2-4-implement-hacker-news-source: done
   2-5-implement-reddit-source: done
   2-6-implement-arxiv-rss-source: done
-  2-7-implement-freshness-scoring: backlog
+  2-7-implement-freshness-scoring: done
   2-8-implement-topic-selection: backlog
   2-9-create-research-stage: backlog
   2-10-create-script-generation-stage: backlog
