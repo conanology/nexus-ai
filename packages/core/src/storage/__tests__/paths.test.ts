@@ -107,12 +107,13 @@ describe('Cloud Storage Paths', () => {
     it('should include all valid stages', () => {
       expect(STORAGE_STAGES).toContain('research');
       expect(STORAGE_STAGES).toContain('script-drafts');
+      expect(STORAGE_STAGES).toContain('script-gen');
       expect(STORAGE_STAGES).toContain('tts');
       expect(STORAGE_STAGES).toContain('audio-segments');
       expect(STORAGE_STAGES).toContain('visual-gen');
       expect(STORAGE_STAGES).toContain('thumbnails');
       expect(STORAGE_STAGES).toContain('render');
-      expect(STORAGE_STAGES.length).toBe(7);
+      expect(STORAGE_STAGES.length).toBe(8);
     });
   });
 
@@ -213,7 +214,7 @@ describe('Convenience Storage Path Helpers', () => {
 
   describe('getScriptPath', () => {
     it('should build script file path', () => {
-      expect(getScriptPath('2026-01-08')).toBe('2026-01-08/research/script.md');
+      expect(getScriptPath('2026-01-08')).toBe('2026-01-08/script-gen/script.md');
     });
   });
 

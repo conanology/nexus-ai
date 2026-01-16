@@ -1,6 +1,6 @@
 # Story 2.9: create-research-stage
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -66,7 +66,15 @@ so that the script generation stage has all the factual foundation and context n
 - [Source: _bmad-output/planning-artifacts/architecture.md#Decision 2: Stage Deployment Model]
 - [Source: _bmad-output/project-context.md#Stage Execution Template]
 
-## Dev Agent Record
+### AI-Review Findings (2026-01-16)
+
+- [x] **[CRITICAL] Insufficient `maxTokens`**: Increased `maxTokens` from 3000 to 8192 in `research.ts` to support 2,000-word briefs.
+- [x] **[HIGH] Redundant Retry Logic**: Removed outer `withRetry` in `executeResearch` to avoid "Retry Storms" (GeminiLLMProvider handles retries internally).
+- [x] **[MEDIUM] Structured Logging**: Added comprehensive logging for prompt building, LLM generation, and storage uploads.
+- [x] **[MEDIUM] Language Support**: Updated research prompt to support `document_output_language` from config.
+- [x] **[LOW] Type Safety**: Improved `CostTracker` extraction with proper type checking.
+
+### Dev Agent Record
 
 ### Agent Model Used
 

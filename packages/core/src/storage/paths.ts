@@ -136,6 +136,7 @@ export function isValidDateFormat(date: string): boolean {
 export type StorageStage =
   | 'research'
   | 'script-drafts'
+  | 'script-gen'
   | 'tts'
   | 'audio-segments'
   | 'visual-gen'
@@ -148,6 +149,7 @@ export type StorageStage =
 export const STORAGE_STAGES: StorageStage[] = [
   'research',
   'script-drafts',
+  'script-gen',
   'tts',
   'audio-segments',
   'visual-gen',
@@ -229,10 +231,10 @@ export function getResearchPath(date: string): string {
 /**
  * Get final script storage path
  * @param date - Pipeline date
- * @returns Path: {date}/research/script.md
+ * @returns Path: {date}/script-gen/script.md
  */
 export function getScriptPath(date: string): string {
-  return buildStoragePath(date, 'research', 'script.md');
+  return buildStoragePath(date, 'script-gen', 'script.md');
 }
 
 /**

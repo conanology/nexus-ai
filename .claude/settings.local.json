@@ -32,7 +32,12 @@
       "Bash(pnpm build:*)",
       "Bash(pnpm vitest run:*)",
       "Bash(pnpm test:run:*)",
-      "Bash(pnpm run:*)"
+      "Bash(pnpm run:*)",
+      "Bash(pnpm -F @nexus-ai/core build:*)",
+      "Bash(pnpm -F @nexus-ai/script-gen build:*)",
+      "Bash(pnpm -F @nexus-ai/script-gen test:run:*)",
+      "Bash(pnpm -F @nexus-ai/core test:run:*)",
+      "Bash(pnpm -F @nexus-ai/research test:run:*)"
     ]
   }
 }

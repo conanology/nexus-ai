@@ -44,10 +44,6 @@ vi.mock('@nexus-ai/core', async () => {
         warnings: [],
       };
     }),
-    withRetry: vi.fn(async (fn) => {
-      const result = await fn();
-      return { result, attempts: 1 };
-    }),
     withFallback: vi.fn(async (providers, fn) => {
       const provider = providers[0];
       const result = await fn(provider);
