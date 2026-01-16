@@ -23,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "@nexus-ai/core": "workspace:*",
+    "fast-xml-parser": "^5.3.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {
