@@ -67,7 +67,7 @@ development_status:
   2-9-create-research-stage: done
   2-10-create-script-generation-stage: done
   2-11-create-pronunciation-dictionary: done
-  2-12-implement-term-extraction-and-flagging: backlog
+  2-12-implement-term-extraction-and-flagging: done
   2-13-implement-ssml-tagging: backlog
   epic-2-retrospective: optional
 

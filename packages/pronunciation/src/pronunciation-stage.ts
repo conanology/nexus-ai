@@ -6,6 +6,7 @@ import {
   CostTracker,
 } from '@nexus-ai/core';
 import { PronunciationClient } from './pronunciation-client.js';
+import { extractTerms } from './extractor.js';
 
 /**
  * Input for the pronunciation stage
@@ -52,8 +53,9 @@ export async function executePronunciation(
         'Pronunciation stage started'
       );
 
-      // 1. Extract potential technical terms
-      const terms = extractTechnicalTerms(data.script);
+      // 1. Extract potential technical terms from extractor.ts
+      const termList = extractTerms(data.script, { includeContext: false });
+      const terms = new Set(termList);
       logger.debug({ termCount: terms.size }, 'Extracted technical terms');
 
       // 2. Look up terms in dictionary
@@ -108,30 +110,7 @@ export async function executePronunciation(
   );
 }
 
-/**
- * Extract potential technical terms from script
- * Simple implementation: capitalized words (proper nouns), acronyms, camelCase
- */
-function extractTechnicalTerms(script: string): Set<string> {
-  const terms = new Set<string>();
-  
-  // Match potential technical terms:
-  // 1. Acronyms (2+ uppercase letters)
-  // 2. Capitalized words (Proper Nouns)
-  // 3. camelCase/PascalCase words
-  // 4. Words with numbers (GPT-4)
-  const regex = /\b([A-Z]{2,}|[A-Z][a-z]+[A-Z][a-zA-Z]*|[A-Z][a-z0-9]+(-[A-Z0-9][a-z0-9]*)*)\b/g;
-  
-  let match;
-  while ((match = regex.exec(script)) !== null) {
-    const term = match[0];
-    // Filter out common English words at start of sentence if needed
-    // For now, keep it simple
-    terms.add(term);
-  }
-  
-  return terms;
-}
+
 
 /**
  * Replace terms in script with SSML tags
