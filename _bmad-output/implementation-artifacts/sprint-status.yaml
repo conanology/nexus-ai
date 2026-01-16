@@ -60,7 +60,7 @@ development_status:
   2-2-implement-github-trending-source: done
   2-3-implement-huggingface-papers-source: done
   2-4-implement-hacker-news-source: done
-  2-5-implement-reddit-source: backlog
+  2-5-implement-reddit-source: done
   2-6-implement-arxiv-rss-source: backlog
   2-7-implement-freshness-scoring: backlog
   2-8-implement-topic-selection: backlog
