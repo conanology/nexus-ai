@@ -196,6 +196,22 @@ importers:
         specifier: ^1.1.0
         version: 1.6.1(@types/node@20.19.27)(terser@5.44.1)
 
+  packages/visual-gen:
+    dependencies:
+      '@nexus-ai/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@nexus-ai/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.1.0
+        version: 1.6.1(@types/node@20.19.27)(terser@5.44.1)
+
 packages:
 
   '@babel/helper-string-parser@7.27.1':
