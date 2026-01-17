@@ -9,6 +9,7 @@ import {
   CodeHighlight,
   BrandedTransition,
   LowerThird,
+  TextOnGradient,
 } from '../components';
 
 // Mock Remotion hooks and functions
@@ -129,6 +130,29 @@ describe('Visual Components', () => {
         subtitle: 'Test Title'
       });
       expect(React.isValidElement(result)).toBe(true);
+    });
+  });
+
+  describe('TextOnGradient', () => {
+    it('should render without crashing', () => {
+      const result = renderComponent(TextOnGradient, {
+        text: 'Test Visual Cue'
+      });
+      expect(result).not.toBeNull();
+      expect(React.isValidElement(result)).toBe(true);
+      
+      // Basic content verification via JSON serialization
+      // This ensures the text prop is actually being passed down into the React tree
+      const json = JSON.stringify(result);
+      expect(json).toContain('Test Visual Cue');
+    });
+
+    it('should use default text when prop is missing', () => {
+      const result = renderComponent(TextOnGradient, {});
+      expect(result).not.toBeNull();
+      
+      const json = JSON.stringify(result);
+      expect(json).toContain('Visual Scene'); // Default text from component
     });
   });
 });

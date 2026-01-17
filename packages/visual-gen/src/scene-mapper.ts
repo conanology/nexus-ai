@@ -4,7 +4,7 @@
  */
 
 import type { VisualCue, SceneMapping } from './types.js';
-import { GeminiLLMProvider, withRetry } from '@nexus-ai/core';
+import { GeminiLLMProvider, withRetry, logger } from '@nexus-ai/core';
 
 /**
  * Keyword to component mapping
@@ -119,6 +119,39 @@ export class SceneMapper {
   }
 
   /**
+   * Map cue with TextOnGradient fallback
+   * Tries keyword matching first, then TextOnGradient if no match
+   */
+  async mapCueWithFallback(cue: VisualCue): Promise<SceneMapping> {
+    // Try keyword matching first
+    const keywordResult = await this.mapCue(cue);
+    if (keywordResult) {
+      return keywordResult;
+    }
+
+    // Keyword matching failed, use TextOnGradient fallback
+    logger.warn({
+      msg: '[VisualGen] Unmapped cue',
+      cue: cue.description,
+      index: cue.index,
+    });
+
+    // Track fallback usage for quality metrics
+    this.fallbackUsage++;
+
+    // Return TextOnGradient component with cue text as prop
+    return {
+      component: 'TextOnGradient',
+      props: {
+        text: cue.description,
+      },
+      duration: DEFAULT_SCENE_DURATION,
+      startTime: 0,
+      endTime: DEFAULT_SCENE_DURATION,
+    };
+  }
+
+  /**
    * Map cue using LLM
    */
   private async mapCueWithLLM(cue: VisualCue): Promise<SceneMapping | null> {
@@ -172,11 +205,20 @@ Respond with ONLY the component name.`;
    * Extract props from cue
    */
   private extractProps(cue: VisualCue): Record<string, any> {
-    // Basic extraction - in future could parse key-value pairs from context
-    return {
+    const props: Record<string, any> = {
       title: cue.description,
-      originalContext: cue.context // Include context for potential debugging/overlay
+      originalContext: cue.context
     };
+
+    // Attempt to extract numeric data for charts/metrics
+    const numbers = cue.description.match(/(\d+(?:\.\d+)?)/g);
+    if (numbers && numbers.length > 0) {
+      props.data = {
+        values: numbers.map(Number)
+      };
+    }
+
+    return props;
   }
 
   /**

@@ -47,31 +47,22 @@ export async function executeVisualGen(
       });
     }
 
-    // Step 2: Map cues to components using SceneMapper
+    // Step 2: Map cues to components using SceneMapper with TextOnGradient fallback
     const mapper = new SceneMapper();
     const sceneMappings: SceneMapping[] = [];
 
     for (const cue of visualCues) {
-      const mapping = await mapper.mapCueWithLLMFallback(cue);
-      if (mapping) {
-        sceneMappings.push(mapping);
-        logger.info({
-          msg: 'Visual cue mapped',
-          pipelineId,
-          stage: 'visual-gen',
-          cueIndex: cue.index,
-          description: cue.description,
-          component: mapping.component,
-        });
-      } else {
-        logger.warn({
-          msg: 'Failed to map visual cue',
-          pipelineId,
-          stage: 'visual-gen',
-          cueIndex: cue.index,
-          description: cue.description,
-        });
-      }
+      // Use mapCueWithFallback which always returns a mapping (TextOnGradient if no match)
+      const mapping = await mapper.mapCueWithFallback(cue);
+      sceneMappings.push(mapping);
+      logger.info({
+        msg: 'Visual cue mapped',
+        pipelineId,
+        stage: 'visual-gen',
+        cueIndex: cue.index,
+        description: cue.description,
+        component: mapping.component,
+      });
     }
 
     // Step 3: Generate timeline aligned to audio duration
@@ -111,18 +102,22 @@ export async function executeVisualGen(
       ? (fallbackUsage / visualCues.length) * 100
       : 0;
 
-    // Warn if fallback usage >30%
+    // Check if quality is DEGRADED (>30% fallback usage)
     const warnings: string[] = [];
+    let qualityStatus: 'OK' | 'DEGRADED' = 'OK';
+
     if (fallbackPercentage > 30) {
-      const warning = `High LLM fallback usage: ${fallbackPercentage.toFixed(1)}% (${fallbackUsage}/${visualCues.length} cues)`;
+      qualityStatus = 'DEGRADED';
+      const warning = `High TextOnGradient fallback usage: ${fallbackPercentage.toFixed(1)}% (${fallbackUsage}/${visualCues.length} cues)`;
       warnings.push(warning);
       logger.warn({
-        msg: 'High LLM fallback usage detected',
+        msg: 'High fallback usage detected - quality DEGRADED',
         pipelineId,
         stage: 'visual-gen',
         fallbackUsage,
         totalCues: visualCues.length,
         percentage: fallbackPercentage,
+        status: 'DEGRADED',
       });
     }
 
@@ -145,20 +140,6 @@ export async function executeVisualGen(
       });
     }
 
-    // Check for unmapped cues
-    const unmappedCues = visualCues.length - sceneMappings.length;
-    if (unmappedCues > 0) {
-      const warning = `Unmapped visual cues: ${unmappedCues}`;
-      warnings.push(warning);
-      logger.error({
-        msg: 'Some visual cues could not be mapped',
-        pipelineId,
-        stage: 'visual-gen',
-        unmappedCount: unmappedCues,
-        totalCues: visualCues.length,
-      });
-    }
-
     // Build quality metrics
     const quality: QualityMetrics = {
       stage: 'visual-gen',
@@ -167,24 +148,17 @@ export async function executeVisualGen(
         sceneCount: timeline.scenes.length,
         fallbackUsage,
         fallbackPercentage,
-        unmappedCues,
         timelineAlignmentError: alignmentError,
+        qualityStatus,
       },
     };
 
     // Build cost breakdown
-    const llmCost = mapper.getTotalCost();
+    // TextOnGradient fallback has no cost (no LLM calls)
     const cost: StageCostSummary = {
       stage: 'visual-gen',
-      totalCost: llmCost,
-      breakdown: [
-        {
-          service: 'gemini-llm',
-          cost: llmCost,
-          tokens: {},
-          callCount: fallbackUsage,
-        },
-      ],
+      totalCost: 0,
+      breakdown: [],
       timestamp: new Date().toISOString(),
     };
 
@@ -213,7 +187,7 @@ export async function executeVisualGen(
       cost,
       durationMs: Date.now() - startTime,
       provider: {
-        name: 'keyword-matching',
+        name: fallbackUsage > 0 ? 'keyword-matching+TextOnGradient' : 'keyword-matching',
         tier: fallbackUsage > 0 ? 'fallback' : 'primary',
         attempts: 1,
       },
@@ -227,6 +201,8 @@ export async function executeVisualGen(
       durationMs: output.durationMs,
       sceneCount: timeline.scenes.length,
       fallbackUsage,
+      fallbackPercentage,
+      qualityStatus,
       cost: cost.totalCost,
     });
 

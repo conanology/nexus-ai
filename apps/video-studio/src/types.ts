@@ -108,3 +108,13 @@ export interface LowerThirdProps {
     backgroundColor?: string;
   };
 }
+
+export interface TextOnGradientProps {
+  text?: string;
+  data?: {
+    text?: string;
+  };
+  style?: {
+    fontSize?: number;
+  };
+}

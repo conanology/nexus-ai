@@ -377,5 +377,38 @@ describe('SceneMapper', () => {
       const mapping = await mapper.mapCue(cue);
       expect(mapping).toBeNull();
     });
+
+    it('should map to TextOnGradient fallback when no keyword match found', async () => {
+      const cue: VisualCue = {
+        index: 0,
+        description: 'some unknown visual cue for fallback',
+        context: 'test context',
+        position: 0
+      };
+
+      // Use the fallback method instead of regular mapCue
+      const mapping = await mapper.mapCueWithFallback(cue);
+      expect(mapping).not.toBeNull();
+      if (!mapping) return;
+
+      expect(mapping.component).toBe('TextOnGradient');
+      expect(mapping.props.text).toBe('some unknown visual cue for fallback');
+    });
+
+    it('should pass cue text as text prop to TextOnGradient', async () => {
+      const cue: VisualCue = {
+        index: 0,
+        description: 'special message for display',
+        context: 'test',
+        position: 0
+      };
+
+      const mapping = await mapper.mapCueWithFallback(cue);
+      expect(mapping).not.toBeNull();
+      if (!mapping) return;
+
+      expect(mapping.component).toBe('TextOnGradient');
+      expect(mapping.props.text).toBe('special message for display');
+    });
   });
 });

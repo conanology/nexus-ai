@@ -1,6 +1,6 @@
 # Story 3.5: Implement Visual Fallbacks
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -107,6 +107,9 @@ Opencode / Gemini 2.0 Flash
 -   ✅ All tests passing - TextOnGradient component tests and SceneMapper fallback tests
 -   ✅ All acceptance criteria satisfied
 -   ✅ Fallback mechanism ensures videos always render successfully (NFR1 - Reliability)
+-   ✅ Fixed untracked file issue for TextOnGradient.tsx
+-   ✅ Improved test coverage for TextOnGradient to verify rendered content
+-   ✅ Enhanced SceneMapper to extract numeric data from visual cues
 
 ### File List
 

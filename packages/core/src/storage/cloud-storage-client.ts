@@ -33,6 +33,7 @@ interface GCSFile {
   delete(): Promise<void>;
   exists(): Promise<[boolean]>;
   getSignedUrl(options: SignedUrlOptions): Promise<[string]>;
+  createWriteStream(options?: { contentType?: string; resumable?: boolean }): NodeJS.WritableStream;
 }
 
 interface SignedUrlOptions {
@@ -189,6 +190,41 @@ export class CloudStorageClient {
       const file = bucket.file(path);
       const [content] = await file.download();
       return content;
+    } catch (error) {
+      if (error instanceof NexusError) {
+        throw error;
+      }
+      throw NexusError.fromError(error, 'cloud-storage');
+    }
+  }
+
+  /**
+   * Upload a stream to Cloud Storage
+   *
+   * @param path - Storage path
+   * @param stream - Readable stream
+   * @param contentType - MIME type
+   * @returns gs:// URL of uploaded file
+   */
+  async uploadStream(
+    path: string,
+    stream: NodeJS.ReadableStream,
+    contentType: string
+  ): Promise<string> {
+    try {
+      const bucket = await this.getBucket();
+      const file = bucket.file(path);
+      const writeStream = file.createWriteStream({
+        contentType,
+        resumable: false,
+      });
+
+      return new Promise((resolve, reject) => {
+        stream
+          .pipe(writeStream)
+          .on('finish', () => resolve(`gs://${this.bucketName}/${path}`))
+          .on('error', (err) => reject(NexusError.fromError(err, 'cloud-storage')));
+      });
     } catch (error) {
       if (error instanceof NexusError) {
         throw error;

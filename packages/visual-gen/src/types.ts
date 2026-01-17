@@ -37,6 +37,7 @@ export interface SceneMapping {
   component: string;
   props: {
     title?: string;
+    text?: string;  // For TextOnGradient fallback
     data?: any;
     style?: any;
   };
@@ -54,6 +55,7 @@ export interface TimelineJSON {
     component: string;
     props: {
       title?: string;
+      text?: string;  // For TextOnGradient fallback
       data?: any;
       style?: any;
     };
