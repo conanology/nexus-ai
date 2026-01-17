@@ -35,7 +35,7 @@
 export { executeTTS } from './tts.js';
 
 // Types
-export type { TTSInput, TTSOutput, AudioQualityInfo } from './types.js';
+export type { TTSInput, TTSOutput, AudioQualityInfo, ChunkInfo, AudioSegment } from './types.js';
 
 // Audio quality utilities
 export {
@@ -44,7 +44,8 @@ export {
   calculateAverageLoudness,
   validateDuration,
   validateAudioQuality,
+  stitchAudio,
 } from './audio-quality.js';
 
-// Chunking utilities (placeholder for Story 3.2)
+// Chunking utilities
 export { chunkScript, getChunkSize } from './chunker.js';

@@ -158,14 +158,15 @@ describe('chunker', () => {
       expect(chunks.length).toBeGreaterThan(1);
     });
 
-    it('should not split mid-sentence even if chunk size exceeded', () => {
+    it('should force-split mid-sentence if chunk size exceeded and no punctuation', () => {
       const longSentence = 'This is an extremely long sentence that goes on and on without any punctuation for a very long time because we want to test how the chunker handles a single sentence that exceeds the maximum chunk size but has no natural breaking point in the middle.';
 
       const chunks = chunkScript(longSentence, 50);
 
-      // Should create chunk even if it exceeds limit (can't split mid-sentence)
-      expect(chunks).toHaveLength(1);
-      expect(chunks[0].text.length).toBeGreaterThan(50);
+      // Should split into multiple chunks by words
+      expect(chunks.length).toBeGreaterThan(1);
+      // Reconstructed text should match (ignoring extra spaces from split logic)
+      expect(chunks.map(c => c.text).join('').replace(/\s+/g, ' ').trim()).toBe(longSentence.replace(/\s+/g, ' ').trim());
     });
 
     it('should handle SSML tag that spans across forced chunk boundary', () => {

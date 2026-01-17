@@ -3,7 +3,7 @@
  * @module @nexus-ai/tts/audio-quality
  */
 
-import { AudioQualityInfo } from './types.js';
+import { AudioQualityInfo, AudioSegment } from './types.js';
 import { createLogger } from '@nexus-ai/core/observability';
 
 const logger = createLogger('nexus.tts.audio-quality');
@@ -294,4 +294,298 @@ export function validateAudioQuality(
   }, 'Audio quality validation complete');
 
   return quality;
+}
+
+// =============================================================================
+// Audio Stitching Functions
+// =============================================================================
+
+/**
+ * Stitch multiple audio segments into a single WAV file
+ *
+ * Concatenates WAV segments with:
+ * - Configurable silence padding between segments
+ * - Audio level normalization across all segments
+ * - Proper WAV header generation
+ *
+ * @param segments - Array of audio segments to stitch
+ * @param silenceDurationMs - Silence padding between segments (default: 200ms)
+ * @returns Buffer containing stitched WAV audio
+ *
+ * @example
+ * ```typescript
+ * const segments = [
+ *   { index: 0, audioBuffer: buffer1, durationSec: 120 },
+ *   { index: 1, audioBuffer: buffer2, durationSec: 110 },
+ * ];
+ * const stitched = stitchAudio(segments, 200);
+ * ```
+ */
+export function stitchAudio(
+  segments: AudioSegment[],
+  silenceDurationMs: number = 200
+): Buffer {
+  logger.info({
+    segmentCount: segments.length,
+    silenceDurationMs,
+  }, 'Starting audio stitching');
+
+  // Sort segments by index to ensure correct order
+  const sorted = segments.sort((a, b) => a.index - b.index);
+
+  // Extract PCM data from each segment
+  const pcmBuffers = sorted.map((segment) => extractPCMData(segment.audioBuffer));
+
+  // Normalize audio levels across all segments
+  const normalized = normalizeAudioLevels(pcmBuffers);
+
+  // Generate silence padding (44.1kHz, 16-bit stereo)
+  const sampleRate = 44100;
+  const silenceBuffer = generateSilence(silenceDurationMs, sampleRate);
+
+  // Concatenate segments with silence padding
+  const combined: Buffer[] = [];
+  normalized.forEach((pcmBuffer, i) => {
+    combined.push(pcmBuffer);
+    // Add silence between segments (but not after last segment)
+    if (i < normalized.length - 1) {
+      combined.push(silenceBuffer);
+    }
+  });
+
+  // Combine all PCM buffers
+  const totalPcmData = Buffer.concat(combined);
+
+  // Create WAV file with proper header
+  const wavBuffer = createWAVBuffer(totalPcmData, sampleRate);
+
+  logger.info({
+    totalPcmBytes: totalPcmData.length,
+    totalWavBytes: wavBuffer.length,
+    segmentCount: segments.length,
+  }, 'Audio stitching complete');
+
+  return wavBuffer;
+}
+
+/**
+ * Extract PCM data from WAV buffer by finding the 'data' chunk
+ *
+ * Parses RIFF header to locate the data chunk, handling variable header sizes.
+ *
+ * @param wavBuffer - Complete WAV file buffer
+ * @returns PCM data without WAV header
+ */
+function extractPCMData(wavBuffer: Buffer): Buffer {
+  // Minimum WAV header size is 44 bytes
+  if (wavBuffer.length < 44) {
+    logger.warn({
+      bufferSize: wavBuffer.length,
+    }, 'WAV buffer too small, returning as-is');
+    return wavBuffer;
+  }
+
+  // Verify RIFF header
+  if (wavBuffer.toString('utf8', 0, 4) !== 'RIFF') {
+    logger.warn('Invalid WAV header: missing RIFF');
+    return wavBuffer;
+  }
+
+  // Verify WAVE format
+  if (wavBuffer.toString('utf8', 8, 12) !== 'WAVE') {
+    logger.warn('Invalid WAV header: missing WAVE');
+    return wavBuffer;
+  }
+
+  let offset = 12;
+  while (offset < wavBuffer.length) {
+    // Read chunk ID and size
+    if (offset + 8 > wavBuffer.length) break;
+    
+    const chunkId = wavBuffer.toString('utf8', offset, offset + 4);
+    const chunkSize = wavBuffer.readUInt32LE(offset + 4);
+    offset += 8;
+
+    if (chunkId === 'data') {
+      // Found data chunk
+      const end = Math.min(offset + chunkSize, wavBuffer.length);
+      return wavBuffer.subarray(offset, end);
+    }
+
+    // Skip to next chunk
+    offset += chunkSize;
+  }
+
+  logger.warn('No data chunk found in WAV buffer, falling back to fixed offset');
+  return wavBuffer.subarray(44);
+}
+
+/**
+ * Generate silence buffer (16-bit PCM, stereo)
+ *
+ * @param durationMs - Duration of silence in milliseconds
+ * @param sampleRate - Sample rate in Hz
+ * @returns Buffer of silent PCM samples
+ */
+function generateSilence(durationMs: number, sampleRate: number): Buffer {
+  // Calculate number of samples needed
+  // Stereo = 2 channels, 16-bit = 2 bytes per sample
+  const numSamples = Math.floor((durationMs / 1000) * sampleRate);
+  const bufferSize = numSamples * 2 * 2; // 2 channels * 2 bytes
+
+  // Create buffer filled with zeros (silence)
+  const silenceBuffer = Buffer.alloc(bufferSize, 0);
+
+  logger.debug({
+    durationMs,
+    sampleRate,
+    numSamples,
+    bufferSize,
+  }, 'Generated silence buffer');
+
+  return silenceBuffer;
+}
+
+/**
+ * Normalize audio levels across all segments
+ *
+ * Prevents volume jumps between segments by:
+ * 1. Finding maximum amplitude across all segments
+ * 2. Scaling all segments to 90% of max (prevents clipping)
+ *
+ * @param pcmBuffers - Array of PCM data buffers
+ * @returns Normalized PCM buffers
+ */
+function normalizeAudioLevels(pcmBuffers: Buffer[]): Buffer[] {
+  logger.debug({
+    bufferCount: pcmBuffers.length,
+  }, 'Starting audio normalization');
+
+  // Find maximum amplitude across all segments
+  let maxAmplitude = 0;
+  for (const buffer of pcmBuffers) {
+    for (let i = 0; i < buffer.length; i += 2) {
+      const sample = buffer.readInt16LE(i);
+      const amplitude = Math.abs(sample);
+      maxAmplitude = Math.max(maxAmplitude, amplitude);
+    }
+  }
+
+  // If max amplitude is zero or very low, return original buffers
+  if (maxAmplitude < 100) {
+    logger.warn({
+      maxAmplitude,
+    }, 'Max amplitude too low, skipping normalization');
+    return pcmBuffers;
+  }
+
+  // Calculate scale factor: normalize to 90% of maximum to prevent clipping
+  const targetMax = MAX_AMPLITUDE * 0.9; // 90% of 16-bit max
+  const scaleFactor = targetMax / maxAmplitude;
+
+  logger.debug({
+    maxAmplitude,
+    targetMax,
+    scaleFactor: scaleFactor.toFixed(4),
+  }, 'Calculated normalization scale factor');
+
+  // Apply normalization to all buffers
+  return pcmBuffers.map((buffer, index) => {
+    const normalized = Buffer.alloc(buffer.length);
+
+    for (let i = 0; i < buffer.length; i += 2) {
+      const sample = buffer.readInt16LE(i);
+      const normalizedSample = Math.round(sample * scaleFactor);
+
+      // Clamp to prevent overflow
+      const clampedSample = Math.max(
+        -MAX_AMPLITUDE,
+        Math.min(MAX_AMPLITUDE, normalizedSample)
+      );
+
+      normalized.writeInt16LE(clampedSample, i);
+    }
+
+    logger.debug({
+      segmentIndex: index,
+      originalSize: buffer.length,
+      normalizedSize: normalized.length,
+    }, 'Segment normalized');
+
+    return normalized;
+  });
+}
+
+/**
+ * Create WAV file buffer with proper header
+ *
+ * Generates standard WAV file with:
+ * - PCM format
+ * - 44.1kHz sample rate
+ * - 16-bit depth
+ * - Stereo (2 channels)
+ *
+ * @param pcmData - Raw PCM audio data
+ * @param sampleRate - Sample rate in Hz
+ * @returns Complete WAV file buffer
+ */
+function createWAVBuffer(pcmData: Buffer, sampleRate: number): Buffer {
+  const numChannels = 2; // Stereo
+  const bitsPerSample = 16;
+  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const dataSize = pcmData.length;
+
+  // WAV file structure:
+  // - RIFF header (12 bytes)
+  // - fmt chunk (24 bytes)
+  // - data chunk (8 bytes + PCM data)
+
+  const header = Buffer.alloc(44);
+  let offset = 0;
+
+  // RIFF header
+  header.write('RIFF', offset);
+  offset += 4;
+  header.writeUInt32LE(36 + dataSize, offset); // File size - 8
+  offset += 4;
+  header.write('WAVE', offset);
+  offset += 4;
+
+  // fmt chunk
+  header.write('fmt ', offset);
+  offset += 4;
+  header.writeUInt32LE(16, offset); // fmt chunk size
+  offset += 4;
+  header.writeUInt16LE(1, offset); // Audio format (1 = PCM)
+  offset += 2;
+  header.writeUInt16LE(numChannels, offset);
+  offset += 2;
+  header.writeUInt32LE(sampleRate, offset);
+  offset += 4;
+  header.writeUInt32LE(byteRate, offset);
+  offset += 4;
+  header.writeUInt16LE(blockAlign, offset);
+  offset += 2;
+  header.writeUInt16LE(bitsPerSample, offset);
+  offset += 2;
+
+  // data chunk
+  header.write('data', offset);
+  offset += 4;
+  header.writeUInt32LE(dataSize, offset);
+
+  // Combine header and PCM data
+  const wavBuffer = Buffer.concat([header, pcmData]);
+
+  logger.debug({
+    headerSize: header.length,
+    pcmDataSize: dataSize,
+    totalSize: wavBuffer.length,
+    sampleRate,
+    numChannels,
+    bitsPerSample,
+  }, 'Created WAV buffer');
+
+  return wavBuffer;
 }

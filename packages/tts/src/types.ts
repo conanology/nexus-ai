@@ -15,6 +15,8 @@ export interface TTSInput {
   rate?: number;
   /** Pitch adjustment (-20 to 20) */
   pitch?: number;
+  /** Maximum characters per chunk (default: 5000) */
+  maxChunkChars?: number;
 }
 
 /**
@@ -29,6 +31,8 @@ export interface TTSOutput {
   format: string;
   /** Sample rate in Hz (44100 for CD quality) */
   sampleRate: number;
+  /** Number of segments if chunking was used */
+  segmentCount?: number;
 }
 
 /**
@@ -43,4 +47,30 @@ export interface AudioQualityInfo {
   averageLoudnessDb: number;
   /** Duration validation result */
   durationValid: boolean;
+}
+
+/**
+ * Information about a script chunk
+ */
+export interface ChunkInfo {
+  /** Index of chunk in sequence (0-based) */
+  index: number;
+  /** Text content of chunk */
+  text: string;
+  /** Starting character position in original script */
+  startChar: number;
+  /** Ending character position in original script */
+  endChar: number;
+}
+
+/**
+ * Audio segment from chunk synthesis
+ */
+export interface AudioSegment {
+  /** Index of segment in sequence (0-based) */
+  index: number;
+  /** Audio data as Buffer */
+  audioBuffer: Buffer;
+  /** Duration in seconds */
+  durationSec: number;
 }

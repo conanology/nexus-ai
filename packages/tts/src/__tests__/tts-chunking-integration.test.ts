@@ -250,14 +250,13 @@ describe('TTS Chunking Integration', () => {
     });
 
     it('should handle edge case of single very long sentence', () => {
-      // Single sentence with no punctuation (can't chunk)
+      // Single sentence with no punctuation (can't chunk naturally)
       const longSentence = 'This is a very long sentence without any punctuation marks that continues for a very long time and exceeds the maximum chunk size but cannot be split because there are no sentence boundaries in the middle of it so it will remain as a single chunk even though it is over the limit';
 
       const chunks = chunkScript(longSentence, 100);
 
-      // Should create single chunk even though it exceeds limit
-      expect(chunks).toHaveLength(1);
-      expect(chunks[0].text.length).toBeGreaterThan(100);
+      // Should force split by words
+      expect(chunks.length).toBeGreaterThan(1);
     });
 
     it('should reconstruct original content from chunks', () => {

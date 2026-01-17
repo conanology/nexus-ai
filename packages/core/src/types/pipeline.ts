@@ -26,7 +26,7 @@ export interface StageConfig {
  */
 export interface ArtifactRef {
   /** Type of artifact */
-  type: 'audio' | 'video' | 'image' | 'json' | 'text';
+  type: 'audio' | 'video' | 'image' | 'json' | 'text' | 'audio-segment';
   /** GCS path (e.g., gs://nexus-ai-artifacts/...) */
   url: string;
   /** File size in bytes */

@@ -117,6 +117,8 @@ export interface TTSOptions {
   style?: 'narrative' | 'formal' | 'casual';
   /** Whether input text contains SSML tags */
   ssmlInput?: boolean;
+  /** Audio encoding format (default provider dependent) */
+  audioEncoding?: 'LINEAR16' | 'MP3' | 'OGG_OPUS' | 'MULAW' | 'ALAW';
 }
 
 /**
