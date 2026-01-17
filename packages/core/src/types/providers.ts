@@ -125,6 +125,8 @@ export interface TTSOptions {
 export interface TTSResult {
   /** GCS path to audio file */
   audioUrl: string;
+  /** Raw audio content (buffer) */
+  audioContent?: Buffer;
   /** Audio duration in seconds */
   durationSec: number;
   /** Cost in USD */

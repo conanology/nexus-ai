@@ -72,8 +72,8 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3: Media Production Pipeline
-  epic-3: backlog
-  3-1-create-tts-package: backlog
+  epic-3: in-progress
+  3-1-create-tts-package: done
   3-2-implement-audio-chunking-and-stitching: backlog
   3-3-create-visual-generation-package: backlog
   3-4-implement-remotion-video-studio: backlog

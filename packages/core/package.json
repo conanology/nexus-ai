@@ -33,6 +33,14 @@
     "./utils": {
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
+    },
+    "./quality": {
+      "types": "./dist/quality/index.d.ts",
+      "default": "./dist/quality/index.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "default": "./dist/providers/index.js"
     }
   },
   "scripts": {
@@ -54,6 +62,7 @@
     "@google-cloud/firestore": "^7.11.0",
     "@google-cloud/secret-manager": "^5.6.0",
     "@google-cloud/storage": "^7.15.0",
+    "@google-cloud/text-to-speech": "^5.8.1",
     "pino": "^10.1.1"
   },
   "devDependencies": {

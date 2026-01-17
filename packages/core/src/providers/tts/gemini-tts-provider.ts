@@ -5,6 +5,7 @@
  * @module @nexus-ai/core/providers/tts/gemini-tts-provider
  */
 
+import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import type { TTSProvider, TTSOptions, TTSResult, Voice } from '../../types/providers.js';
 import { withRetry } from '../../utils/with-retry.js';
 import { NexusError } from '../../errors/index.js';
@@ -52,6 +53,9 @@ export class GeminiTTSProvider implements TTSProvider {
   /** Model identifier */
   private readonly model: string;
 
+  /** Google Cloud TTS Client */
+  private client: TextToSpeechClient | null = null;
+
   /**
    * Create a new Gemini TTS provider
    * @param model - Model name (default: 'gemini-2.5-pro-tts')
@@ -59,6 +63,21 @@ export class GeminiTTSProvider implements TTSProvider {
   constructor(model: string = DEFAULT_MODEL) {
     this.model = model;
     this.name = model;
+  }
+
+  /**
+   * Initialize the Google Cloud TTS client
+   */
+  private async getClient(): Promise<TextToSpeechClient> {
+    if (!this.client) {
+      // Ensure API key is available (though Client uses ADC or API key from options)
+      // In production, we might pass credentials explicitly from Secret Manager
+      // For now, we assume ADC or configured environment
+      const apiKey = await getSecret('nexus-gemini-api-key').catch(() => undefined);
+      
+      this.client = new TextToSpeechClient(apiKey ? { apiKey } : undefined);
+    }
+    return this.client;
   }
 
   /**
@@ -70,7 +89,7 @@ export class GeminiTTSProvider implements TTSProvider {
    * @param options - Synthesis options
    * @returns TTSResult with audio file reference and metadata
    */
-  async synthesize(text: string, _options: TTSOptions): Promise<TTSResult> {
+  async synthesize(text: string, options: TTSOptions): Promise<TTSResult> {
     // Validate input
     if (!text || text.trim().length === 0) {
       throw NexusError.critical(
@@ -81,36 +100,55 @@ export class GeminiTTSProvider implements TTSProvider {
       );
     }
 
-    const apiKey = await getSecret('nexus-gemini-api-key');
+    const client = await this.getClient();
 
     const retryResult = await withRetry(
       async () => {
         try {
-          // TODO: Story 1.6 - Replace with actual Google Cloud TTS API call
-          // For now, this is a placeholder that would be replaced with:
-          //
-          // import { TextToSpeechClient } from '@google-cloud/text-to-speech';
-          // const client = new TextToSpeechClient();
-          // const [response] = await client.synthesizeSpeech({
-          //   input: options.ssmlInput ? { ssml: text } : { text },
-          //   voice: {
-          //     languageCode: options.language ?? 'en-US',
-          //     name: options.voice,
-          //   },
-          //   audioConfig: {
-          //     audioEncoding: 'LINEAR16',
-          //     sampleRateHertz: OUTPUT_SAMPLE_RATE,
-          //     speakingRate: options.speakingRate ?? 1.0,
-          //     pitch: options.pitch ?? 0,
-          //   },
-          // });
+          // Construct request
+          const request = {
+            input: options.ssmlInput ? { ssml: text } : { text },
+            voice: {
+              languageCode: options.language ?? 'en-US',
+              name: options.voice ?? 'en-US-Neural2-F', // Default to high quality Neural2
+            },
+            audioConfig: {
+              audioEncoding: 'LINEAR16' as const, // WAV format
+              sampleRateHertz: 44100,
+              speakingRate: options.speakingRate ?? 1.0,
+              pitch: options.pitch ?? 0,
+            },
+          };
 
-          throw NexusError.critical(
-            'NEXUS_TTS_NOT_CONFIGURED',
-            `Gemini TTS SDK not configured. Set NEXUS_GEMINI_API_KEY and implement SDK integration in Story 1.6.`,
-            'tts',
-            { model: this.model, apiKeyPresent: !!apiKey }
-          );
+          // Call API
+          const [response] = await client.synthesizeSpeech(request);
+
+          if (!response.audioContent) {
+            throw new Error('No audio content received from TTS API');
+          }
+
+          const audioBuffer = Buffer.from(response.audioContent);
+
+          // Calculate estimated cost
+          const cost = this.estimateCost(text);
+
+          // Calculate duration from buffer size
+          // 16-bit = 2 bytes, 44100 samples/sec -> 88200 bytes/sec
+          const durationSec = audioBuffer.length / 88200;
+
+          // Return result with audio content
+          const result: TTSResult = {
+            audioUrl: '', // Will be filled by Stage after upload
+            audioContent: audioBuffer,
+            durationSec: Number(durationSec.toFixed(2)),
+            cost,
+            model: this.model,
+            quality: 'primary',
+            codec: 'wav',
+            sampleRate: 44100,
+          };
+
+          return result;
         } catch (error) {
           if (error instanceof NexusError) {
             throw error;

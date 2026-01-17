@@ -5,6 +5,7 @@
  * @module @nexus-ai/core/providers/tts/chirp-provider
  */
 
+import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import type { TTSProvider, TTSOptions, TTSResult, Voice } from '../../types/providers.js';
 import { withRetry } from '../../utils/with-retry.js';
 import { NexusError } from '../../errors/index.js';
@@ -41,11 +42,14 @@ const COST_PER_CHAR = 0.000012; // ~$0.000012 per character
  * ```
  */
 export class ChirpProvider implements TTSProvider {
-  /** Provider name for withFallback tracking */
+  /** Provider name for tracking (required for withFallback) */
   readonly name: string;
 
   /** Model identifier */
   private readonly model: string;
+
+  /** Google Cloud TTS Client */
+  private client: TextToSpeechClient | null = null;
 
   /**
    * Create a new Chirp TTS provider
@@ -57,6 +61,17 @@ export class ChirpProvider implements TTSProvider {
   }
 
   /**
+   * Initialize the Google Cloud TTS client
+   */
+  private async getClient(): Promise<TextToSpeechClient> {
+    if (!this.client) {
+      const apiKey = await getSecret('nexus-gemini-api-key').catch(() => undefined);
+      this.client = new TextToSpeechClient(apiKey ? { apiKey } : undefined);
+    }
+    return this.client;
+  }
+
+  /**
    * Synthesize text to audio
    *
    * Uses withRetry internally for resilience against transient failures.
@@ -65,7 +80,7 @@ export class ChirpProvider implements TTSProvider {
    * @param options - Synthesis options
    * @returns TTSResult with audio file reference and metadata
    */
-  async synthesize(text: string, _options: TTSOptions): Promise<TTSResult> {
+  async synthesize(text: string, options: TTSOptions): Promise<TTSResult> {
     // Validate input
     if (!text || text.trim().length === 0) {
       throw NexusError.critical(
@@ -76,18 +91,47 @@ export class ChirpProvider implements TTSProvider {
       );
     }
 
-    const apiKey = await getSecret('nexus-gemini-api-key');
+    const client = await this.getClient();
 
     const retryResult = await withRetry(
       async () => {
         try {
-          // TODO: Story 1.6 - Replace with actual Chirp API call
-          throw NexusError.critical(
-            'NEXUS_TTS_NOT_CONFIGURED',
-            `Chirp TTS SDK not configured. Set NEXUS_GEMINI_API_KEY and implement SDK integration in Story 1.6.`,
-            'tts',
-            { model: this.model, apiKeyPresent: !!apiKey }
-          );
+          const request = {
+            input: options.ssmlInput ? { ssml: text } : { text },
+            voice: {
+              languageCode: options.language ?? 'en-US',
+              name: options.voice ?? 'en-US-Studio-O', // Default to Studio/Chirp voice
+            },
+            audioConfig: {
+              audioEncoding: 'LINEAR16' as const,
+              sampleRateHertz: 44100,
+              speakingRate: options.speakingRate ?? 1.0,
+              pitch: options.pitch ?? 0,
+            },
+          };
+
+          const [response] = await client.synthesizeSpeech(request);
+
+          if (!response.audioContent) {
+            throw new Error('No audio content received from TTS API');
+          }
+
+          const audioBuffer = Buffer.from(response.audioContent);
+          const cost = this.estimateCost(text);
+          const durationSec = audioBuffer.length / 88200;
+
+          const result: TTSResult = {
+            audioUrl: '', // Will be filled by Stage
+            audioContent: audioBuffer,
+            durationSec: Number(durationSec.toFixed(2)),
+            cost,
+            model: this.model,
+            quality: 'fallback',
+            codec: 'wav',
+            sampleRate: 44100,
+          };
+
+          return result;
         } catch (error) {
           if (error instanceof NexusError) {
             throw error;
