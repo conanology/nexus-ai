@@ -1,0 +1,20 @@
+{
+  "links": [
+    {
+      "name": "Cursor AI",
+      "url": "https://cursor.sh",
+      "category": "tools"
+    },
+    {
+      "name": "OpenAI API",
+      "url": "https://platform.openai.com",
+      "category": "api"
+    }
+  ],
+  "utmParams": {
+    "utm_source": "youtube",
+    "utm_medium": "video",
+    "utm_campaign": "nexus-ai"
+  },
+  "disclosureText": "Some links are affiliate links. I may earn a small commission at no extra cost to you."
+}
