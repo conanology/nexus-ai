@@ -249,3 +249,12 @@ export async function recordVideoUpload(): Promise<void> {
   const tracker = getQuotaTracker();
   await tracker.recordUsage('video_insert');
 }
+
+/**
+ * Record a thumbnail set quota usage
+ * (convenience function for stage integration)
+ */
+export async function recordThumbnailSet(): Promise<void> {
+  const tracker = getQuotaTracker();
+  await tracker.recordUsage('thumbnail_set');
+}

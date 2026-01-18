@@ -71,6 +71,8 @@ export interface YouTubeUploadInput {
   videoPath: string;         // GCS path to rendered video
   metadata: VideoMetadata;   // Title, description, tags (Story 4.2)
   privacyStatus: PrivacyStatus;
+  thumbnailUrl?: string;     // Optional GCS path to thumbnail (Story 4.3)
+  thumbnailVariant?: number; // Optional variant ID (1, 2, or 3) for A/B testing
 }
 
 /**
@@ -87,6 +89,8 @@ export interface YouTubeUploadOutput {
   publishedAt?: string;      // ISO timestamp if public
   processingStatus: ProcessingStatus;
   quotaUsed: number;         // Units consumed
+  thumbnailSet?: boolean;    // Whether thumbnail was successfully set (Story 4.3)
+  thumbnailVariant?: number; // Which thumbnail variant was used (1, 2, or 3)
 }
 
 /**

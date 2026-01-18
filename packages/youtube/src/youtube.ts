@@ -21,6 +21,8 @@ import type {
 import { QUOTA_COSTS } from './types.js';
 import { ResumableUploader } from './uploader.js';
 import { getQuotaTracker, canUploadVideo, recordVideoUpload } from './quota.js';
+import { setThumbnail } from './thumbnail.js';
+import { FirestoreClient } from '@nexus-ai/core';
 
 /**
  * Execute YouTube upload stage
@@ -55,7 +57,7 @@ export async function executeYouTubeUpload(
   input: StageInput<YouTubeUploadInput>
 ): Promise<StageOutput<YouTubeUploadOutput>> {
   return executeStage(input, 'youtube', async (data: YouTubeUploadInput, config: StageConfig) => {
-    const { pipelineId, videoPath, metadata, privacyStatus } = data;
+    const { pipelineId, videoPath, metadata, privacyStatus, thumbnailUrl } = data;
 
     // Initialize cost tracker
     const tracker = new CostTracker(pipelineId, 'youtube');
@@ -101,6 +103,29 @@ export async function executeYouTubeUpload(
     // Record quota usage after successful upload
     await recordVideoUpload();
 
+    // Set thumbnail if provided (Story 4.3)
+    let thumbnailSet = false;
+    let thumbnailVariant: number | undefined;
+
+    if (thumbnailUrl) {
+      // Select thumbnail variant (default to 1, supports future A/B testing)
+      // If variant is provided in input, use it; otherwise default to 1
+      thumbnailVariant = data.thumbnailVariant ?? 1;
+
+      // Attempt to set thumbnail (warn-on-fail, does not throw)
+      thumbnailSet = await setThumbnail(uploadResult.videoId, thumbnailUrl);
+
+      // Store thumbnail details in Firestore
+      const firestore = new FirestoreClient();
+      await firestore.setDocument(`pipelines/${pipelineId}/youtube`, 'thumbnail', {
+        thumbnailVariant,
+        thumbnailUrl,
+        thumbnailSet,
+        videoId: uploadResult.videoId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Track API costs (YouTube API is free but quota-limited)
     tracker.recordApiCall(
       'youtube-data-api',
@@ -124,6 +149,8 @@ export async function executeYouTubeUpload(
       uploadUrl: uploadResult.uploadUrl,
       processingStatus: uploadResult.processingStatus,
       quotaUsed: QUOTA_COSTS.VIDEO_INSERT,
+      thumbnailSet: thumbnailUrl ? thumbnailSet : undefined,
+      thumbnailVariant: thumbnailUrl ? thumbnailVariant : undefined,
     };
 
     // Run quality gate check

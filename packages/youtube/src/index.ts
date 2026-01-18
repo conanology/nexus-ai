@@ -23,3 +23,6 @@ export * from './youtube.js';
 // Placeholder exports for future stories (4.2, 4.4)
 export * from './metadata.js';
 export * from './scheduler.js';
+
+// Export thumbnail functionality (Story 4.3)
+export * from './thumbnail.js';
