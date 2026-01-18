@@ -158,7 +158,8 @@ export class QualityGateRegistry implements QualityGate {
 
     // thumbnail: 3 variants
     this.registerGate('thumbnail', (output: any) => {
-      const variants = Array.isArray(output.data) ? output.data.length : (output.data?.variants?.length || 0);
+      const data = output.data || output;
+      const variants = Array.isArray(data) ? data.length : (data.variants?.length || 0);
 
       let status = QualityStatus.PASS;
       let reason: string | undefined;

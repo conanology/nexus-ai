@@ -66,6 +66,7 @@ export async function executeStage<TIn, TOut>(
     const output: StageOutput<TOut> = {
       success: true,
       data: result,
+      artifacts: resultAny.artifacts,
       quality: qualityMetrics,
       cost: tracker.getSummary(),
       durationMs,

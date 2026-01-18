@@ -79,7 +79,7 @@ development_status:
   3-4-implement-remotion-video-studio: done
   3-5-implement-visual-fallbacks: done
   3-6-create-render-service: done
-  3-7-create-thumbnail-package: backlog
+  3-7-create-thumbnail-package: done
   3-8-implement-thumbnail-fallbacks: backlog
   epic-3-retrospective: optional
 
