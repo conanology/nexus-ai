@@ -2,9 +2,8 @@
  * Visual generation stage implementation
  */
 
-import type { StageInput, StageOutput, QualityMetrics, StageCostSummary, ArtifactRef } from '@nexus-ai/core';
-import { logger, CloudStorageClient } from '@nexus-ai/core';
-import { NexusError } from '@nexus-ai/core';
+import type { StageInput, StageOutput, ArtifactRef } from '@nexus-ai/core';
+import { logger, CloudStorageClient, executeStage } from '@nexus-ai/core';
 import type { VisualGenInput, VisualGenOutput, SceneMapping } from './types.js';
 import { parseVisualCues } from './visual-cue-parser.js';
 import { SceneMapper } from './scene-mapper.js';
@@ -17,18 +16,17 @@ import { generateTimeline } from './timeline.js';
 export async function executeVisualGen(
   input: StageInput<VisualGenInput>
 ): Promise<StageOutput<VisualGenOutput>> {
-  const startTime = Date.now();
-  const { pipelineId, data } = input;
+  return executeStage(input, 'visual-gen', async (data, config) => {
+    const { pipelineId } = input;
 
-  logger.info({
-    msg: 'Visual generation stage started',
-    pipelineId,
-    stage: 'visual-gen',
-    scriptLength: data.script.length,
-    audioDuration: data.audioDurationSec,
-  });
+    logger.info({
+      msg: 'Visual generation stage started',
+      pipelineId,
+      stage: 'visual-gen',
+      scriptLength: data.script.length,
+      audioDuration: data.audioDurationSec,
+    });
 
-  try {
     // Step 1: Parse visual cues from script
     const visualCues = parseVisualCues(data.script);
 
@@ -63,6 +61,18 @@ export async function executeVisualGen(
         description: cue.description,
         component: mapping.component,
       });
+    }
+
+    // Record costs from mapper (LLM usage)
+    if (config.tracker && typeof (config.tracker as any).recordApiCall === 'function') {
+      const mapperCost = mapper.getTotalCost();
+      if (mapperCost > 0) {
+        (config.tracker as any).recordApiCall(
+          'gemini-3-pro-preview', // Assuming SceneMapper uses this model
+          { input: 0, output: 0 },
+          mapperCost
+        );
+      }
     }
 
     // Step 3: Generate timeline aligned to audio duration
@@ -103,13 +113,11 @@ export async function executeVisualGen(
       : 0;
 
     // Check if quality is DEGRADED (>30% fallback usage)
-    const warnings: string[] = [];
     let qualityStatus: 'OK' | 'DEGRADED' = 'OK';
+    const MAX_FALLBACK_PERCENTAGE = 30;
 
-    if (fallbackPercentage > 30) {
+    if (fallbackPercentage > MAX_FALLBACK_PERCENTAGE) {
       qualityStatus = 'DEGRADED';
-      const warning = `High TextOnGradient fallback usage: ${fallbackPercentage.toFixed(1)}% (${fallbackUsage}/${visualCues.length} cues)`;
-      warnings.push(warning);
       logger.warn({
         msg: 'High fallback usage detected - quality DEGRADED',
         pipelineId,
@@ -128,8 +136,6 @@ export async function executeVisualGen(
       : 0;
 
     if (alignmentError > 0.05) {
-      const warning = `Timeline alignment error: ${(alignmentError * 100).toFixed(1)}%`;
-      warnings.push(warning);
       logger.warn({
         msg: 'Timeline alignment error exceeds 5%',
         pipelineId,
@@ -141,25 +147,12 @@ export async function executeVisualGen(
     }
 
     // Build quality metrics
-    const quality: QualityMetrics = {
-      stage: 'visual-gen',
-      timestamp: new Date().toISOString(),
-      measurements: {
-        sceneCount: timeline.scenes.length,
-        fallbackUsage,
-        fallbackPercentage,
-        timelineAlignmentError: alignmentError,
-        qualityStatus,
-      },
-    };
-
-    // Build cost breakdown
-    // TextOnGradient fallback has no cost (no LLM calls)
-    const cost: StageCostSummary = {
-      stage: 'visual-gen',
-      totalCost: 0,
-      breakdown: [],
-      timestamp: new Date().toISOString(),
+    const qualityMeasurements = {
+      sceneCount: timeline.scenes.length,
+      fallbackUsage,
+      fallbackPercentage,
+      timelineAlignmentError: alignmentError,
+      qualityStatus,
     };
 
     // Build artifacts array
@@ -174,49 +167,25 @@ export async function executeVisualGen(
       },
     ];
 
-    // Build output
-    const output: StageOutput<VisualGenOutput> = {
-      success: true,
-      data: {
-        timelineUrl,
-        sceneCount: timeline.scenes.length,
-        fallbackUsage,
-      },
+    // Return data for executeStage
+    return {
+      timelineUrl,
+      sceneCount: timeline.scenes.length,
+      fallbackUsage,
+      // Metadata for executeStage
       artifacts,
-      quality,
-      cost,
-      durationMs: Date.now() - startTime,
+      quality: {
+        stage: 'visual-gen',
+        timestamp: new Date().toISOString(),
+        measurements: qualityMeasurements,
+      },
       provider: {
         name: fallbackUsage > 0 ? 'keyword-matching+TextOnGradient' : 'keyword-matching',
         tier: fallbackUsage > 0 ? 'fallback' : 'primary',
         attempts: 1,
       },
-      warnings,
-    };
+    } as any;
 
-    logger.info({
-      msg: 'Visual generation stage complete',
-      pipelineId,
-      stage: 'visual-gen',
-      durationMs: output.durationMs,
-      sceneCount: timeline.scenes.length,
-      fallbackUsage,
-      fallbackPercentage,
-      qualityStatus,
-      cost: cost.totalCost,
-    });
-
-    return output;
-
-  } catch (error) {
-    logger.error({
-      msg: 'Visual generation stage failed',
-      pipelineId,
-      stage: 'visual-gen',
-      error,
-      durationMs: Date.now() - startTime,
-    });
-
-    throw NexusError.fromError(error, 'visual-gen');
-  }
+  }, { qualityGate: 'visual-gen' });
 }
+

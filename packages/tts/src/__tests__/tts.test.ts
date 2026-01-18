@@ -36,6 +36,12 @@ vi.mock('@nexus-ai/core/storage', () => ({
 }));
 
 vi.mock('@nexus-ai/core/observability', () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
   createLogger: vi.fn(() => ({
     info: vi.fn(),
     debug: vi.fn(),
@@ -54,12 +60,16 @@ vi.mock('@nexus-ai/core/observability', () => ({
 
 vi.mock('@nexus-ai/core/quality', () => ({
   qualityGate: {
-    check: vi.fn().mockResolvedValue({
+    check: vi.fn().mockImplementation(async (stage, result) => ({
       status: 'PASS',
-      metrics: {},
+      metrics: result.quality?.measurements || {
+        silencePct: 0,
+        clippingDetected: false,
+        durationSec: 10,
+      },
       warnings: [],
-      stage: 'tts',
-    }),
+      stage: stage,
+    })),
   },
 }));
 

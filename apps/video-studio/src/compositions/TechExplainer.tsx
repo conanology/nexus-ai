@@ -27,7 +27,7 @@ export const TechExplainerSchema = z.object({
       })
     ),
   }),
-  audioUrl: z.string().url(),
+  audioUrl: z.string(),
 });
 
 export type TechExplainerProps = z.infer<typeof TechExplainerSchema>;

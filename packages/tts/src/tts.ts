@@ -5,9 +5,8 @@
 
 import type { StageInput, StageOutput, TTSProvider, TTSOptions } from '@nexus-ai/core/types';
 import { GeminiTTSProvider, ChirpProvider, WaveNetProvider } from '@nexus-ai/core/providers';
-import { withRetry, withFallback } from '@nexus-ai/core/utils';
-import { createLogger, CostTracker } from '@nexus-ai/core/observability';
-import { qualityGate } from '@nexus-ai/core/quality';
+import { withRetry, withFallback, executeStage } from '@nexus-ai/core/utils';
+import { createLogger } from '@nexus-ai/core/observability';
 import { NexusError } from '@nexus-ai/core/errors';
 import { CloudStorageClient } from '@nexus-ai/core/storage';
 import type { TTSInput, TTSOutput, AudioSegment } from './types.js';
@@ -79,21 +78,11 @@ const ttsProviders: TTSProvider[] = [
 export async function executeTTS(
   input: StageInput<TTSInput>
 ): Promise<StageOutput<TTSOutput>> {
-  const startTime = Date.now();
-  const { pipelineId, data } = input;
-  const { ssmlScript, voice, rate, pitch, maxChunkChars } = data;
+  return executeStage(input, 'tts', async (data, config) => {
+    const { pipelineId } = input;
+    const { ssmlScript, voice, rate, pitch, maxChunkChars } = data;
+    const storage = new CloudStorageClient();
 
-  // Initialize cost tracker for this stage
-  const tracker = new CostTracker(pipelineId, 'tts');
-  const storage = new CloudStorageClient();
-
-  logger.info({
-    pipelineId,
-    stage: 'tts',
-    scriptLength: ssmlScript.length,
-  }, 'TTS stage started');
-
-  try {
     // Validate input
     if (!ssmlScript || ssmlScript.trim().length === 0) {
       throw NexusError.critical(
@@ -132,10 +121,9 @@ export async function executeTTS(
         pipelineId,
         chunks[0].text,
         ttsOptions,
-        tracker,
+        config.tracker as any, // Cast because executeStage types might not fully expose tracker
         storage,
-        ssmlScript,
-        startTime
+        ssmlScript
       );
     }
 
@@ -177,11 +165,13 @@ export async function executeTTS(
               const result = await provider.synthesize(chunk.text, ttsOptions);
 
               // Track cost for this attempt
-              tracker.recordApiCall(
-                provider.name,
-                { input: chunk.text.length, output: 0 },
-                result.cost
-              );
+              if (config.tracker && typeof (config.tracker as any).recordApiCall === 'function') {
+                (config.tracker as any).recordApiCall(
+                  provider.name,
+                  { input: chunk.text.length, output: 0 },
+                  result.cost
+                );
+              }
 
               return { result, provider: provider.name };
             },
@@ -293,7 +283,6 @@ export async function executeTTS(
     }, 'Stitched audio uploaded to Cloud Storage');
 
     // Estimate word count for duration validation (approximate)
-    // Remove tags to get text content length
     const textContent = ssmlScript.replace(/<[^>]+>/g, '');
     const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
 
@@ -315,43 +304,16 @@ export async function executeTTS(
       durationSec: totalDuration,
     };
 
-    logger.debug({
-      pipelineId,
-      stage: 'tts',
-      quality: qualityMeasurements,
-    }, 'Running quality gate checks on stitched audio');
-
-    // Check quality gate
-    const gateResult = await qualityGate.check('tts', {
-      quality: {
-        stage: 'tts',
-        timestamp: new Date().toISOString(),
-        measurements: qualityMeasurements,
-      },
-    });
-
-    const warnings: string[] = [];
-
-    // Add warnings from quality gate
-    if (gateResult.warnings && gateResult.warnings.length > 0) {
-      warnings.push(...gateResult.warnings);
-    }
-
-    // Warn if using fallback provider
-    if (tier === 'fallback') {
-      warnings.push(`TTS used fallback provider: ${usedProvider}`);
-    }
-
-    // Construct stage output with segment artifacts
-    const output: StageOutput<TTSOutput> = {
-      success: true,
-      data: {
-        audioUrl,
-        durationSec: totalDuration,
-        format: 'wav',
-        sampleRate,
-        segmentCount: segments.length,
-      },
+    // Construct stage result (to be processed by executeStage)
+    // We return additional properties like artifacts and provider info
+    // executeStage will pick these up
+    return {
+      audioUrl,
+      durationSec: totalDuration,
+      format: 'wav',
+      sampleRate,
+      segmentCount: segments.length,
+      // Metadata for executeStage
       artifacts: [
         {
           type: 'audio',
@@ -371,42 +333,19 @@ export async function executeTTS(
           stage: 'tts',
         })),
       ],
+      // Pass quality info for the gate
       quality: {
         stage: 'tts',
         timestamp: new Date().toISOString(),
         measurements: qualityMeasurements,
       },
-      cost: tracker.getSummary(),
-      durationMs: Date.now() - startTime,
       provider: {
         name: usedProvider,
         tier,
         attempts: totalAttempts,
       },
-      warnings,
-    };
-
-    logger.info({
-      pipelineId,
-      stage: 'tts',
-      durationMs: output.durationMs,
-      provider: output.provider,
-      segmentCount: segments.length,
-      audioDuration: totalDuration,
-      cost: output.cost,
-    }, 'TTS stage complete (multi-chunk)');
-
-    return output;
-  } catch (error) {
-    logger.error({
-      pipelineId,
-      stage: 'tts',
-      error,
-      durationMs: Date.now() - startTime,
-    }, 'TTS stage failed');
-
-    throw NexusError.fromError(error, 'tts');
-  }
+    } as any;
+  }, { qualityGate: 'tts' });
 }
 
 // =============================================================================
@@ -415,27 +354,15 @@ export async function executeTTS(
 
 /**
  * Synthesize a single chunk (no stitching needed)
- *
- * This is the optimized path for scripts under 5000 chars.
- *
- * @param pipelineId - Pipeline identifier
- * @param scriptText - SSML script text
- * @param ttsOptions - TTS synthesis options
- * @param tracker - Cost tracker instance
- * @param storage - Cloud storage client
- * @param originalScript - Original script for word count
- * @param startTime - Start timestamp
- * @returns Stage output
  */
 async function synthesizeSingleChunk(
   pipelineId: string,
   scriptText: string,
   ttsOptions: TTSOptions,
-  tracker: CostTracker,
+  tracker: any,
   storage: CloudStorageClient,
-  originalScript: string,
-  startTime: number
-): Promise<StageOutput<TTSOutput>> {
+  originalScript: string
+): Promise<any> {
   logger.debug({
     pipelineId,
     stage: 'tts',
@@ -457,11 +384,13 @@ async function synthesizeSingleChunk(
           const result = await provider.synthesize(scriptText, ttsOptions);
 
           // Track cost for this attempt
-          tracker.recordApiCall(
-            provider.name,
-            { input: scriptText.length, output: 0 },
-            result.cost
-          );
+          if (tracker && typeof tracker.recordApiCall === 'function') {
+            tracker.recordApiCall(
+              provider.name,
+              { input: scriptText.length, output: 0 },
+              result.cost
+            );
+          }
 
           return { result, provider: provider.name };
         },
@@ -496,16 +425,6 @@ async function synthesizeSingleChunk(
   const { result: ttsResult, tier } = fallbackResult.result;
   const { result: audioResult, provider: usedProvider } = ttsResult;
 
-  logger.info({
-    pipelineId,
-    stage: 'tts',
-    provider: usedProvider,
-    tier,
-    attempts: fallbackResult.attempts,
-    cost: audioResult.cost,
-    durationSec: audioResult.durationSec,
-  }, 'TTS synthesis complete');
-
   // Validate audio content exists
   if (!audioResult.audioContent) {
     throw NexusError.critical(
@@ -524,12 +443,6 @@ async function synthesizeSingleChunk(
     audioResult.audioContent,
     'audio/wav'
   );
-
-  logger.debug({
-    pipelineId,
-    stage: 'tts',
-    audioUrl,
-  }, 'Audio uploaded to Cloud Storage');
 
   // Estimate word count for duration validation
   const textContent = originalScript.replace(/<[^>]+>/g, '');
@@ -551,40 +464,11 @@ async function synthesizeSingleChunk(
     durationSec: audioResult.durationSec,
   };
 
-  logger.debug({
-    pipelineId,
-    stage: 'tts',
-    quality: qualityMeasurements,
-  }, 'Running quality gate checks');
-
-  // Check quality gate
-  const gateResult = await qualityGate.check('tts', {
-    quality: {
-      stage: 'tts',
-      timestamp: new Date().toISOString(),
-      measurements: qualityMeasurements,
-    },
-  });
-
-  const warnings: string[] = [];
-
-  if (gateResult.warnings && gateResult.warnings.length > 0) {
-    warnings.push(...gateResult.warnings);
-  }
-
-  if (tier === 'fallback') {
-    warnings.push(`TTS used fallback provider: ${usedProvider}`);
-  }
-
-  // Construct stage output
-  const output: StageOutput<TTSOutput> = {
-    success: true,
-    data: {
-      audioUrl,
-      durationSec: audioResult.durationSec,
-      format: audioResult.codec,
-      sampleRate: audioResult.sampleRate,
-    },
+  return {
+    audioUrl,
+    durationSec: audioResult.durationSec,
+    format: audioResult.codec,
+    sampleRate: audioResult.sampleRate,
     artifacts: [
       {
         type: 'audio',
@@ -600,24 +484,11 @@ async function synthesizeSingleChunk(
       timestamp: new Date().toISOString(),
       measurements: qualityMeasurements,
     },
-    cost: tracker.getSummary(),
-    durationMs: Date.now() - startTime,
     provider: {
       name: usedProvider,
       tier,
       attempts: fallbackResult.attempts,
     },
-    warnings,
   };
-
-  logger.info({
-    pipelineId,
-    stage: 'tts',
-    durationMs: output.durationMs,
-    provider: output.provider,
-    audioDuration: audioResult.durationSec,
-    cost: output.cost,
-  }, 'TTS stage complete (single-chunk)');
-
-  return output;
 }
+
