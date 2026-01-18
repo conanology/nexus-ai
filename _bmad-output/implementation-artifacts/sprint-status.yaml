@@ -80,7 +80,7 @@ development_status:
   3-5-implement-visual-fallbacks: done
   3-6-create-render-service: done
   3-7-create-thumbnail-package: done
-  3-8-implement-thumbnail-fallbacks: backlog
+  3-8-implement-thumbnail-fallbacks: done
   epic-3-retrospective: optional
 
   # Epic 4: Distribution & Publishing

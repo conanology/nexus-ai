@@ -5,8 +5,13 @@
  * @module @nexus-ai/core/providers/image/template-thumbnailer
  */
 
+import sharp from 'sharp';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 import type { ImageProvider, ImageOptions, ImageResult } from '../../types/providers.js';
 import { NexusError } from '../../errors/index.js';
+import { logger } from '../../observability/logger.js';
+import { CloudStorageClient, getThumbnailPath } from '../../storage/index.js';
 
 // =============================================================================
 // Constants
@@ -19,7 +24,108 @@ const PROVIDER_NAME = 'template-thumbnailer';
 const VARIANT_COUNT = 3;
 
 /** Available template styles */
-const TEMPLATE_STYLES = ['tech-blue', 'news-red', 'ai-gradient'] as const;
+const TEMPLATE_STYLES = ['variant-1-bold', 'variant-2-visual', 'variant-3-mixed'] as const;
+
+/** Template dimensions */
+const THUMBNAIL_WIDTH = 1280;
+const THUMBNAIL_HEIGHT = 720;
+
+/** Text rendering configuration */
+const TEXT_CONFIG = {
+  fontSize: 64,
+  fontFamily: 'Roboto-Bold',
+  color: '#FFFFFF',
+  maxWidth: 1100, // Safe area for text
+  lineHeight: 80,
+  y: 300, // Vertical position to start text
+} as const;
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Wrap text to fit within a maximum width
+ *
+ * Splits text into lines that fit within the specified character limit.
+ * Attempts to break at word boundaries when possible.
+ *
+ * @param text - Text to wrap
+ * @param maxCharsPerLine - Maximum characters per line (approximate)
+ * @returns Array of text lines
+ */
+function wrapText(text: string, maxCharsPerLine: number = 30): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (testLine.length <= maxCharsPerLine) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      currentLine = word;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
+
+/**
+ * Create SVG text overlay for thumbnail
+ *
+ * @param lines - Text lines to render
+ * @param fontSize - Font size in pixels
+ * @param lineHeight - Line height in pixels
+ * @param startY - Starting Y position
+ * @returns SVG text element as string
+ */
+function createTextSVG(
+  lines: string[],
+  fontSize: number,
+  lineHeight: number,
+  startY: number
+): string {
+      const textElements = lines
+        .map((line, index) => {
+          const y = startY + (index * lineHeight);
+          // Escape XML special characters
+          const escapedLine = line
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+
+          return `<text
+        x="50%"
+        y="${y}"
+        font-family="${TEXT_CONFIG.fontFamily}, sans-serif"
+        font-size="${fontSize}"
+        font-weight="bold"
+        fill="white"
+        text-anchor="middle"
+        stroke="black"
+        stroke-width="2"
+        paint-order="stroke fill"
+      >${escapedLine}</text>`;
+        })
+        .join('\n');
+
+  return `
+    <svg width="${THUMBNAIL_WIDTH}" height="${THUMBNAIL_HEIGHT}">
+      ${textElements}
+    </svg>
+  `;
+}
 
 // =============================================================================
 // TemplateThumbnailer
@@ -72,21 +178,69 @@ export class TemplateThumbnailer implements ImageProvider {
       );
     }
 
-    try {
-      // TODO: Story 3.7/3.8 - Implement actual template rendering
-      // For now, this returns placeholder paths that would be replaced with:
-      //
-      // 1. Load template images from data/templates/thumbnails/
-      // 2. Use sharp or canvas to overlay title text
-      // 3. Save rendered images to GCS
-      // 4. Return GCS URLs
+    const storage = new CloudStorageClient();
+    const pipelineId = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const imageUrls: string[] = [];
 
-      // For placeholder, generate GCS-style paths
-      const timestamp = new Date().toISOString().split('T')[0];
-      const imageUrls = TEMPLATE_STYLES.slice(0, VARIANT_COUNT).map(
-        (style, index) =>
-          `gs://nexus-ai-artifacts/${timestamp}/thumbnails/template-${style}-${index + 1}.png`
-      );
+    logger.info({
+      provider: this.name,
+      prompt,
+      variantCount: VARIANT_COUNT,
+    }, 'Generating template thumbnails');
+
+    try {
+      // Wrap text to fit within safe area
+      const lines = wrapText(prompt, 30);
+
+      // Generate each variant
+      for (let i = 0; i < VARIANT_COUNT; i++) {
+        const templateName = TEMPLATE_STYLES[i];
+        const variantNum = i + 1;
+
+        // Load template image
+        const templatePath = join(process.cwd(), 'data', 'templates', 'thumbnails', `${templateName}.png`);
+
+        logger.debug({ templatePath, variant: variantNum }, 'Loading template');
+
+        const templateBuffer = await readFile(templatePath);
+
+        // Create text overlay SVG
+        const textSVG = createTextSVG(
+          lines,
+          TEXT_CONFIG.fontSize,
+          TEXT_CONFIG.lineHeight,
+          TEXT_CONFIG.y
+        );
+
+        // Composite text over template
+        const outputBuffer = await sharp(templateBuffer)
+          .composite([
+            {
+              input: Buffer.from(textSVG),
+              top: 0,
+              left: 0,
+            },
+          ])
+          .png()
+          .toBuffer();
+
+        // Upload to Cloud Storage
+        const targetPath = getThumbnailPath(pipelineId, variantNum);
+        const gsUrl = await storage.uploadFile(targetPath, outputBuffer, 'image/png');
+
+        logger.debug({
+          variant: variantNum,
+          gsUrl,
+          textLines: lines.length,
+        }, 'Generated template thumbnail');
+
+        imageUrls.push(gsUrl);
+      }
+
+      logger.info({
+        provider: this.name,
+        variantCount: imageUrls.length,
+      }, 'Template thumbnails generated successfully');
 
       return {
         imageUrls,
@@ -96,6 +250,10 @@ export class TemplateThumbnailer implements ImageProvider {
         generatedAt: new Date().toISOString(),
       };
     } catch (error) {
+      logger.error({
+        provider: this.name,
+        error,
+      }, 'Template thumbnail generation failed');
       throw NexusError.fromError(error, 'image');
     }
   }

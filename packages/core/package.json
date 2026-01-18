@@ -63,7 +63,8 @@
     "@google-cloud/secret-manager": "^5.6.0",
     "@google-cloud/storage": "^7.15.0",
     "@google-cloud/text-to-speech": "^5.8.1",
-    "pino": "^10.1.1"
+    "pino": "^10.1.1",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@nexus-ai/config": "workspace:*",
