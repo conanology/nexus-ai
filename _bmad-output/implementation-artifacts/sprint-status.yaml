@@ -86,7 +86,7 @@ development_status:
   # Epic 4: Distribution & Publishing
   epic-4: in-progress
   4-1-create-youtube-package: done
-  4-2-implement-video-metadata: ready-for-dev
+  4-2-implement-video-metadata: done
   4-3-implement-thumbnail-upload: backlog
   4-4-implement-scheduled-publishing: backlog
   4-5-create-twitter-package: backlog

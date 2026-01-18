@@ -4,6 +4,7 @@
  */
 
 import type { StageInput, StageOutput } from '@nexus-ai/core';
+import type { NewsItem } from '@nexus-ai/news-sourcing';
 
 /**
  * Video metadata for YouTube upload
@@ -15,6 +16,46 @@ export interface VideoMetadata {
   categoryId: string;
   defaultLanguage?: string;
   defaultAudioLanguage?: string;
+  madeForKids?: boolean;
+  containsSyntheticMedia?: boolean;
+}
+
+/**
+ * Options for metadata generation
+ */
+export interface MetadataGenerationOptions {
+  topic: NewsItem;
+  script: string;
+  sourceUrls: string[];
+  audioDuration?: number;
+  pipelineId: string;
+}
+
+/**
+ * Chapter marker for YouTube video
+ */
+export interface ChapterMarker {
+  timestamp: string;  // Format: "0:00"
+  title: string;
+}
+
+/**
+ * Affiliate link definition
+ */
+export interface AffiliateLink {
+  name: string;
+  url: string;
+  category: string;
+  fullUrl?: string; // With UTM params
+}
+
+/**
+ * Configuration for affiliate links
+ */
+export interface AffiliateConfig {
+  links: AffiliateLink[];
+  utmParams: Record<string, string>;
+  disclosureText: string;
 }
 
 /**
