@@ -22,6 +22,7 @@ import { QUOTA_COSTS } from './types.js';
 import { ResumableUploader } from './uploader.js';
 import { getQuotaTracker, canUploadVideo, recordVideoUpload } from './quota.js';
 import { setThumbnail } from './thumbnail.js';
+import { scheduleVideo, calculatePublishTime } from './scheduler.js';
 import { FirestoreClient } from '@nexus-ai/core';
 
 /**
@@ -117,13 +118,45 @@ export async function executeYouTubeUpload(
 
       // Store thumbnail details in Firestore
       const firestore = new FirestoreClient();
-      await firestore.setDocument(`pipelines/${pipelineId}/youtube`, 'thumbnail', {
-        thumbnailVariant,
-        thumbnailUrl,
-        thumbnailSet,
-        videoId: uploadResult.videoId,
-        timestamp: new Date().toISOString(),
+      await firestore.updateDocument(`pipelines/${pipelineId}/youtube`, {
+        thumbnail: {
+          thumbnailVariant,
+          thumbnailUrl,
+          thumbnailSet,
+          videoId: uploadResult.videoId,
+          timestamp: new Date().toISOString(),
+        },
       });
+    }
+
+    // Schedule video for publication (Story 4.4)
+    // Only schedule if video was uploaded as private
+    let scheduledFor: string | undefined;
+    let videoUrl: string = uploadResult.uploadUrl;
+    
+    if (privacyStatus === 'private') {
+      const scheduleResult = await scheduleVideo(uploadResult.videoId);
+      scheduledFor = scheduleResult.scheduledFor;
+      videoUrl = scheduleResult.videoUrl;
+
+      // Store scheduling details in Firestore (with error handling)
+      try {
+        const firestore = new FirestoreClient();
+        await firestore.updateDocument(`pipelines/${pipelineId}/youtube`, {
+          scheduledFor: scheduledFor,
+          videoId: uploadResult.videoId,
+          videoUrl: videoUrl,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (firestoreError) {
+        // Log warning but don't fail - video is already scheduled on YouTube
+        // Firestore is for state tracking only
+        console.warn('Failed to persist scheduling details to Firestore', {
+          pipelineId,
+          videoId: uploadResult.videoId,
+          error: firestoreError,
+        });
+      }
     }
 
     // Track API costs (YouTube API is free but quota-limited)
