@@ -13,6 +13,7 @@ import {
   NexusError,
   CostTracker,
   qualityGate,
+  createLogger,
 } from '@nexus-ai/core';
 import type {
   YouTubeUploadInput,
@@ -24,6 +25,8 @@ import { getQuotaTracker, canUploadVideo, recordVideoUpload } from './quota.js';
 import { setThumbnail } from './thumbnail.js';
 import { scheduleVideo, calculatePublishTime } from './scheduler.js';
 import { FirestoreClient } from '@nexus-ai/core';
+
+const logger = createLogger('youtube.stage');
 
 /**
  * Execute YouTube upload stage
@@ -151,11 +154,11 @@ export async function executeYouTubeUpload(
       } catch (firestoreError) {
         // Log warning but don't fail - video is already scheduled on YouTube
         // Firestore is for state tracking only
-        console.warn('Failed to persist scheduling details to Firestore', {
+        logger.warn({
           pipelineId,
           videoId: uploadResult.videoId,
           error: firestoreError,
-        });
+        }, 'Failed to persist scheduling details to Firestore');
       }
     }
 

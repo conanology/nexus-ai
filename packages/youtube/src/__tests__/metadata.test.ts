@@ -25,13 +25,70 @@ const mockFirestore = {
     set: vi.fn().mockResolvedValue({})
 };
 
+// Mock fs/promises to return affiliate config
+vi.mock('fs/promises', () => ({
+    readFile: vi.fn().mockResolvedValue(JSON.stringify({
+        links: [
+            { name: 'Tool1', url: 'https://example.com/tool1', category: 'AI' },
+            { name: 'Tool2', url: 'https://example.com/tool2', category: 'ML' }
+        ],
+        utmParams: { utm_source: 'nexus', utm_medium: 'video', utm_campaign: 'affiliate' },
+        disclosureText: 'Some links are affiliate links.'
+    }))
+}));
+
 vi.mock('@nexus-ai/core', async () => {
+    // Mock NexusError class with static factory methods
+    class NexusError extends Error {
+        code: string;
+        severity: string;
+        stage?: string;
+        context?: Record<string, unknown>;
+        
+        constructor(code: string, message: string, severity: string, stage?: string, context?: Record<string, unknown>) {
+            super(message);
+            this.code = code;
+            this.severity = severity;
+            this.stage = stage;
+            this.context = context;
+            this.name = 'NexusError';
+        }
+        
+        static retryable(code: string, message: string, stage?: string, context?: Record<string, unknown>): NexusError {
+            return new NexusError(code, message, 'RETRYABLE', stage, context);
+        }
+        
+        static fallback(code: string, message: string, stage?: string, context?: Record<string, unknown>): NexusError {
+            return new NexusError(code, message, 'FALLBACK', stage, context);
+        }
+        
+        static degraded(code: string, message: string, stage?: string, context?: Record<string, unknown>): NexusError {
+            return new NexusError(code, message, 'DEGRADED', stage, context);
+        }
+        
+        static recoverable(code: string, message: string, stage?: string, context?: Record<string, unknown>): NexusError {
+            return new NexusError(code, message, 'RECOVERABLE', stage, context);
+        }
+        
+        static critical(code: string, message: string, stage?: string, context?: Record<string, unknown>): NexusError {
+            return new NexusError(code, message, 'CRITICAL', stage, context);
+        }
+        
+        static fromError(error: unknown, stage?: string): NexusError {
+            if (error instanceof NexusError) {
+                return error;
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            return new NexusError('NEXUS_UNKNOWN_ERROR', message, 'CRITICAL', stage);
+        }
+    }
+    
     return {
         FirestoreClient: {
             getInstance: () => mockFirestore
         },
-        createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-        NexusError: class NexusError extends Error {}
+        createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
+        NexusError
     };
 });
 
