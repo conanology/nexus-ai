@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build artifacts (will be copied from builder stage)
+dist
+
+# Tests
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+*.test.js
+*.spec.js
+
+# Development files
+.turbo
+.git
+.gitignore
+.env
+.env.local
+*.md
+LICENSE
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

@@ -84,7 +84,7 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Distribution & Publishing
-  epic-4: in-progress
+  epic-4: done
   4-1-create-youtube-package: done
   4-2-implement-video-metadata: done
   4-3-implement-thumbnail-upload: done
@@ -93,8 +93,8 @@ development_status:
   epic-4-retrospective: optional
 
   # Epic 5: Operations & Autonomous Running
-  epic-5: backlog
-  5-1-create-orchestrator-service: backlog
+  epic-5: in-progress
+  5-1-create-orchestrator-service: review
   5-2-implement-pipeline-execution: backlog
   5-3-implement-daily-health-check: backlog
   5-4-create-notifications-package: backlog
