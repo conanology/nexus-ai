@@ -89,7 +89,7 @@ development_status:
   4-2-implement-video-metadata: done
   4-3-implement-thumbnail-upload: done
   4-4-implement-scheduled-publishing: done
-  4-5-create-twitter-package: backlog
+  4-5-create-twitter-package: done
   epic-4-retrospective: optional
 
   # Epic 5: Operations & Autonomous Running
