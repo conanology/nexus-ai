@@ -18,6 +18,7 @@ describe('Stage Registry', () => {
       'thumbnail',
       'youtube',
       'twitter',
+      'notifications',
     ];
 
     expectedStages.forEach((stage) => {
@@ -49,6 +50,7 @@ describe('Stage Registry', () => {
       'thumbnail',
       'youtube',
       'twitter',
+      'notifications',
     ];
 
     expect(stageOrder).toEqual(expectedOrder);

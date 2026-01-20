@@ -18,6 +18,7 @@ export interface StageStatus {
     message: string;
     severity: string;
   };
+  retryAttempts?: number;
 }
 
 export interface PipelineState {
@@ -109,5 +110,60 @@ export class PipelineStateManager {
         severity: error.severity || 'CRITICAL',
       },
     });
+  }
+
+  async updateQualityContext(
+    pipelineId: string,
+    qualityContext: {
+      degradedStages: string[];
+      fallbacksUsed: string[];
+      flags: string[];
+    }
+  ): Promise<void> {
+    await this.firestore.updateDocument(`pipelines/${pipelineId}`, 'state', {
+      qualityContext,
+    });
+  }
+
+  async updateRetryAttempts(
+    pipelineId: string,
+    stageName: string,
+    retryAttempts: number
+  ): Promise<void> {
+    await this.firestore.updateDocument(`pipelines/${pipelineId}`, 'state', {
+      [`stages.${stageName}.retryAttempts`]: retryAttempts,
+    });
+  }
+
+  async persistStageOutput(
+    pipelineId: string,
+    stageName: string,
+    outputData: unknown
+  ): Promise<void> {
+    // Store stage output data for resume capability
+    await this.firestore.setDocument(
+      `pipelines/${pipelineId}`,
+      `outputs/${stageName}`,
+      { data: outputData, timestamp: new Date().toISOString() }
+    );
+  }
+
+  async loadStageOutput(pipelineId: string, stageName: string): Promise<unknown> {
+    const output = await this.firestore.getDocument<{ data: unknown }>(
+      `pipelines/${pipelineId}`,
+      `outputs/${stageName}`
+    );
+    return output?.data || {};
+  }
+
+  async updateTotalCost(pipelineId: string, totalCost: number): Promise<void> {
+    await this.firestore.setDocument(
+      `pipelines/${pipelineId}`,
+      'costs',
+      { 
+        total: totalCost,
+        timestamp: new Date().toISOString(),
+      }
+    );
   }
 }

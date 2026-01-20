@@ -1,7 +1,10 @@
 // Cloud Scheduler trigger handler
 
 import type { Request, Response } from 'express';
-import { logger } from '@nexus-ai/core';
+import { createLogger } from '@nexus-ai/core';
+import { executePipeline } from '../pipeline.js';
+
+const logger = createLogger('orchestrator.handlers.scheduled');
 
 /**
  * Handles scheduled pipeline triggers from Cloud Scheduler
@@ -13,7 +16,7 @@ export async function handleScheduledTrigger(
 ): Promise<void> {
   // Verify request is from Cloud Scheduler (basic auth check)
   const authHeader = req.headers.authorization;
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.length < 10) {
     logger.warn({
       ip: req.ip,
       headers: req.headers,
@@ -30,11 +33,30 @@ export async function handleScheduledTrigger(
     source: 'cloud-scheduler',
   }, 'Scheduled pipeline trigger received');
 
-  // Pipeline execution will be implemented in Story 5.2
-  // For now, return success
-  res.status(200).json({
-    message: 'Pipeline scheduled',
+  // Execute pipeline asynchronously - don't wait for completion
+  // Cloud Run will keep the request open, but we respond immediately
+  // to avoid Cloud Scheduler timeout issues
+  executePipeline(pipelineId)
+    .then((result) => {
+      logger.info({
+        pipelineId,
+        success: result.success,
+        status: result.status,
+        completedStages: result.completedStages.length,
+        totalDurationMs: result.totalDurationMs,
+      }, 'Scheduled pipeline completed');
+    })
+    .catch((error) => {
+      logger.error({
+        pipelineId,
+        error: error.message,
+      }, 'Scheduled pipeline failed unexpectedly');
+    });
+
+  // Return immediately with 202 Accepted
+  res.status(202).json({
+    message: 'Pipeline execution started',
     pipelineId,
-    note: 'Pipeline execution not yet implemented (Story 5.2)',
+    status: 'accepted',
   });
 }

@@ -3,7 +3,7 @@ import express from 'express';
 import { logger, NEXUS_VERSION } from '@nexus-ai/core';
 import { handleHealthCheck } from './handlers/health.js';
 import { handleScheduledTrigger } from './handlers/scheduled.js';
-import { handleManualTrigger } from './handlers/manual.js';
+import { handleManualTrigger, handleResumeTrigger } from './handlers/manual.js';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
@@ -30,6 +30,7 @@ export function createServer(): express.Application {
   app.get('/health', handleHealthCheck);
   app.post('/trigger/scheduled', handleScheduledTrigger);
   app.post('/trigger/manual', handleManualTrigger);
+  app.post('/trigger/resume', handleResumeTrigger);
 
   return app;
 }

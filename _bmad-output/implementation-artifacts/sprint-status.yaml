@@ -94,8 +94,8 @@ development_status:
 
   # Epic 5: Operations & Autonomous Running
   epic-5: in-progress
-  5-1-create-orchestrator-service: review
-  5-2-implement-pipeline-execution: backlog
+  5-1-create-orchestrator-service: done
+  5-2-implement-pipeline-execution: done
   5-3-implement-daily-health-check: backlog
   5-4-create-notifications-package: backlog
   5-5-implement-cost-dashboard: backlog

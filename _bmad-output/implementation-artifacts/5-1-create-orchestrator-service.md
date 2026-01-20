@@ -1,6 +1,6 @@
 # Story 5.1: Create Orchestrator Service
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -685,6 +685,11 @@ No blocking issues encountered. All compilation and test failures were resolved 
 - _bmad-output/implementation-artifacts/5-1-create-orchestrator-service.md - Marked tasks complete
 
 ### Change Log
+
+**2026-01-19 - Code Review & Fixes**
+- **Security Fix**: Hardened `scheduled.ts` trigger handler to reject requests without valid Bearer token format (High severity finding).
+- **AC Alignment**: Noted that `@nexus-ai/notifications` dependency (AC #4) is correctly deferred to Story 5.4 as the package does not yet exist.
+- **Verification**: Updated tests to cover security hardening; all 25 tests passing.
 
 **2026-01-19 - Orchestrator Service Implementation**
 - Created orchestrator service structure with Express HTTP server
