@@ -32,6 +32,15 @@ importers:
 
   apps/orchestrator:
     dependencies:
+      '@google-cloud/monitoring':
+        specifier: ^4.0.0
+        version: 4.1.0
+      '@google-cloud/storage':
+        specifier: ^7.0.0
+        version: 7.18.0
+      '@google/generative-ai':
+        specifier: ^0.16.0
+        version: 0.16.1
       '@nexus-ai/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -857,6 +866,10 @@ packages:
     resolution: {integrity: sha512-EW/O8ktzwLfyWBOsNuhRoMi8lrC3clHM5LVFhGvO1HCsLozCOOXRAlHrYBoE6HL42Sc8yYMuCb2XqcnJ4OOEpw==}
     engines: {node: '>=14.0.0'}
 
+  '@google-cloud/monitoring@4.1.0':
+    resolution: {integrity: sha512-LNEHl4bu4HrCS17BMABeV9C+BFupqW02Pgpeu2mncHYkvQdYMr/huseqKhO/RmPqzEkU11fApysRPpv6SWyZRQ==}
+    engines: {node: '>=14.0.0'}
+
   '@google-cloud/paginator@5.0.2':
     resolution: {integrity: sha512-DJS3s0OVH4zFDB1PzjxAsHqJT6sKVbRwwML0ZBP9PbU7Yebtu/7SWMRzvO2J3nUi9pRNITCfu4LJeooM2w4pjg==}
     engines: {node: '>=14.0.0'}
@@ -880,6 +893,10 @@ packages:
   '@google-cloud/text-to-speech@5.8.1':
     resolution: {integrity: sha512-HXyZBtfQq+ETSLwWV/k3zFRWSzt+KEfiC5/OqXNNUed+lU/LEyN0CsqqEmkFfkL8BPsVIMAK2xiYCaDsKENukg==}
     engines: {node: '>=14.0.0'}
+
+  '@google/generative-ai@0.16.1':
+    resolution: {integrity: sha512-t4x4g0z/HT2BdBNfK2ua2xA/Az+SDFng4PxWjgiys/qxbh2YcrCI2rZg9/6eBkd4Iz41yjpCCDOWxsMryLJ7TA==}
+    engines: {node: '>=18.0.0'}
 
   '@grpc/grpc-js@1.14.3':
     resolution: {integrity: sha512-Iq8QQQ/7X3Sac15oB6p0FmUg/klxQvXLeileoqrTRGJYLV+/9tubbr9ipz0GKHjmXVsgFPo/+W+2cA8eNcR+XA==}
@@ -3676,6 +3693,13 @@ snapshots:
       - encoding
       - supports-color
 
+  '@google-cloud/monitoring@4.1.0':
+    dependencies:
+      google-gax: 4.6.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   '@google-cloud/paginator@5.0.2':
     dependencies:
       arrify: 2.0.1
@@ -3719,6 +3743,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@google/generative-ai@0.16.1': {}
 
   '@grpc/grpc-js@1.14.3':
     dependencies:

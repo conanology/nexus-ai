@@ -3,11 +3,21 @@
 import type { Request, Response } from 'express';
 import { createLogger } from '@nexus-ai/core';
 import { executePipeline } from '../pipeline.js';
+import {
+  performHealthCheck,
+  hasCriticalFailures,
+  handleHealthCheckFailure,
+  getHealthCheckSummary,
+} from '../health/index.js';
 
 const logger = createLogger('orchestrator.handlers.scheduled');
 
 /**
  * Handles scheduled pipeline triggers from Cloud Scheduler
+ *
+ * Executes health check before pipeline to verify all services are available.
+ * If critical services fail, pipeline is skipped and buffer video is deployed.
+ *
  * Note: Story 5.12 will configure Cloud Scheduler with OIDC authentication
  */
 export async function handleScheduledTrigger(
@@ -32,6 +42,48 @@ export async function handleScheduledTrigger(
     pipelineId,
     source: 'cloud-scheduler',
   }, 'Scheduled pipeline trigger received');
+
+  // Execute health check BEFORE pipeline (AC #6)
+  const healthResult = await performHealthCheck(pipelineId);
+
+  // Check for critical failures
+  if (!healthResult.allPassed && hasCriticalFailures(healthResult)) {
+    logger.error({
+      pipelineId,
+      healthResult,
+      criticalFailures: healthResult.criticalFailures,
+      summary: getHealthCheckSummary(healthResult),
+    }, 'Health check failed, skipping pipeline');
+
+    // Handle failure - send alerts and trigger buffer deployment
+    const failureResponse = await handleHealthCheckFailure(pipelineId, healthResult);
+
+    // Return 503 Service Unavailable
+    res.status(503).json({
+      error: 'Service unavailable',
+      message: 'Health check failed - pipeline skipped',
+      pipelineId,
+      healthResult: {
+        allPassed: healthResult.allPassed,
+        criticalFailures: healthResult.criticalFailures,
+        warnings: healthResult.warnings,
+        totalDurationMs: healthResult.totalDurationMs,
+      },
+      bufferDeploymentTriggered: failureResponse.bufferDeploymentTriggered,
+    });
+    return;
+  }
+
+  // Health check passed (or only non-critical warnings)
+  logger.info({
+    pipelineId,
+    healthResult: {
+      allPassed: healthResult.allPassed,
+      warnings: healthResult.warnings,
+      totalDurationMs: healthResult.totalDurationMs,
+    },
+    summary: getHealthCheckSummary(healthResult),
+  }, 'Health check passed, proceeding with pipeline');
 
   // Execute pipeline asynchronously - don't wait for completion
   // Cloud Run will keep the request open, but we respond immediately
@@ -58,5 +110,7 @@ export async function handleScheduledTrigger(
     message: 'Pipeline execution started',
     pipelineId,
     status: 'accepted',
+    healthStatus: healthResult.allPassed ? 'healthy' : 'degraded',
+    healthWarnings: healthResult.warnings,
   });
 }

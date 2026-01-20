@@ -3,6 +3,12 @@
 import type { Request, Response } from 'express';
 import { createLogger } from '@nexus-ai/core';
 import { executePipeline, resumePipeline } from '../pipeline.js';
+import {
+  performHealthCheck,
+  hasCriticalFailures,
+  handleHealthCheckFailure,
+  getHealthCheckSummary,
+} from '../health/index.js';
 
 const logger = createLogger('orchestrator.handlers.manual');
 
@@ -32,11 +38,55 @@ export async function handleManualTrigger(
   // Check if this is a sync or async request
   const waitForCompletion = req.body?.wait === true;
 
+  // Check if health check should be skipped (AC #6)
+  const skipHealthCheck = req.body?.skipHealthCheck === true;
+
   logger.info({
     pipelineId,
     source: 'manual',
     waitForCompletion,
+    skipHealthCheck,
   }, 'Manual pipeline trigger received');
+
+  // Execute health check unless skipped
+  if (!skipHealthCheck) {
+    const healthResult = await performHealthCheck(pipelineId);
+
+    if (!healthResult.allPassed && hasCriticalFailures(healthResult)) {
+      logger.error({
+        pipelineId,
+        healthResult,
+        criticalFailures: healthResult.criticalFailures,
+        summary: getHealthCheckSummary(healthResult),
+      }, 'Health check failed for manual trigger');
+
+      const failureResponse = await handleHealthCheckFailure(pipelineId, healthResult);
+
+      res.status(503).json({
+        error: 'Service unavailable',
+        message: 'Health check failed - pipeline skipped',
+        pipelineId,
+        healthResult: {
+          allPassed: healthResult.allPassed,
+          criticalFailures: healthResult.criticalFailures,
+          warnings: healthResult.warnings,
+          totalDurationMs: healthResult.totalDurationMs,
+        },
+        bufferDeploymentTriggered: failureResponse.bufferDeploymentTriggered,
+        hint: 'Use skipHealthCheck: true to bypass health check',
+      });
+      return;
+    }
+
+    logger.info({
+      pipelineId,
+      summary: getHealthCheckSummary(healthResult),
+    }, 'Health check passed for manual trigger');
+  } else {
+    logger.warn({
+      pipelineId,
+    }, 'Health check skipped by manual trigger');
+  }
 
   if (waitForCompletion) {
     // Synchronous execution - wait for pipeline to complete

@@ -49,3 +49,23 @@ export {
 
 export { ErrorSeverity } from './errors.js';
 
+// Health check types
+export type {
+  HealthCheckStatus,
+  HealthCheckService,
+  ServiceCriticality,
+  IndividualHealthCheck,
+  HealthCheckResult,
+  HealthCheckDocument,
+  YouTubeQuotaCheck,
+  ServiceHealthStats,
+  RecurringIssue,
+  HealthHistorySummary,
+} from './health.js';
+
+export {
+  SERVICE_CRITICALITY,
+  HEALTH_CHECK_TIMEOUT_MS,
+  MAX_HEALTH_CHECK_DURATION_MS,
+  YOUTUBE_QUOTA_THRESHOLDS,
+} from './health.js';
