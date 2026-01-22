@@ -11,6 +11,8 @@ import {
   type StageInput,
   type StageOutput,
   type QualityContext,
+  updateBudgetSpent,
+  checkCostThresholds,
 } from '@nexus-ai/core';
 import { stageRegistry, stageOrder } from './stages.js';
 import { PipelineStateManager } from './state.js';
@@ -637,6 +639,69 @@ export async function executePipeline(pipelineId: string): Promise<PipelineResul
     await stateManager.updateTotalCost(pipelineId, totalCost);
   } catch (error) {
     logger.error({ pipelineId, error }, 'Failed to persist total cost');
+  }
+
+  // Update budget and check cost thresholds (Story 5.5)
+  try {
+    // Update budget spent
+    await updateBudgetSpent(totalCost, pipelineId);
+
+    // Get cost breakdown from stage outputs for alerts
+    // Categories: gemini (LLM + image), tts (audio synthesis), render (video + other)
+    const costBreakdown = {
+      gemini: 0,
+      tts: 0,
+      render: 0,
+    };
+
+    // Aggregate costs by category from completed stages
+    for (const stageName of completedStages) {
+      const output = stageOutputs[stageName];
+      if (output?.cost?.breakdown) {
+        for (const service of output.cost.breakdown) {
+          const serviceLower = service.service.toLowerCase();
+          if (serviceLower.startsWith('gemini-')) {
+            // Gemini LLM and image generation
+            costBreakdown.gemini += service.cost;
+          } else if (
+            serviceLower.startsWith('chirp') ||
+            serviceLower.startsWith('wavenet') ||
+            serviceLower.includes('-tts')
+          ) {
+            // TTS services
+            costBreakdown.tts += service.cost;
+          } else if (
+            serviceLower.startsWith('render') ||
+            serviceLower.includes('video-render')
+          ) {
+            // Video rendering
+            costBreakdown.render += service.cost;
+          } else {
+            // Other services (YouTube API, Twitter API, etc.) go to render category
+            // as they're operational costs similar to rendering/publishing
+            costBreakdown.render += service.cost;
+          }
+        }
+      }
+    }
+
+    // Check cost thresholds and send alerts if needed
+    const alertResult = await checkCostThresholds(totalCost, pipelineId, costBreakdown);
+
+    if (alertResult.triggered) {
+      logger.warn(
+        {
+          pipelineId,
+          totalCost,
+          alertSeverity: alertResult.severity,
+          alertSent: alertResult.sent,
+        },
+        'Cost alert triggered'
+      );
+    }
+  } catch (error) {
+    // Non-fatal - don't fail pipeline for cost tracking errors
+    logger.error({ pipelineId, totalCost, error }, 'Failed to update budget or check cost thresholds');
   }
 
   // Build final result
