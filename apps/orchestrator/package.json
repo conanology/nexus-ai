@@ -23,7 +23,8 @@
     "@nexus-ai/visual-gen": "workspace:*",
     "@nexus-ai/thumbnail": "workspace:*",
     "@nexus-ai/youtube": "workspace:*",
-    "@nexus-ai/twitter": "workspace:*"
+    "@nexus-ai/twitter": "workspace:*",
+    "@nexus-ai/notifications": "workspace:*"
   },
   "devDependencies": {
     "@nexus-ai/config": "workspace:*",

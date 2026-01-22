@@ -13,6 +13,10 @@ import type {
   HealthCheckService,
 } from '@nexus-ai/core';
 import { SERVICE_CRITICALITY } from '@nexus-ai/core';
+import {
+  sendDiscordAlert,
+  type DiscordAlertConfig,
+} from '@nexus-ai/notifications';
 
 const logger = createLogger('orchestrator.health.failure-handler');
 
@@ -74,8 +78,8 @@ export async function handleHealthCheckFailure(
 
     alertsSent.push(criticalAlert);
 
-    // Send Discord alert (Story 5.4 integration point)
-    await sendDiscordAlert(criticalAlert);
+    // Send Discord alert using notifications package
+    await sendDiscordAlertInternal(criticalAlert);
 
     // Trigger buffer deployment (Story 5.7 integration point)
     try {
@@ -118,7 +122,7 @@ export async function handleHealthCheckFailure(
     );
 
     if (significantWarnings.length > 0) {
-      await sendDiscordAlert(warningAlert);
+      await sendDiscordAlertInternal(warningAlert);
     }
   }
 
@@ -175,33 +179,37 @@ ${warningServices}
 }
 
 /**
- * Send alert to Discord webhook
- *
- * Placeholder implementation - Story 5.4 will provide full notifications package.
+ * Send alert to Discord webhook using notifications package
  *
  * @param alert - Alert configuration to send
  */
-async function sendDiscordAlert(alert: AlertConfig): Promise<void> {
+async function sendDiscordAlertInternal(alert: AlertConfig): Promise<void> {
   logger.info({
     severity: alert.severity,
     title: alert.title,
     pipelineId: alert.pipelineId,
     services: alert.services,
-  }, 'Discord alert prepared (Story 5.4 integration pending)');
+  }, 'Sending Discord alert via notifications package');
 
-  // Story 5.4 will implement:
-  // const webhookUrl = await getSecret('nexus-discord-webhook');
-  // await fetch(webhookUrl, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({
-  //     embeds: [{
-  //       title: alert.title,
-  //       description: alert.message,
-  //       color: alert.severity === 'CRITICAL' ? 0xFF0000 : 0xFFAA00,
-  //     }]
-  //   })
-  // });
+  const discordConfig: DiscordAlertConfig = {
+    severity: alert.severity,
+    title: alert.title,
+    description: alert.message,
+    fields: [
+      { name: 'Pipeline ID', value: alert.pipelineId, inline: true },
+      { name: 'Affected Services', value: alert.services.join(', ') || 'None', inline: true },
+    ],
+    timestamp: new Date().toISOString(),
+  };
+
+  const result = await sendDiscordAlert(discordConfig);
+
+  if (!result.success) {
+    logger.error({
+      error: result.error,
+      pipelineId: alert.pipelineId,
+    }, 'Failed to send Discord alert');
+  }
 }
 
 /**
