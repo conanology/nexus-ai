@@ -41,6 +41,10 @@
     "./providers": {
       "types": "./dist/providers/index.d.ts",
       "default": "./dist/providers/index.js"
+    },
+    "./incidents": {
+      "types": "./dist/incidents/index.d.ts",
+      "default": "./dist/incidents/index.js"
     }
   },
   "scripts": {

@@ -17,6 +17,7 @@ export interface StageStatus {
     code: string;
     message: string;
     severity: string;
+    incidentId?: string;
   };
   retryAttempts?: number;
 }

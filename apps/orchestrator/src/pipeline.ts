@@ -13,7 +13,15 @@ import {
   type QualityContext,
   updateBudgetSpent,
   checkCostThresholds,
+  logIncident,
+  mapSeverity,
+  inferRootCause,
+  type Incident,
 } from '@nexus-ai/core';
+import {
+  sendDiscordAlert,
+  type DiscordAlertConfig,
+} from '@nexus-ai/notifications';
 import { stageRegistry, stageOrder } from './stages.js';
 import { PipelineStateManager } from './state.js';
 
@@ -415,6 +423,77 @@ async function executeStagesFrom(
         'Stage failed'
       );
 
+      // Log incident BEFORE sending alerts (AC #7)
+      let incidentId: string | undefined;
+      try {
+        const incident: Incident = {
+          date: pipelineId,
+          pipelineId,
+          stage: stageName,
+          error: {
+            code: nexusError.code,
+            message: nexusError.message,
+            stack: nexusError.stack,
+          },
+          severity: mapSeverity(originalSeverity),
+          startTime: nexusError.timestamp,
+          rootCause: inferRootCause(nexusError.code),
+          context: {
+            provider: nexusError.context?.provider as string | undefined,
+            attempt: retryAttempts,
+            fallbacksUsed: qualityContext.fallbacksUsed,
+            qualityContext: {
+              degradedStages: qualityContext.degradedStages,
+              fallbacksUsed: qualityContext.fallbacksUsed,
+              flags: qualityContext.flags,
+            },
+            ...nexusError.context,
+          },
+        };
+
+        incidentId = await logIncident(incident);
+        logger.info({ pipelineId, incidentId, stage: stageName }, 'Incident logged');
+
+        // Send Discord alert for CRITICAL incidents (AC #4)
+        if (incident.severity === 'CRITICAL') {
+          try {
+            const discordConfig: DiscordAlertConfig = {
+              severity: 'CRITICAL',
+              title: `Pipeline Incident: ${incidentId}`,
+              description: `Stage "${stageName}" failed: ${nexusError.message}`,
+              fields: [
+                { name: 'Incident ID', value: incidentId, inline: true },
+                { name: 'Error Code', value: nexusError.code, inline: true },
+                { name: 'Root Cause', value: incident.rootCause, inline: true },
+                { name: 'Pipeline', value: pipelineId, inline: true },
+              ],
+              timestamp: new Date().toISOString(),
+            };
+
+            const alertResult = await sendDiscordAlert(discordConfig);
+            if (alertResult.success) {
+              logger.info({ pipelineId, incidentId }, 'CRITICAL incident Discord alert sent');
+            } else {
+              logger.warn(
+                { pipelineId, incidentId, error: alertResult.error },
+                'Failed to send CRITICAL incident Discord alert'
+              );
+            }
+          } catch (alertError) {
+            logger.warn(
+              { pipelineId, incidentId, error: alertError },
+              'Failed to send CRITICAL incident Discord alert'
+            );
+          }
+        }
+      } catch (incidentError) {
+        // Log but don't fail - stage failure handling must continue
+        logger.error(
+          { pipelineId, stage: stageName, error: incidentError },
+          'Failed to log incident'
+        );
+      }
+
       // Update state to failed
       try {
         await stateManager.updateStageStatus(pipelineId, stageName, {
@@ -424,6 +503,7 @@ async function executeStagesFrom(
             code: nexusError.code,
             message: nexusError.message,
             severity: originalSeverity,
+            incidentId, // Include incident ID for traceability
           },
         });
         

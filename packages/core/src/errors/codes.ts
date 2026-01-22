@@ -121,6 +121,14 @@ export const NEXUS_FALLBACK_EXHAUSTED = 'NEXUS_FALLBACK_EXHAUSTED';
 export const NEXUS_FALLBACK_NO_PROVIDERS = 'NEXUS_FALLBACK_NO_PROVIDERS';
 
 // =============================================================================
+// Incident Domain
+// =============================================================================
+export const NEXUS_INCIDENT_LOGGING_FAILED = 'NEXUS_INCIDENT_LOGGING_FAILED';
+export const NEXUS_INCIDENT_NOT_FOUND = 'NEXUS_INCIDENT_NOT_FOUND';
+export const NEXUS_INCIDENT_QUERY_FAILED = 'NEXUS_INCIDENT_QUERY_FAILED';
+export const NEXUS_INCIDENT_RESOLUTION_FAILED = 'NEXUS_INCIDENT_RESOLUTION_FAILED';
+
+// =============================================================================
 // Generic / Unknown
 // =============================================================================
 export const NEXUS_UNKNOWN_ERROR = 'NEXUS_UNKNOWN_ERROR';
