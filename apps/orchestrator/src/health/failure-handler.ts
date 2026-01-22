@@ -7,16 +7,23 @@
  * @module orchestrator/health/failure-handler
  */
 
-import { createLogger } from '@nexus-ai/core';
+import { createLogger, logIncident, inferRootCause, mapSeverity } from '@nexus-ai/core';
 import type {
   HealthCheckResult,
   HealthCheckService,
+  Incident,
 } from '@nexus-ai/core';
-import { SERVICE_CRITICALITY } from '@nexus-ai/core';
+import { SERVICE_CRITICALITY, ErrorSeverity } from '@nexus-ai/core';
+import {
+  getBufferDeploymentCandidate,
+  getBufferHealthStatus,
+  type BufferHealthStatus,
+} from '@nexus-ai/core';
 import {
   sendDiscordAlert,
   type DiscordAlertConfig,
 } from '@nexus-ai/notifications';
+import { FirestoreClient } from '@nexus-ai/core';
 
 const logger = createLogger('orchestrator.health.failure-handler');
 
@@ -204,38 +211,213 @@ async function sendDiscordAlertInternal(alert: AlertConfig): Promise<void> {
 
   const result = await sendDiscordAlert(discordConfig);
 
-  if (!result.success) {
+  if (!result?.success) {
     logger.error({
-      error: result.error,
+      error: result?.error,
       pipelineId: alert.pipelineId,
     }, 'Failed to send Discord alert');
   }
 }
 
 /**
+ * Queue failed topic for retry the next day
+ *
+ * @param pipelineId - Pipeline ID (YYYY-MM-DD) - the original date that failed
+ * @param topic - The topic that was being processed (if known)
+ * @param failureReason - Error code from the failure
+ * @param failureStage - Stage where failure occurred
+ */
+async function queueFailedTopic(
+  pipelineId: string,
+  topic: string | undefined,
+  failureReason: string,
+  failureStage: string
+): Promise<void> {
+  if (!topic) {
+    logger.info({ pipelineId }, 'No topic to queue - failure occurred before topic selection');
+    return;
+  }
+
+  // Calculate next day for retry
+  const originalDate = new Date(pipelineId);
+  originalDate.setDate(originalDate.getDate() + 1);
+  const nextDate = originalDate.toISOString().split('T')[0];
+
+  const firestoreClient = new FirestoreClient();
+  const queuedTopic = {
+    topic,
+    failureReason,
+    failureStage,
+    originalDate: pipelineId,
+    queuedDate: new Date().toISOString(),
+    retryCount: 0,
+    maxRetries: 2, // Max 2 retry attempts per topic (FR46)
+  };
+
+  await firestoreClient.setDocument('queued-topics', nextDate, queuedTopic);
+
+  logger.info({
+    pipelineId,
+    nextDate,
+    topic,
+    failureReason,
+  }, 'Failed topic queued for next day processing');
+}
+
+/**
  * Trigger buffer video deployment when pipeline cannot run
  *
- * Placeholder implementation - Story 5.7 will provide buffer video system.
+ * CRITICAL: Buffer deployment is NOT automatic. This function:
+ * 1. Checks if buffer videos are available
+ * 2. Logs an incident with buffer deployment resolution type
+ * 3. Sends alert to operator with instructions to deploy buffer
+ * 4. Queues original topic for next day processing
+ *
+ * The operator must run `nexus buffer deploy` to actually deploy the buffer.
  *
  * @param pipelineId - Pipeline ID (YYYY-MM-DD)
  * @param healthResult - Health check result for context
+ * @param failedTopic - Optional topic that was being processed when failure occurred
+ * @param failureStage - Optional stage where failure occurred (defaults to 'health-check')
  */
 export async function triggerBufferDeployment(
   pipelineId: string,
-  healthResult: HealthCheckResult
+  healthResult: HealthCheckResult,
+  failedTopic?: string,
+  failureStage: string = 'health-check'
 ): Promise<void> {
+  // Check buffer availability
+  let bufferHealth: BufferHealthStatus | null = null;
+  let hasBufferAvailable = false;
+
+  try {
+    bufferHealth = await getBufferHealthStatus();
+    const candidate = await getBufferDeploymentCandidate();
+    hasBufferAvailable = candidate !== null;
+  } catch (error) {
+    logger.error({
+      pipelineId,
+      error: error instanceof Error ? error.message : String(error),
+    }, 'Failed to check buffer availability');
+  }
+
+  // Log incident for the health check failure with buffer deployment resolution
+  const incident: Incident = {
+    date: pipelineId,
+    pipelineId,
+    stage: 'health-check',
+    error: {
+      code: 'NEXUS_HEALTH_CHECK_FAILED',
+      message: `Health check failed: ${healthResult.criticalFailures.join(', ')}`,
+    },
+    severity: 'CRITICAL',
+    startTime: healthResult.timestamp,
+    rootCause: inferRootCause('NEXUS_SERVICE_UNAVAILABLE'),
+    resolutionType: hasBufferAvailable ? 'buffer_deployed' : 'manual_required',
+    context: {
+      criticalFailures: healthResult.criticalFailures,
+      warnings: healthResult.warnings,
+      healthCheckDurationMs: healthResult.totalDurationMs,
+      bufferAvailable: hasBufferAvailable,
+      bufferCount: bufferHealth?.availableCount,
+    },
+  };
+
+  let incidentId: string | undefined;
+  try {
+    incidentId = await logIncident(incident);
+  } catch (error) {
+    logger.error({
+      pipelineId,
+      error: error instanceof Error ? error.message : String(error),
+    }, 'Failed to log incident');
+  }
+
+  // Send appropriate alert based on buffer availability
+  if (hasBufferAvailable) {
+    // Buffer available - send instructions to operator
+    logger.info({
+      pipelineId,
+      incidentId,
+      bufferCount: bufferHealth?.availableCount,
+    }, 'Buffer video available - alerting operator to deploy');
+
+    await sendDiscordAlert({
+      severity: 'CRITICAL',
+      title: `🚨 Pipeline Failed - Buffer Deployment Required`,
+      description: `Pipeline ${pipelineId} cannot complete due to health check failure.
+
+**Buffer Status:** ${bufferHealth?.availableCount ?? 0} buffer(s) available
+
+**To deploy buffer video:**
+\`\`\`
+nexus buffer deploy
+\`\`\`
+
+This will schedule a pre-published buffer video for 2 PM UTC.`,
+      fields: [
+        { name: 'Pipeline ID', value: pipelineId, inline: true },
+        { name: 'Incident ID', value: incidentId ?? 'N/A', inline: true },
+        { name: 'Critical Failures', value: healthResult.criticalFailures.join(', '), inline: false },
+      ],
+      timestamp: new Date().toISOString(),
+    });
+  } else {
+    // No buffer available - CRITICAL emergency
+    logger.error({
+      pipelineId,
+      incidentId,
+    }, 'NO BUFFER AVAILABLE - Channel will miss daily upload');
+
+    await sendDiscordAlert({
+      severity: 'CRITICAL',
+      title: `🔥 EMERGENCY: Pipeline Failed - NO BUFFERS AVAILABLE`,
+      description: `Pipeline ${pipelineId} failed AND no buffer videos are available!
+
+**NFR5 VIOLATED:** System requires minimum 1 buffer video.
+
+**Immediate action required:**
+1. Investigate health check failures
+2. Create new buffer videos urgently
+3. Consider manual content upload
+
+**Channel will MISS daily upload without intervention.**`,
+      fields: [
+        { name: 'Pipeline ID', value: pipelineId, inline: true },
+        { name: 'Incident ID', value: incidentId ?? 'N/A', inline: true },
+        { name: 'Critical Failures', value: healthResult.criticalFailures.join(', '), inline: false },
+      ],
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Queue original topic for next day processing (AC2)
+  // If we have a topic that was being processed, queue it for retry
+  if (failedTopic) {
+    try {
+      await queueFailedTopic(
+        pipelineId,
+        failedTopic,
+        'NEXUS_HEALTH_CHECK_FAILED',
+        failureStage
+      );
+    } catch (error) {
+      logger.error({
+        pipelineId,
+        topic: failedTopic,
+        error: error instanceof Error ? error.message : String(error),
+      }, 'Failed to queue topic for retry');
+    }
+  }
+
   logger.info({
     pipelineId,
+    incidentId,
+    bufferAvailable: hasBufferAvailable,
     criticalFailures: healthResult.criticalFailures,
-    reason: 'Health check failure triggered buffer deployment',
-  }, 'Buffer deployment triggered (Story 5.7 integration pending)');
-
-  // Story 5.7 will implement:
-  // - Query Firestore for available buffer videos
-  // - Select appropriate buffer video
-  // - Trigger YouTube upload of buffer video
-  // - Update buffer video inventory
-  // - Log buffer deployment in incidents collection
+    topicQueued: failedTopic ? true : false,
+    reason: 'Buffer deployment flow completed',
+  }, 'Buffer deployment flow completed');
 }
 
 /**

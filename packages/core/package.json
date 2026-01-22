@@ -45,6 +45,10 @@
     "./incidents": {
       "types": "./dist/incidents/index.d.ts",
       "default": "./dist/incidents/index.js"
+    },
+    "./buffer": {
+      "types": "./dist/buffer/index.d.ts",
+      "default": "./dist/buffer/index.js"
     }
   },
   "scripts": {

@@ -1,0 +1,33 @@
+# Ralph Configuration for NEXUS-AI Epic 5
+
+# Rate limiting
+rate_limit: 80  # Conservative to avoid hitting limits (calls per hour)
+
+# Session settings
+session_expiry: 48h  # Allow for long-running epic
+
+# Circuit breaker settings
+circuit_breaker:
+  stagnation_threshold: 5  # Iterations without progress before pause
+  action: pause_and_notify
+  test_only_loops_limit: 3  # Exit after 3 consecutive test-only loops
+  error_repeat_limit: 5  # Pause after same error 5 times
+
+# Workflow settings
+workflow:
+  max_retries: 3
+  build_timeout: 300  # 5 minutes for build
+  test_timeout: 600   # 10 minutes for tests
+
+# Project-specific settings
+project:
+  name: nexus-ai-epic5
+  type: bmad-workflow
+  sprint_status_file: _bmad-output/implementation-artifacts/sprint-status.yaml
+  stories_dir: _bmad-output/implementation-artifacts
+
+# Logging
+logging:
+  level: info
+  output_dir: .ralph/logs
+  keep_last: 50  # Keep last 50 log files

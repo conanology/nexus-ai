@@ -3,11 +3,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  handleHealthCheckFailure,
-  getFailureResponse,
-} from '../failure-handler.js';
 import type { HealthCheckResult } from '@nexus-ai/core';
+
+// Mock @nexus-ai/notifications FIRST
+vi.mock('@nexus-ai/notifications', () => ({
+  sendDiscordAlert: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 // Mock @nexus-ai/core
 vi.mock('@nexus-ai/core', async (importOriginal) => {
@@ -20,8 +21,22 @@ vi.mock('@nexus-ai/core', async (importOriginal) => {
       warn: vi.fn(),
       error: vi.fn(),
     })),
+    logIncident: vi.fn().mockResolvedValue('incident-123'),
+    inferRootCause: vi.fn().mockReturnValue('unknown'),
+    mapSeverity: vi.fn().mockReturnValue('CRITICAL'),
+    getBufferDeploymentCandidate: vi.fn().mockResolvedValue({ id: 'bf-1' }),
+    getBufferHealthStatus: vi.fn().mockResolvedValue({ availableCount: 3, status: 'healthy' }),
+    FirestoreClient: vi.fn(() => ({
+      setDocument: vi.fn().mockResolvedValue(undefined),
+    })),
   };
 });
+
+// Import handler AFTER mocks
+import {
+  handleHealthCheckFailure,
+  getFailureResponse,
+} from '../failure-handler.js';
 
 describe('handleHealthCheckFailure', () => {
   beforeEach(() => {

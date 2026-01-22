@@ -129,6 +129,16 @@ export const NEXUS_INCIDENT_QUERY_FAILED = 'NEXUS_INCIDENT_QUERY_FAILED';
 export const NEXUS_INCIDENT_RESOLUTION_FAILED = 'NEXUS_INCIDENT_RESOLUTION_FAILED';
 
 // =============================================================================
+// Buffer Domain
+// =============================================================================
+export const NEXUS_BUFFER_NOT_FOUND = 'NEXUS_BUFFER_NOT_FOUND';
+export const NEXUS_BUFFER_DEPLOYMENT_FAILED = 'NEXUS_BUFFER_DEPLOYMENT_FAILED';
+export const NEXUS_BUFFER_EXHAUSTED = 'NEXUS_BUFFER_EXHAUSTED';
+export const NEXUS_BUFFER_CREATE_FAILED = 'NEXUS_BUFFER_CREATE_FAILED';
+export const NEXUS_BUFFER_INVALID_STATUS = 'NEXUS_BUFFER_INVALID_STATUS';
+export const NEXUS_BUFFER_QUERY_FAILED = 'NEXUS_BUFFER_QUERY_FAILED';
+
+// =============================================================================
 // Generic / Unknown
 // =============================================================================
 export const NEXUS_UNKNOWN_ERROR = 'NEXUS_UNKNOWN_ERROR';

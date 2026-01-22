@@ -33,5 +33,8 @@ export * from './cost/index.js';
 // Re-export incident logging
 export * from './incidents/index.js';
 
+// Re-export buffer video system
+export * from './buffer/index.js';
+
 // Version constant
 export const NEXUS_VERSION = '0.1.0';
