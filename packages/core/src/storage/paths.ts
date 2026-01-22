@@ -112,6 +112,15 @@ export function getReviewQueuePath(id: string): string {
   return `review-queue/${id}`;
 }
 
+/**
+ * Get queued topic document path
+ * @param date - Target retry date in YYYY-MM-DD format
+ * @returns Path: queued-topics/{date}
+ */
+export function getQueuedTopicPath(date: string): string {
+  return `queued-topics/${date}`;
+}
+
 // ============================================================================
 // Cloud Storage Paths
 // ============================================================================

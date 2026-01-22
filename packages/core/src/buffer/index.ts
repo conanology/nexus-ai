@@ -45,9 +45,13 @@ export {
   BUFFER_VALIDATION,
   BUFFER_VIDEO_STATUSES,
   BUFFER_CACHE_TTL_MS,
+  QUEUE_MAX_RETRIES,
+  QUEUED_TOPICS_COLLECTION,
+  QUEUED_TOPIC_STATUSES,
 
   // Type guards
   isValidBufferVideoStatus,
+  isValidQueuedTopicStatus,
 
   // Types
   type BufferVideo,
@@ -59,6 +63,7 @@ export {
   type BufferHealthStatus,
   type BufferSummary,
   type QueuedTopic,
+  type QueuedTopicStatus,
   type BufferCacheEntry,
 } from './types.js';
 

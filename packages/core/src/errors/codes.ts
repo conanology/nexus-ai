@@ -139,6 +139,14 @@ export const NEXUS_BUFFER_INVALID_STATUS = 'NEXUS_BUFFER_INVALID_STATUS';
 export const NEXUS_BUFFER_QUERY_FAILED = 'NEXUS_BUFFER_QUERY_FAILED';
 
 // =============================================================================
+// Queue Domain
+// =============================================================================
+export const NEXUS_QUEUE_TOPIC_NOT_FOUND = 'NEXUS_QUEUE_TOPIC_NOT_FOUND';
+export const NEXUS_QUEUE_TOPIC_MAX_RETRIES = 'NEXUS_QUEUE_TOPIC_MAX_RETRIES';
+export const NEXUS_QUEUE_TOPIC_SAVE_FAILED = 'NEXUS_QUEUE_TOPIC_SAVE_FAILED';
+export const NEXUS_QUEUE_TOPIC_CLEAR_FAILED = 'NEXUS_QUEUE_TOPIC_CLEAR_FAILED';
+
+// =============================================================================
 // Generic / Unknown
 // =============================================================================
 export const NEXUS_UNKNOWN_ERROR = 'NEXUS_UNKNOWN_ERROR';

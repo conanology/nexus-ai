@@ -222,6 +222,22 @@ export interface NotificationsOutput {
 }
 
 /**
+ * Skip info for pipeline skip (graceful shutdown)
+ */
+export interface PipelineSkipInfo {
+  /** Reason for the skip */
+  reason: string;
+  /** Stage where skip was triggered */
+  stage: string;
+  /** Whether the topic was queued for retry */
+  topicQueued: boolean;
+  /** Date the topic was queued for (YYYY-MM-DD) */
+  queuedForDate?: string;
+  /** Incident ID for reference */
+  incidentId?: string;
+}
+
+/**
  * Pipeline result data for notifications
  */
 export interface PipelineResultData {
@@ -246,6 +262,8 @@ export interface PipelineResultData {
     flags: string[];
   };
   warnings?: string[];
+  /** Skip info when status is 'skipped' (graceful shutdown, topic queued) */
+  skipInfo?: PipelineSkipInfo;
 }
 
 /**

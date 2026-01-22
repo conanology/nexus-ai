@@ -224,6 +224,36 @@ export interface BufferSummary {
 // =============================================================================
 
 /**
+ * Maximum retry attempts for queued topics per FR46
+ */
+export const QUEUE_MAX_RETRIES = 2;
+
+/**
+ * Firestore collection name for queued topics
+ */
+export const QUEUED_TOPICS_COLLECTION = 'queued-topics';
+
+/**
+ * Valid queued topic statuses
+ */
+export const QUEUED_TOPIC_STATUSES = ['pending', 'processing', 'abandoned'] as const;
+
+/**
+ * Queued topic status
+ * - pending: Waiting to be processed on target date
+ * - processing: Currently being processed in pipeline
+ * - abandoned: Max retries exceeded, topic will not be retried
+ */
+export type QueuedTopicStatus = (typeof QUEUED_TOPIC_STATUSES)[number];
+
+/**
+ * Type guard to check if a string is a valid queued topic status
+ */
+export function isValidQueuedTopicStatus(status: string): status is QueuedTopicStatus {
+  return QUEUED_TOPIC_STATUSES.includes(status as QueuedTopicStatus);
+}
+
+/**
  * Queued topic for retry after buffer deployment
  * Stored at queued-topics/{date}
  */
@@ -242,6 +272,8 @@ export interface QueuedTopic {
   retryCount: number;
   /** Maximum retry attempts per FR46 */
   maxRetries: number;
+  /** Current status of the queued topic (required for queue processing) */
+  status: QueuedTopicStatus;
 }
 
 // =============================================================================

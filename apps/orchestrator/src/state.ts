@@ -34,6 +34,10 @@ export interface PipelineState {
     fallbacksUsed: string[];
     flags: string[];
   };
+  /** Reason for skip (only set when status is 'skipped') */
+  skipReason?: string;
+  /** Stage where skip was triggered (only set when status is 'skipped') */
+  skipStage?: string;
 }
 
 export class PipelineStateManager {
@@ -110,6 +114,26 @@ export class PipelineStateManager {
         message: error.message,
         severity: error.severity || 'CRITICAL',
       },
+    });
+  }
+
+  /**
+   * Mark pipeline as skipped (graceful shutdown, topic queued for retry)
+   *
+   * @param pipelineId - Pipeline ID
+   * @param reason - Human-readable skip reason
+   * @param stage - Stage where skip was triggered
+   */
+  async markSkipped(
+    pipelineId: string,
+    reason: string,
+    stage: string
+  ): Promise<void> {
+    await this.firestore.updateDocument(`pipelines/${pipelineId}`, 'state', {
+      status: 'skipped',
+      endTime: new Date().toISOString(),
+      skipReason: reason,
+      skipStage: stage,
     });
   }
 

@@ -217,6 +217,44 @@ function collectAlerts(
     });
   }
 
+  // Add skip alerts with details (AC: 2 - failure digest)
+  if (result.status === 'skipped' && result.skipInfo) {
+    alerts.push({
+      type: 'critical',
+      message: `Pipeline skipped: ${result.skipInfo.reason}`,
+      timestamp,
+    });
+
+    alerts.push({
+      type: 'info',
+      message: `Skip triggered at stage: ${result.skipInfo.stage}`,
+      timestamp,
+    });
+
+    if (result.skipInfo.topicQueued && result.skipInfo.queuedForDate) {
+      alerts.push({
+        type: 'info',
+        message: `Topic queued for retry on ${result.skipInfo.queuedForDate}`,
+        timestamp,
+      });
+    }
+
+    if (result.skipInfo.incidentId) {
+      alerts.push({
+        type: 'info',
+        message: `Incident ID: ${result.skipInfo.incidentId}`,
+        timestamp,
+      });
+    }
+  } else if (result.status === 'skipped') {
+    // Generic skip without details
+    alerts.push({
+      type: 'critical',
+      message: 'Pipeline skipped (no content published)',
+      timestamp,
+    });
+  }
+
   // Add degraded status alerts
   if (result.status === 'degraded') {
     alerts.push({

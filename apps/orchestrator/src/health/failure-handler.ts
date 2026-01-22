@@ -7,23 +7,25 @@
  * @module orchestrator/health/failure-handler
  */
 
-import { createLogger, logIncident, inferRootCause, mapSeverity } from '@nexus-ai/core';
+import {
+  createLogger,
+  logIncident,
+  inferRootCause,
+  SERVICE_CRITICALITY,
+  getBufferDeploymentCandidate,
+  getBufferHealthStatus,
+  queueFailedTopic as coreQueueFailedTopic,
+  type BufferHealthStatus,
+} from '@nexus-ai/core';
 import type {
   HealthCheckResult,
   HealthCheckService,
   Incident,
 } from '@nexus-ai/core';
-import { SERVICE_CRITICALITY, ErrorSeverity } from '@nexus-ai/core';
-import {
-  getBufferDeploymentCandidate,
-  getBufferHealthStatus,
-  type BufferHealthStatus,
-} from '@nexus-ai/core';
 import {
   sendDiscordAlert,
   type DiscordAlertConfig,
 } from '@nexus-ai/notifications';
-import { FirestoreClient } from '@nexus-ai/core';
 
 const logger = createLogger('orchestrator.health.failure-handler');
 
@@ -222,12 +224,14 @@ async function sendDiscordAlertInternal(alert: AlertConfig): Promise<void> {
 /**
  * Queue failed topic for retry the next day
  *
+ * Uses the core queue module to ensure consistent status tracking.
+ *
  * @param pipelineId - Pipeline ID (YYYY-MM-DD) - the original date that failed
  * @param topic - The topic that was being processed (if known)
  * @param failureReason - Error code from the failure
  * @param failureStage - Stage where failure occurred
  */
-async function queueFailedTopic(
+async function queueFailedTopicInternal(
   pipelineId: string,
   topic: string | undefined,
   failureReason: string,
@@ -238,30 +242,28 @@ async function queueFailedTopic(
     return;
   }
 
-  // Calculate next day for retry
-  const originalDate = new Date(pipelineId);
-  originalDate.setDate(originalDate.getDate() + 1);
-  const nextDate = originalDate.toISOString().split('T')[0];
+  try {
+    const queuedForDate = await coreQueueFailedTopic(
+      topic,
+      failureReason,
+      failureStage,
+      pipelineId
+    );
 
-  const firestoreClient = new FirestoreClient();
-  const queuedTopic = {
-    topic,
-    failureReason,
-    failureStage,
-    originalDate: pipelineId,
-    queuedDate: new Date().toISOString(),
-    retryCount: 0,
-    maxRetries: 2, // Max 2 retry attempts per topic (FR46)
-  };
-
-  await firestoreClient.setDocument('queued-topics', nextDate, queuedTopic);
-
-  logger.info({
-    pipelineId,
-    nextDate,
-    topic,
-    failureReason,
-  }, 'Failed topic queued for next day processing');
+    logger.info({
+      pipelineId,
+      queuedForDate,
+      topic,
+      failureReason,
+    }, 'Failed topic queued for next day processing');
+  } catch (error) {
+    logger.error({
+      pipelineId,
+      topic,
+      error: error instanceof Error ? error.message : String(error),
+    }, 'Failed to queue topic via core module');
+    throw error;
+  }
 }
 
 /**
@@ -313,13 +315,13 @@ export async function triggerBufferDeployment(
     severity: 'CRITICAL',
     startTime: healthResult.timestamp,
     rootCause: inferRootCause('NEXUS_SERVICE_UNAVAILABLE'),
-    resolutionType: hasBufferAvailable ? 'buffer_deployed' : 'manual_required',
     context: {
       criticalFailures: healthResult.criticalFailures,
       warnings: healthResult.warnings,
       healthCheckDurationMs: healthResult.totalDurationMs,
       bufferAvailable: hasBufferAvailable,
       bufferCount: bufferHealth?.availableCount,
+      suggestedResolution: hasBufferAvailable ? 'buffer_deployed' : 'manual_required',
     },
   };
 
@@ -395,7 +397,7 @@ This will schedule a pre-published buffer video for 2 PM UTC.`,
   // If we have a topic that was being processed, queue it for retry
   if (failedTopic) {
     try {
-      await queueFailedTopic(
+      await queueFailedTopicInternal(
         pipelineId,
         failedTopic,
         'NEXUS_HEALTH_CHECK_FAILED',

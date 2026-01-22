@@ -17,6 +17,12 @@ import {
   mapSeverity,
   inferRootCause,
   type Incident,
+  queueFailedTopic,
+  checkTodayQueuedTopic,
+  clearQueuedTopic,
+  incrementRetryCount,
+  type QueuedTopic,
+  QUEUE_MAX_RETRIES,
 } from '@nexus-ai/core';
 import {
   sendDiscordAlert,
@@ -59,6 +65,14 @@ export interface PipelineResult {
     message: string;
     stage: string;
     severity: string;
+  };
+  /** Skip details if pipeline was skipped (graceful shutdown) */
+  skipInfo?: {
+    reason: string;
+    stage: string;
+    topicQueued: boolean;
+    queuedForDate?: string;
+    incidentId?: string;
   };
 }
 
@@ -189,6 +203,79 @@ function markStageDegraded(
 }
 
 /**
+ * Skip decision result
+ */
+interface SkipDecision {
+  skip: boolean;
+  reason: string;
+  stage: string;
+}
+
+/**
+ * Determine if the day should be skipped based on error and stage
+ *
+ * A skip (vs fail) occurs when:
+ * - A CRITICAL stage fails after all retries are exhausted
+ * - All fallback providers have been tried
+ * - The failure is not due to misconfiguration (which would be a hard fail)
+ *
+ * @param error - The error that caused the failure
+ * @param stageName - The stage that failed
+ * @param retryAttempts - Number of retry attempts made
+ * @returns Skip decision with reason
+ */
+function shouldSkipDay(
+  error: NexusError,
+  stageName: string,
+  retryAttempts: number
+): SkipDecision {
+  const stageCriticality = STAGE_CRITICALITY[stageName] || 'CRITICAL';
+
+  // Only CRITICAL stages can trigger a skip
+  if (stageCriticality !== 'CRITICAL') {
+    return { skip: false, reason: '', stage: stageName };
+  }
+
+  // Check if this is after retry exhaustion (withRetry escalates to CRITICAL)
+  const originalSeverity = (error.context?.originalSeverity as ErrorSeverity)
+    || error.severity;
+
+  // Skip conditions:
+  // 1. Retries exhausted (error was retryable but exhausted)
+  // 2. Fallbacks exhausted (NEXUS_FALLBACK_EXHAUSTED)
+  // 3. Provider failures that we can't recover from
+  const isRetryExhausted = retryAttempts > 0 &&
+    (error.code === 'NEXUS_RETRY_EXHAUSTED' ||
+     originalSeverity === ErrorSeverity.RETRYABLE ||
+     originalSeverity === ErrorSeverity.FALLBACK);
+
+  const isFallbackExhausted = error.code === 'NEXUS_FALLBACK_EXHAUSTED';
+
+  const isProviderFailure = error.code?.includes('_TIMEOUT') ||
+    error.code?.includes('_RATE_LIMIT') ||
+    error.code?.includes('_SYNTHESIS_FAILED') ||
+    error.code?.includes('_GENERATION_FAILED') ||
+    error.code?.includes('_UNAVAILABLE');
+
+  if (isRetryExhausted || isFallbackExhausted || isProviderFailure) {
+    const reason = isFallbackExhausted
+      ? `All fallback providers exhausted for ${stageName}`
+      : isRetryExhausted
+        ? `${stageName} failed after ${retryAttempts} retries: ${error.message}`
+        : `${stageName} provider failure: ${error.code}`;
+
+    return {
+      skip: true,
+      reason,
+      stage: stageName,
+    };
+  }
+
+  // Hard fail for configuration errors, validation errors, etc.
+  return { skip: false, reason: '', stage: stageName };
+}
+
+/**
  * Check if another pipeline is already running for this ID
  */
 async function checkPipelineLock(
@@ -235,6 +322,17 @@ async function checkPipelineLock(
 // =============================================================================
 
 /**
+ * Skip info for pipeline result
+ */
+interface SkipInfo {
+  reason: string;
+  stage: string;
+  topicQueued: boolean;
+  queuedForDate?: string;
+  incidentId?: string;
+}
+
+/**
  * Execute stages from a given index with shared logic
  */
 async function executeStagesFrom(
@@ -244,7 +342,8 @@ async function executeStagesFrom(
   initialData: unknown,
   initialPreviousStage: string | null,
   initialQualityContext: QualityContext,
-  initialCompletedStages: string[] = []
+  initialCompletedStages: string[] = [],
+  selectedTopic?: string
 ): Promise<{
   stageOutputs: Record<string, StageOutput<unknown>>;
   completedStages: string[];
@@ -253,6 +352,8 @@ async function executeStagesFrom(
   totalCost: number;
   pipelineAborted: boolean;
   abortError?: NexusError;
+  pipelineSkipped: boolean;
+  skipInfo?: SkipInfo;
 }> {
   const stageOutputs: Record<string, StageOutput<unknown>> = {};
   const completedStages: string[] = [...initialCompletedStages];
@@ -261,6 +362,11 @@ async function executeStagesFrom(
   let totalCost = 0;
   let pipelineAborted = false;
   let abortError: NexusError | undefined;
+  let pipelineSkipped = false;
+  let skipInfo: SkipInfo | undefined;
+
+  // Track topic for queuing if failure occurs
+  let currentTopic: string | undefined = selectedTopic;
 
   // Track previous stage output data for chaining
   let previousStageData: unknown = initialData;
@@ -269,7 +375,7 @@ async function executeStagesFrom(
   // Execute stages sequentially from startIndex
   // NOTE: 'notifications' stage is handled specially by executePipeline (always runs, even on abort)
   for (let i = startIndex; i < stageOrder.length; i++) {
-    if (pipelineAborted) {
+    if (pipelineAborted || pipelineSkipped) {
       break;
     }
 
@@ -528,12 +634,57 @@ async function executeStagesFrom(
           originalSeverity !== ErrorSeverity.DEGRADED &&
           stageCriticality === 'CRITICAL')
       ) {
-        logger.error(
-          { pipelineId, stage: stageName, error: nexusError.code },
-          'Critical stage failure - aborting pipeline'
-        );
-        pipelineAborted = true;
-        abortError = nexusError;
+        // Check if this should be a SKIP (graceful) vs FAIL (hard error)
+        const skipDecision = shouldSkipDay(nexusError, stageName, retryAttempts);
+
+        if (skipDecision.skip) {
+          // Graceful skip - queue topic for retry and mark as skipped
+          logger.warn(
+            { pipelineId, stage: stageName, reason: skipDecision.reason },
+            'Critical stage failure after recovery attempts - skipping day'
+          );
+
+          pipelineSkipped = true;
+          abortError = nexusError;
+
+          // Queue the failed topic for retry tomorrow
+          let queuedForDate: string | undefined;
+          if (currentTopic) {
+            try {
+              queuedForDate = await queueFailedTopic(
+                currentTopic,
+                nexusError.code,
+                stageName,
+                pipelineId
+              );
+              logger.info(
+                { pipelineId, topic: currentTopic, queuedForDate },
+                'Failed topic queued for retry'
+              );
+            } catch (queueError) {
+              logger.error(
+                { pipelineId, topic: currentTopic, error: queueError },
+                'Failed to queue topic for retry'
+              );
+            }
+          }
+
+          skipInfo = {
+            reason: skipDecision.reason,
+            stage: stageName,
+            topicQueued: queuedForDate !== undefined,
+            queuedForDate,
+            incidentId,
+          };
+        } else {
+          // Hard fail - unexpected error, not recoverable
+          logger.error(
+            { pipelineId, stage: stageName, error: nexusError.code },
+            'Critical stage failure - aborting pipeline'
+          );
+          pipelineAborted = true;
+          abortError = nexusError;
+        }
       } else if (
         originalSeverity === ErrorSeverity.RECOVERABLE ||
         stageCriticality === 'RECOVERABLE'
@@ -567,6 +718,8 @@ async function executeStagesFrom(
     totalCost,
     pipelineAborted,
     abortError,
+    pipelineSkipped,
+    skipInfo,
   };
 }
 
@@ -606,6 +759,63 @@ export async function executePipeline(pipelineId: string): Promise<PipelineResul
 
   logger.info({ pipelineId, stageCount: stageOrder.length }, 'Pipeline started');
 
+  // Check for queued topic from previous day's failure (AC: 4, 5)
+  // Note: pipelineId is always today's date (YYYY-MM-DD format)
+  // Queued topics are stored at queued-topics/{targetDate} where targetDate = today
+  const todayDate = pipelineId; // pipelineId IS today's date in YYYY-MM-DD format
+  let queuedTopic: QueuedTopic | null = null;
+  let usingQueuedTopic = false;
+
+  try {
+    queuedTopic = await checkTodayQueuedTopic();
+
+    if (queuedTopic) {
+      if (queuedTopic.retryCount < QUEUE_MAX_RETRIES) {
+        // Use queued topic instead of fresh sourcing
+        logger.info(
+          {
+            pipelineId,
+            topic: queuedTopic.topic,
+            retryCount: queuedTopic.retryCount,
+            maxRetries: queuedTopic.maxRetries,
+            originalDate: queuedTopic.originalDate,
+          },
+          'Using queued topic from previous failure'
+        );
+
+        // Increment retry count before processing
+        // Uses todayDate since queued topics are stored at queued-topics/{targetDate}
+        const updated = await incrementRetryCount(todayDate);
+
+        if (updated === null) {
+          // Max retries reached - topic was abandoned
+          logger.warn(
+            { pipelineId, topic: queuedTopic.topic },
+            'Queued topic abandoned (max retries reached), proceeding with fresh sourcing'
+          );
+          queuedTopic = null;
+        } else {
+          queuedTopic = updated;
+          usingQueuedTopic = true;
+        }
+      } else {
+        // Already at max retries - clear and proceed with fresh sourcing
+        logger.info(
+          { pipelineId, topic: queuedTopic.topic },
+          'Queued topic at max retries, clearing and proceeding with fresh sourcing'
+        );
+        await clearQueuedTopic(todayDate);
+        queuedTopic = null;
+      }
+    }
+  } catch (error) {
+    logger.warn(
+      { pipelineId, error },
+      'Failed to check queued topics, proceeding with fresh sourcing'
+    );
+    queuedTopic = null;
+  }
+
   // Initialize pipeline state in Firestore with retry
   let initAttempts = 0;
   const maxInitRetries = 3;
@@ -633,6 +843,11 @@ export async function executePipeline(pipelineId: string): Promise<PipelineResul
     }
   }
 
+  // Prepare initial data - use queued topic if available
+  const initialData = usingQueuedTopic && queuedTopic
+    ? { queuedTopic: queuedTopic.topic, fromQueue: true }
+    : {};
+
   // Execute all stages from beginning
   const {
     stageOutputs,
@@ -642,26 +857,47 @@ export async function executePipeline(pipelineId: string): Promise<PipelineResul
     totalCost,
     pipelineAborted,
     abortError,
+    pipelineSkipped,
+    skipInfo,
   } = await executeStagesFrom(
     0,
     pipelineId,
     stateManager,
-    {},
+    initialData,
     null,
     {
       degradedStages: [],
       fallbacksUsed: [],
       flags: [],
-    }
+    },
+    [],
+    queuedTopic?.topic
   );
 
+  // Clear queued topic on successful completion
+  // Uses todayDate since queued topics are stored at queued-topics/{targetDate}
+  if (usingQueuedTopic && !pipelineAborted && !pipelineSkipped) {
+    try {
+      await clearQueuedTopic(todayDate);
+      logger.info(
+        { pipelineId, topic: queuedTopic?.topic },
+        'Queued topic cleared after successful processing'
+      );
+    } catch (error) {
+      logger.warn(
+        { pipelineId, error },
+        'Failed to clear queued topic after success'
+      );
+    }
+  }
+
   // ALWAYS execute notifications stage (FR45, NFR4)
-  // Even if pipeline aborted, notifications must run
+  // Even if pipeline aborted or skipped, notifications must run
   const notificationsExecutor = stageRegistry['notifications'];
   if (notificationsExecutor) {
     try {
       logger.info(
-        { pipelineId, pipelineAborted },
+        { pipelineId, pipelineAborted, pipelineSkipped },
         'Executing notifications stage (always runs)'
       );
 
@@ -671,7 +907,9 @@ export async function executePipeline(pipelineId: string): Promise<PipelineResul
         completedStages[completedStages.length - 1] || null,
         {
           pipelineAborted,
+          pipelineSkipped,
           abortReason: abortError?.message,
+          skipInfo,
           completedStages,
           skippedStages,
           totalCost,
@@ -690,7 +928,7 @@ export async function executePipeline(pipelineId: string): Promise<PipelineResul
       );
 
       stageOutputs['notifications'] = notificationOutput;
-      if (!pipelineAborted) {
+      if (!pipelineAborted && !pipelineSkipped) {
         completedStages.push('notifications');
       }
 
@@ -785,8 +1023,55 @@ export async function executePipeline(pipelineId: string): Promise<PipelineResul
   }
 
   // Build final result
+  if (pipelineSkipped) {
+    // Mark pipeline as skipped (graceful shutdown)
+    try {
+      await stateManager.markSkipped(
+        pipelineId,
+        skipInfo?.reason || 'Unknown skip reason',
+        skipInfo?.stage || 'unknown'
+      );
+    } catch (error) {
+      logger.error({ pipelineId, error }, 'Failed to mark pipeline as skipped');
+    }
+
+    logger.warn(
+      {
+        pipelineId,
+        status: 'skipped',
+        totalDurationMs,
+        completedStages: completedStages.length,
+        skipReason: skipInfo?.reason,
+        skipStage: skipInfo?.stage,
+        topicQueued: skipInfo?.topicQueued,
+      },
+      'Pipeline skipped (graceful shutdown)'
+    );
+
+    return {
+      success: false,
+      pipelineId,
+      status: 'skipped',
+      stageOutputs,
+      completedStages,
+      skippedStages,
+      qualityContext,
+      totalDurationMs,
+      totalCost,
+      error: abortError
+        ? {
+            code: abortError.code,
+            message: abortError.message,
+            stage: abortError.stage || 'unknown',
+            severity: abortError.severity,
+          }
+        : undefined,
+      skipInfo,
+    };
+  }
+
   if (pipelineAborted) {
-    // Mark pipeline as failed
+    // Mark pipeline as failed (hard error)
     try {
       await stateManager.markFailed(pipelineId, abortError!);
     } catch (error) {
@@ -889,6 +1174,44 @@ export async function resumePipeline(
   // Load existing state
   const existingState = await stateManager.getState(pipelineId);
 
+  // Validate pipeline is in resumable state (AC: 6)
+  const resumableStatuses = ['failed', 'skipped', 'paused'];
+  if (!resumableStatuses.includes(existingState.status)) {
+    if (existingState.status === 'running') {
+      throw NexusError.critical(
+        'NEXUS_PIPELINE_ALREADY_RUNNING',
+        `Pipeline ${pipelineId} is currently running`,
+        'orchestrator'
+      );
+    }
+    if (existingState.status === 'completed') {
+      throw NexusError.critical(
+        'NEXUS_PIPELINE_COMPLETED',
+        `Pipeline ${pipelineId} has already completed successfully`,
+        'orchestrator'
+      );
+    }
+    throw NexusError.critical(
+      'NEXUS_PIPELINE_INVALID_STATE',
+      `Pipeline ${pipelineId} is in non-resumable state: ${existingState.status}`,
+      'orchestrator'
+    );
+  }
+
+  // Update state to running before resuming
+  try {
+    await stateManager.initializePipeline(pipelineId);
+    logger.info(
+      { pipelineId, previousStatus: existingState.status },
+      'Pipeline state updated to running for resume'
+    );
+  } catch (error) {
+    logger.warn(
+      { pipelineId, error },
+      'Failed to update pipeline state for resume, continuing anyway'
+    );
+  }
+
   // Determine resume point
   let resumeStageIndex: number;
   if (fromStage) {
@@ -962,6 +1285,8 @@ export async function resumePipeline(
     totalCost,
     pipelineAborted,
     abortError,
+    pipelineSkipped,
+    skipInfo,
   } = await executeStagesFrom(
     resumeStageIndex,
     pipelineId,
@@ -983,6 +1308,51 @@ export async function resumePipeline(
     await stateManager.updateTotalCost(pipelineId, totalCost);
   } catch (error) {
     logger.error({ pipelineId, error }, 'Failed to persist total cost');
+  }
+
+  // Handle skipped pipeline (graceful shutdown)
+  if (pipelineSkipped) {
+    try {
+      await stateManager.markSkipped(
+        pipelineId,
+        skipInfo?.reason || 'Unknown skip reason',
+        skipInfo?.stage || 'unknown'
+      );
+    } catch (error) {
+      logger.error({ pipelineId, error }, 'Failed to mark resumed pipeline as skipped');
+    }
+
+    logger.warn(
+      {
+        pipelineId,
+        status: 'skipped',
+        totalDurationMs,
+        completedStages: newlyCompletedStages.length,
+        skipReason: skipInfo?.reason,
+      },
+      'Pipeline skipped (resumed)'
+    );
+
+    return {
+      success: false,
+      pipelineId,
+      status: 'skipped',
+      stageOutputs,
+      completedStages: newlyCompletedStages,
+      skippedStages,
+      qualityContext,
+      totalDurationMs,
+      totalCost,
+      error: abortError
+        ? {
+            code: abortError.code,
+            message: abortError.message,
+            stage: abortError.stage || 'unknown',
+            severity: abortError.severity,
+          }
+        : undefined,
+      skipInfo,
+    };
   }
 
   if (pipelineAborted) {

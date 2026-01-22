@@ -36,5 +36,8 @@ export * from './incidents/index.js';
 // Re-export buffer video system
 export * from './buffer/index.js';
 
+// Re-export queue system
+export * from './queue/index.js';
+
 // Version constant
 export const NEXUS_VERSION = '0.1.0';

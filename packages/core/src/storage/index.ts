@@ -28,6 +28,7 @@ export {
   getBufferVideoPath,
   getIncidentPath,
   getReviewQueuePath,
+  getQueuedTopicPath,
   // Cloud Storage paths
   buildStoragePath,
   parseStoragePath,
