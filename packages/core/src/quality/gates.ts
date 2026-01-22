@@ -2,14 +2,16 @@
  * Quality Gate Framework Implementation
  */
 
-import { QualityGate, QualityGateResult, QualityStatus, PublishDecision, PrePublishResult } from './types.js';
+import { QualityGate, QualityGateResult, QualityStatus, PublishDecision, PrePublishResult, QualityGateContext } from './types.js';
 import { createLogger } from '../observability/logger.js';
 import { PipelineState } from '../types/pipeline.js';
 import { CostTracker } from '../observability/cost-tracker.js';
+import { addToReviewQueue } from '../review/manager.js';
+import type { ScriptQualityItemContent, ThumbnailQualityItemContent } from '../review/types.js';
 
 const logger = createLogger('quality.gates');
 
-type GateFunction = (output: any) => Promise<QualityGateResult> | QualityGateResult;
+type GateFunction = (output: any, context?: QualityGateContext) => Promise<QualityGateResult> | QualityGateResult;
 
 /**
  * Registry for managing and executing quality gates
@@ -35,8 +37,9 @@ export class QualityGateRegistry implements QualityGate {
    * Execute quality check for a stage
    * @param stageName Stage name
    * @param output Stage output
+   * @param context Optional context with pipelineId for review queue integration
    */
-  async check(stageName: string, output: any): Promise<QualityGateResult> {
+  async check(stageName: string, output: any, context?: QualityGateContext): Promise<QualityGateResult> {
     const gate = this.gates.get(stageName);
 
     if (!gate) {
@@ -51,12 +54,12 @@ export class QualityGateRegistry implements QualityGate {
 
     try {
       logger.debug({ stage: stageName }, 'Executing quality gate');
-      const result = await gate(output);
-      
-      logger.info({ 
-        stage: stageName, 
+      const result = await gate(output, context);
+
+      logger.info({
+        stage: stageName,
         status: result.status,
-        metrics: result.metrics 
+        metrics: result.metrics
       }, 'Quality gate complete');
 
       return result;
@@ -77,26 +80,53 @@ export class QualityGateRegistry implements QualityGate {
    */
   private registerDefaultGates(): void {
     // script-gen: word count 1200-1800
-    this.registerGate('script-gen', (output: any) => {
+    this.registerGate('script-gen', async (output: any, context?: QualityGateContext) => {
       const data = output.data || {};
-      const wordCount = data.wordCount || 0; 
+      const wordCount = data.wordCount || 0;
       const min = 1200;
       const max = 1800;
-      
+
       let status = QualityStatus.PASS;
       const warnings: string[] = [];
       let reason: string | undefined;
 
       if (wordCount < min || wordCount > max) {
-        // NFR21: Must be 1200-1800. Strict fail? 
-        // Let's assume strict fail for now as per AC.
+        // NFR21: Must be 1200-1800. Strict fail.
         status = QualityStatus.FAIL;
         reason = `Word count ${wordCount} is outside range [${min}, ${max}]`;
+
+        // AC2: Create review item on quality gate failure
+        if (context?.pipelineId) {
+          const itemContent: ScriptQualityItemContent = {
+            wordCount,
+            expectedMin: min,
+            expectedMax: max,
+            failureReason: reason,
+          };
+
+          const itemContext: Record<string, unknown> = {
+            scriptExcerpt: context.scriptContent?.substring(0, 500) || '',
+            optimizerAttempts: context.optimizerAttempts || 0,
+          };
+
+          try {
+            await addToReviewQueue({
+              type: 'quality',
+              pipelineId: context.pipelineId,
+              stage: 'script-gen',
+              item: itemContent,
+              context: itemContext,
+            });
+            logger.info({ pipelineId: context.pipelineId, wordCount }, 'Script quality review item created');
+          } catch (error) {
+            logger.error({ error }, 'Failed to create script quality review item');
+          }
+        }
       }
 
       return {
         status,
-        metrics: { wordCount },
+        metrics: { wordCount, requiresReview: status === QualityStatus.FAIL },
         warnings,
         reason: status === QualityStatus.FAIL ? reason : undefined,
         stage: 'script-gen'
@@ -157,21 +187,55 @@ export class QualityGateRegistry implements QualityGate {
     });
 
     // thumbnail: 3 variants
-    this.registerGate('thumbnail', (output: any) => {
+    this.registerGate('thumbnail', async (output: any, context?: QualityGateContext) => {
       const data = output.data || output;
       const variants = Array.isArray(data) ? data.length : (data.variants?.length || 0);
+      const expectedCount = 3;
 
       let status = QualityStatus.PASS;
       let reason: string | undefined;
 
-      if (variants !== 3) {
+      if (variants !== expectedCount) {
         status = QualityStatus.FAIL;
-        reason = `Expected 3 thumbnail variants, got ${variants}`;
+        reason = `Expected ${expectedCount} thumbnail variants, got ${variants}`;
+
+        // AC4: Create review item on thumbnail quality failure
+        if (context?.pipelineId) {
+          // Determine which variants failed (those not present)
+          const failedVariants: number[] = [];
+          const failureReasons: string[] = [];
+          for (let i = 1; i <= expectedCount; i++) {
+            if (i > variants) {
+              failedVariants.push(i);
+              failureReasons.push(`Variant ${i} not generated`);
+            }
+          }
+
+          const itemContent: ThumbnailQualityItemContent = {
+            generatedCount: variants,
+            expectedCount,
+            failedVariants,
+            failureReasons,
+          };
+
+          try {
+            await addToReviewQueue({
+              type: 'quality',
+              pipelineId: context.pipelineId,
+              stage: 'thumbnail',
+              item: itemContent,
+              context: {},
+            });
+            logger.info({ pipelineId: context.pipelineId, variants }, 'Thumbnail quality review item created');
+          } catch (error) {
+            logger.error({ error }, 'Failed to create thumbnail quality review item');
+          }
+        }
       }
 
       return {
         status,
-        metrics: { variantsGenerated: variants },
+        metrics: { variantsGenerated: variants, requiresReview: status === QualityStatus.FAIL },
         warnings: [],
         reason,
         stage: 'thumbnail'

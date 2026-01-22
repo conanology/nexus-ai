@@ -1,6 +1,13 @@
 // Pre-publish quality gate decision logic
 
 import type { PipelineState } from './state.js';
+import {
+  hasPendingCriticalReviews,
+  getPendingCriticalReviews,
+  createLogger,
+} from '@nexus-ai/core';
+
+const logger = createLogger('nexus.orchestrator.quality-gate');
 
 export type QualityDecision =
   | 'AUTO_PUBLISH'
@@ -11,6 +18,10 @@ export interface QualityGateResult {
   decision: QualityDecision;
   reason: string;
   issues: string[];
+  /** Review item IDs that require attention (only when HUMAN_REVIEW) */
+  reviewItemIds?: string[];
+  /** Stage to pause before (only when HUMAN_REVIEW due to pending reviews) */
+  pauseBeforeStage?: string;
 }
 
 /**
@@ -18,6 +29,7 @@ export interface QualityGateResult {
  * Core Principle: NEVER publish low-quality content. Skip day > bad video.
  *
  * Quality Criteria:
+ * - Pending critical review items → HUMAN_REVIEW (pause before youtube)
  * - TTS fallback used → HUMAN_REVIEW
  * - >30% visual fallbacks → HUMAN_REVIEW
  * - Word count outside range → HUMAN_REVIEW
@@ -25,9 +37,34 @@ export interface QualityGateResult {
  * - Thumbnail fallback + visual fallback → HUMAN_REVIEW
  * - Single minor issue → AUTO_PUBLISH_WITH_WARNING
  */
-export function qualityGateCheck(state: PipelineState): QualityGateResult {
+export async function qualityGateCheck(state: PipelineState): Promise<QualityGateResult> {
   const { qualityContext } = state;
   const issues: string[] = [];
+
+  // AC10: Check for pending critical review items first
+  try {
+    if (await hasPendingCriticalReviews()) {
+      const criticalReviews = await getPendingCriticalReviews();
+      const reviewItemIds = criticalReviews.map((r) => r.id);
+
+      logger.info(
+        { pipelineId: state.pipelineId, reviewCount: criticalReviews.length },
+        'Pending critical review items require attention'
+      );
+
+      return {
+        decision: 'HUMAN_REVIEW',
+        reason: `${criticalReviews.length} pending review items require attention`,
+        issues: criticalReviews.map(
+          (r) => `Pending ${r.type} review from ${r.stage} stage`
+        ),
+        reviewItemIds,
+        pauseBeforeStage: 'youtube',
+      };
+    }
+  } catch (error) {
+    logger.error({ error }, 'Failed to check pending reviews, continuing with other checks');
+  }
 
   // AUTO_PUBLISH: No issues
   if (

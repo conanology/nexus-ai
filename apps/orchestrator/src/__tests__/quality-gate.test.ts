@@ -1,6 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { qualityGateCheck } from '../quality-gate.js';
 import type { PipelineState } from '../state.js';
+
+// Mock @nexus-ai/core to prevent review queue checks
+vi.mock('@nexus-ai/core', () => ({
+  hasPendingCriticalReviews: vi.fn().mockResolvedValue(false),
+  getPendingCriticalReviews: vi.fn().mockResolvedValue([]),
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  })),
+}));
 
 describe('Quality Gate', () => {
   const basePipelineState: PipelineState = {
@@ -16,9 +28,13 @@ describe('Quality Gate', () => {
     },
   };
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('AUTO_PUBLISH decision', () => {
-    it('should return AUTO_PUBLISH when no quality issues', () => {
-      const result = qualityGateCheck(basePipelineState);
+    it('should return AUTO_PUBLISH when no quality issues', async () => {
+      const result = await qualityGateCheck(basePipelineState);
 
       expect(result.decision).toBe('AUTO_PUBLISH');
       expect(result.reason).toContain('No quality issues');
@@ -27,7 +43,7 @@ describe('Quality Gate', () => {
   });
 
   describe('HUMAN_REVIEW decision', () => {
-    it('should return HUMAN_REVIEW when TTS fallback used', () => {
+    it('should return HUMAN_REVIEW when TTS fallback used', async () => {
       const state: PipelineState = {
         ...basePipelineState,
         qualityContext: {
@@ -37,13 +53,13 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = qualityGateCheck(state);
+      const result = await qualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.issues).toContain('TTS fallback used');
     });
 
-    it('should return HUMAN_REVIEW when word count issue flagged', () => {
+    it('should return HUMAN_REVIEW when word count issue flagged', async () => {
       const state: PipelineState = {
         ...basePipelineState,
         qualityContext: {
@@ -53,13 +69,13 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = qualityGateCheck(state);
+      const result = await qualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.issues).toContain('Word count outside acceptable range');
     });
 
-    it('should return HUMAN_REVIEW when both thumbnail and visual fallbacks used', () => {
+    it('should return HUMAN_REVIEW when both thumbnail and visual fallbacks used', async () => {
       const state: PipelineState = {
         ...basePipelineState,
         qualityContext: {
@@ -69,7 +85,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = qualityGateCheck(state);
+      const result = await qualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.issues).toContain(
@@ -79,7 +95,7 @@ describe('Quality Gate', () => {
   });
 
   describe('AUTO_PUBLISH_WITH_WARNING decision', () => {
-    it('should return AUTO_PUBLISH_WITH_WARNING for 1 degraded stage', () => {
+    it('should return AUTO_PUBLISH_WITH_WARNING for 1 degraded stage', async () => {
       const state: PipelineState = {
         ...basePipelineState,
         qualityContext: {
@@ -89,13 +105,13 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = qualityGateCheck(state);
+      const result = await qualityGateCheck(state);
 
       expect(result.decision).toBe('AUTO_PUBLISH_WITH_WARNING');
       expect(result.reason).toContain('Minor quality issues');
     });
 
-    it('should return AUTO_PUBLISH_WITH_WARNING for 2 degraded stages', () => {
+    it('should return AUTO_PUBLISH_WITH_WARNING for 2 degraded stages', async () => {
       const state: PipelineState = {
         ...basePipelineState,
         qualityContext: {
@@ -105,12 +121,12 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = qualityGateCheck(state);
+      const result = await qualityGateCheck(state);
 
       expect(result.decision).toBe('AUTO_PUBLISH_WITH_WARNING');
     });
 
-    it('should return AUTO_PUBLISH_WITH_WARNING for 2 non-critical fallbacks', () => {
+    it('should return AUTO_PUBLISH_WITH_WARNING for 2 non-critical fallbacks', async () => {
       const state: PipelineState = {
         ...basePipelineState,
         qualityContext: {
@@ -120,14 +136,14 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = qualityGateCheck(state);
+      const result = await qualityGateCheck(state);
 
       expect(result.decision).toBe('AUTO_PUBLISH_WITH_WARNING');
     });
   });
 
   describe('Edge cases', () => {
-    it('should handle multiple flags and fallbacks', () => {
+    it('should handle multiple flags and fallbacks', async () => {
       const state: PipelineState = {
         ...basePipelineState,
         qualityContext: {
@@ -137,7 +153,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = qualityGateCheck(state);
+      const result = await qualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.reason).toContain('Multiple quality concerns');

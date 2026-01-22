@@ -4,9 +4,12 @@ import {
   executeStage,
   logger,
   CostTracker,
+  addToReviewQueue,
+  PRONUNCIATION_UNKNOWN_THRESHOLD,
+  type PronunciationItemContent,
+  type TermLocation,
 } from '@nexus-ai/core';
 import { PronunciationClient } from './pronunciation-client.js';
-import { ReviewQueueClient } from './review-queue.js';
 import { extractTerms, extractContext } from './extractor.js';
 import { tagScript } from './ssml-tagger.js';
 import type { PronunciationEntry } from './types.js';
@@ -27,6 +30,8 @@ export interface PronunciationOutput {
   ssmlScript: string;
   /** List of unknown terms flagged for review */
   flaggedTerms: string[];
+  /** Whether this stage output requires human review */
+  requiresReview?: boolean;
 }
 
 /**
@@ -78,19 +83,48 @@ export async function executePronunciation(
       }
 
       // 3. Flag unknown terms for review if threshold exceeded (>3)
-      if (flaggedTerms.length > 3) {
+      let requiresReview = false;
+      if (flaggedTerms.length > PRONUNCIATION_UNKNOWN_THRESHOLD) {
         logger.warn({ flaggedCount: flaggedTerms.length }, 'High number of unknown terms flagged');
+        requiresReview = true;
 
-        // Add unknown terms to review queue with context
-        const reviewQueueClient = new ReviewQueueClient();
-        for (const term of flaggedTerms) {
+        // Build term locations for context
+        const termLocations: TermLocation[] = flaggedTerms.map((term) => {
           const context = extractContext(data.script, term);
-          await reviewQueueClient.addToReviewQueue({
+          const lines = data.script.split('\n');
+          let lineNumber = 1;
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes(term)) {
+              lineNumber = i + 1;
+              break;
+            }
+          }
+          return {
             term,
-            context,
-            pipelineId: input.pipelineId
-          });
-        }
+            lineNumber,
+            surroundingText: context,
+          };
+        });
+
+        // Create consolidated review item for all unknown terms
+        const itemContent: PronunciationItemContent = {
+          unknownTerms: flaggedTerms,
+          totalTerms: terms.size,
+          knownTerms: terms.size - flaggedTerms.length,
+        };
+
+        const itemContext: Record<string, unknown> = {
+          scriptExcerpt: data.script.substring(0, 500),
+          termLocations,
+        };
+
+        await addToReviewQueue({
+          type: 'pronunciation',
+          pipelineId: input.pipelineId,
+          stage: 'pronunciation',
+          item: itemContent,
+          context: itemContext,
+        });
       }
 
       // 4. Generate SSML-tagged script
@@ -104,6 +138,7 @@ export async function executePronunciation(
       const result: PronunciationOutput = {
         ssmlScript,
         flaggedTerms,
+        requiresReview,
       };
 
       return {

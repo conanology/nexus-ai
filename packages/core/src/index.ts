@@ -39,5 +39,8 @@ export * from './buffer/index.js';
 // Re-export queue system
 export * from './queue/index.js';
 
+// Re-export review queue system
+export * from './review/index.js';
+
 // Version constant
 export const NEXUS_VERSION = '0.1.0';

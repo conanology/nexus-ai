@@ -32,13 +32,26 @@ export interface QualityGateResult {
  */
 export type QualityGateName = 'script-gen' | 'tts' | 'render' | 'thumbnail' | string;
 
+/**
+ * Context for quality gate check
+ */
+export interface QualityGateContext {
+  /** Pipeline ID for review queue integration */
+  pipelineId?: string;
+  /** Script content for excerpt generation */
+  scriptContent?: string;
+  /** Optimizer attempts count */
+  optimizerAttempts?: number;
+}
+
 export interface QualityGate {
   /**
    * Check quality for a specific stage
    * @param stageName Name of the stage
    * @param output Output data from the stage
+   * @param context Optional context with pipelineId for review queue integration
    */
-  check(stageName: string, output: any): Promise<QualityGateResult>;
+  check(stageName: string, output: any, context?: QualityGateContext): Promise<QualityGateResult>;
 }
 
 /**

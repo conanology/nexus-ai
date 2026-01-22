@@ -147,6 +147,14 @@ export const NEXUS_QUEUE_TOPIC_SAVE_FAILED = 'NEXUS_QUEUE_TOPIC_SAVE_FAILED';
 export const NEXUS_QUEUE_TOPIC_CLEAR_FAILED = 'NEXUS_QUEUE_TOPIC_CLEAR_FAILED';
 
 // =============================================================================
+// Review Domain
+// =============================================================================
+export const NEXUS_REVIEW_ITEM_NOT_FOUND = 'NEXUS_REVIEW_ITEM_NOT_FOUND';
+export const NEXUS_REVIEW_ITEM_ALREADY_RESOLVED = 'NEXUS_REVIEW_ITEM_ALREADY_RESOLVED';
+export const NEXUS_REVIEW_ITEM_SAVE_FAILED = 'NEXUS_REVIEW_ITEM_SAVE_FAILED';
+export const NEXUS_REVIEW_QUEUE_QUERY_FAILED = 'NEXUS_REVIEW_QUEUE_QUERY_FAILED';
+
+// =============================================================================
 // Generic / Unknown
 // =============================================================================
 export const NEXUS_UNKNOWN_ERROR = 'NEXUS_UNKNOWN_ERROR';
