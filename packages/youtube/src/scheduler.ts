@@ -62,10 +62,10 @@ export async function scheduleVideo(
 ): Promise<ScheduleResult> {
   const scheduledTime = publishTime ?? calculatePublishTime();
   
-  logger.info('Scheduling video for publication', {
+  logger.info({
     videoId,
     scheduledTime: scheduledTime.toISOString(),
-  });
+  }, 'Scheduling video for publication');
   
   try {
     // Get YouTube client
@@ -89,7 +89,6 @@ export async function scheduleVideo(
       {
         maxRetries: 3,
         stage: 'youtube',
-        operation: 'schedule',
       }
     );
     
@@ -111,11 +110,11 @@ export async function scheduleVideo(
     const quotaTracker = getQuotaTracker();
     await quotaTracker.recordUsage('video_update', 50);
     
-    logger.info('Video scheduled successfully', {
+    logger.info({
       videoId,
       scheduledTime: scheduledTime.toISOString(),
       responseData: response.data,
-    });
+    }, 'Video scheduled successfully');
     
     // Return scheduling details
     return {
@@ -124,11 +123,11 @@ export async function scheduleVideo(
       videoUrl: `https://youtu.be/${videoId}`,
     };
   } catch (error) {
-    logger.error('Failed to schedule video', {
+    logger.error({
       videoId,
       scheduledTime: scheduledTime.toISOString(),
       error,
-    });
+    }, 'Failed to schedule video');
     throw error;
   }
 }

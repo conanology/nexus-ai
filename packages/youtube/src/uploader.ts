@@ -65,13 +65,6 @@ export interface ResumableUploadResult {
 }
 
 /**
- * Firestore path for upload sessions
- */
-function getUploadSessionPath(pipelineId: string): string {
-  return `pipelines/${pipelineId}/youtube-upload-session`;
-}
-
-/**
  * ResumableUploader class for YouTube video uploads
  * Implements YouTube Data API v3 resumable upload protocol
  */
@@ -98,11 +91,11 @@ export class ResumableUploader {
       chunkSize = DEFAULT_CHUNK_SIZE,
     } = config;
 
-    this.logger.info('Starting YouTube upload', {
+    this.logger.info({
       pipelineId,
       videoPath,
       title: config.metadata.title,
-    });
+    }, 'Starting YouTube upload');
 
     // Initialize YouTube client
     this.youtubeClient = await getYouTubeClient();
@@ -112,11 +105,11 @@ export class ResumableUploader {
     let wasResumed = false;
 
     if (session && session.status === 'active') {
-      this.logger.info('Found existing upload session, attempting resume', {
+      this.logger.info({
         pipelineId,
         bytesUploaded: session.bytesUploaded,
         fileSize: session.fileSize,
-      });
+      }, 'Found existing upload session, attempting resume');
       wasResumed = true;
     } else {
       // Start new resumable session
@@ -151,7 +144,7 @@ export class ResumableUploader {
         lastUpdatedAt: new Date().toISOString(),
       });
 
-      this.logger.info('YouTube upload completed', { pipelineId, videoId });
+      this.logger.info({ pipelineId, videoId }, 'YouTube upload completed');
 
       return {
         videoId,
@@ -167,7 +160,7 @@ export class ResumableUploader {
         lastUpdatedAt: new Date().toISOString(),
       });
 
-      this.logger.error('YouTube upload failed', { pipelineId, error });
+      this.logger.error({ pipelineId, error }, 'YouTube upload failed');
       throw error;
     }
   }
@@ -178,7 +171,7 @@ export class ResumableUploader {
   private async startSession(config: ResumableUploadConfig): Promise<UploadSession> {
     const { pipelineId, videoPath, metadata, privacyStatus } = config;
 
-    this.logger.info('Starting new resumable upload session', { pipelineId });
+    this.logger.info({ pipelineId }, 'Starting new resumable upload session');
 
     const youtube = this.youtubeClient!.getYouTubeApi();
     const fileSize = await this.getFileSize(videoPath);
@@ -207,22 +200,17 @@ export class ResumableUploader {
             mimeType: 'video/*',
             body: Readable.from([]), // Empty body for session initiation
           },
-        }, {
-          // Request resumable upload
-          requestType: 'media',
-          retry: true,
         });
       },
       {
         maxRetries: 3,
         stage: 'youtube',
-        operation: 'startSession',
       }
     );
 
     // Extract session URI from response headers
     // For googleapis, the upload URL is typically returned in the response
-    const sessionUri = (response as { config?: { url?: string } }).config?.url || '';
+    const sessionUri = (response.result as { config?: { url?: string } }).config?.url || '';
 
     const session: UploadSession = {
       sessionUri,
@@ -238,10 +226,10 @@ export class ResumableUploader {
     // Persist session to Firestore
     await this.saveSession(pipelineId, session);
 
-    this.logger.info('Resumable upload session created', {
+    this.logger.info({
       pipelineId,
       sessionUri: sessionUri ? 'present' : 'missing',
-    });
+    }, 'Resumable upload session created');
 
     return session;
   }
@@ -258,18 +246,18 @@ export class ResumableUploader {
   ): Promise<string> {
     const youtube = this.youtubeClient!.getYouTubeApi();
 
-    this.logger.info('Performing video upload', {
+    this.logger.info({
       pipelineId: session.pipelineId,
       fileSize,
       chunkSize,
-    });
+    }, 'Performing video upload');
 
     // TODO: PERFORMANCE ISSUE - Currently downloads entire file to memory
     // For large videos (up to 128GB per YouTube limit), this will cause OOM errors.
     // Need CloudStorageClient.createReadStream() API to stream directly from GCS → YouTube
     // without buffering entire file in memory. This is a known limitation.
     // See: https://github.com/googleapis/nodejs-storage/blob/main/samples/downloadFileUsingRequesterPays.js
-    const videoBuffer = await this.storageClient.download(videoPath);
+    const videoBuffer = await this.storageClient.downloadFile(videoPath);
     const videoStream = Readable.from(videoBuffer);
 
     // Perform upload with retry
@@ -297,7 +285,6 @@ export class ResumableUploader {
       {
         maxRetries: 3,
         stage: 'youtube',
-        operation: 'uploadVideo',
       }
     );
 
@@ -310,7 +297,7 @@ export class ResumableUploader {
       });
     }
 
-    const videoId = response.data.id;
+    const videoId = response.result.data?.id;
 
     if (!videoId) {
       throw NexusError.critical(
@@ -335,17 +322,17 @@ export class ResumableUploader {
    * See: https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol#Checking_Upload_Status
    */
   async checkUploadStatus(session: UploadSession): Promise<number> {
-    this.logger.info('Checking upload status', {
+    this.logger.info({
       pipelineId: session.pipelineId,
       sessionUri: session.sessionUri ? 'present' : 'missing',
       lastKnownBytes: session.bytesUploaded,
-    });
+    }, 'Checking upload status');
 
     // If no session URI, cannot check status
     if (!session.sessionUri) {
-      this.logger.warn('No session URI available for status check', {
+      this.logger.warn({
         pipelineId: session.pipelineId,
-      });
+      }, 'No session URI available for status check');
       return 0;
     }
 
@@ -400,12 +387,12 @@ export class ResumableUploader {
     // Check current upload status
     const bytesUploaded = await this.checkUploadStatus(session);
 
-    this.logger.warn('Attempting to resume upload - will restart from beginning due to API limitations', {
+    this.logger.warn({
       pipelineId,
       bytesUploaded,
       totalSize: session.fileSize,
       sessionUri: session.sessionUri ? 'present' : 'missing',
-    });
+    }, 'Attempting to resume upload - will restart from beginning due to API limitations');
 
     // LIMITATION: This restarts the upload from the beginning
     // True resume would require direct HTTP PUT to session.sessionUri
@@ -426,10 +413,23 @@ export class ResumableUploader {
 
   /**
    * Get file size from GCS
+   * Note: CloudStorageClient doesn't have getMetadata, so we download and check length
+   * This is inefficient for large files - consider adding getMetadata to core
    */
   private async getFileSize(videoPath: string): Promise<number> {
-    const metadata = await this.storageClient.getMetadata(videoPath);
-    return metadata.size || 0;
+    // Check if file exists first
+    const exists = await this.storageClient.fileExists(videoPath);
+    if (!exists) {
+      throw NexusError.critical(
+        'NEXUS_YOUTUBE_FILE_NOT_FOUND',
+        `Video file not found: ${videoPath}`,
+        'youtube'
+      );
+    }
+    // For now, we'll get the size when we download the file
+    // This is a limitation - ideally we'd have getMetadata in CloudStorageClient
+    const buffer = await this.storageClient.downloadFile(videoPath);
+    return buffer.length;
   }
 
   /**
@@ -437,8 +437,9 @@ export class ResumableUploader {
    */
   private async loadSession(pipelineId: string): Promise<UploadSession | null> {
     try {
-      const docPath = getUploadSessionPath(pipelineId);
-      const data = await this.firestoreClient.get<UploadSession>(docPath);
+      const collection = `pipelines/${pipelineId}`;
+      const docId = 'youtube-upload-session';
+      const data = await this.firestoreClient.getDocument<UploadSession>(collection, docId);
       return data;
     } catch {
       return null;
@@ -449,8 +450,9 @@ export class ResumableUploader {
    * Save upload session to Firestore
    */
   private async saveSession(pipelineId: string, session: UploadSession): Promise<void> {
-    const docPath = getUploadSessionPath(pipelineId);
-    await this.firestoreClient.set(docPath, session);
+    const collection = `pipelines/${pipelineId}`;
+    const docId = 'youtube-upload-session';
+    await this.firestoreClient.setDocument(collection, docId, session);
   }
 
   /**
@@ -460,8 +462,9 @@ export class ResumableUploader {
     pipelineId: string,
     updates: Partial<UploadSession>
   ): Promise<void> {
-    const docPath = getUploadSessionPath(pipelineId);
-    await this.firestoreClient.update(docPath, updates);
+    const collection = `pipelines/${pipelineId}`;
+    const docId = 'youtube-upload-session';
+    await this.firestoreClient.updateDocument(collection, docId, updates);
   }
 }
 

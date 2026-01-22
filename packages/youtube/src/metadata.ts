@@ -51,7 +51,7 @@ function buildAffiliateUrl(baseUrl: string, utmParams: Record<string, string>): 
 /**
  * Generate engaging title from topic and script
  */
-export function generateTitle(topic: NewsItem, script: string): string {
+export function generateTitle(topic: NewsItem, _script: string): string {
   let title = topic.title;
 
   // Select pattern based on topic metadata
@@ -143,7 +143,7 @@ export function generateDescription(
 /**
  * Generate tags array with character count validation
  */
-export function generateTags(topic: NewsItem, script: string): string[] {
+export function generateTags(topic: NewsItem, _script: string): string[] {
   const tags: string[] = [];
 
   // Base tags (always include)
@@ -165,10 +165,10 @@ export function generateTags(topic: NewsItem, script: string): string[] {
   // Extract keywords from title (simple approach: significant words)
   const titleWords = topic.title
     .split(/\s+/)
-    .filter(w => w.length > 3 && !/^(the|and|for|with|from)$/i.test(w))
+    .filter((w: string) => w.length > 3 && !/^(the|and|for|with|from)$/i.test(w))
     .slice(0, 3);
 
-  titleWords.forEach(word => {
+  titleWords.forEach((word: string) => {
     // Remove special characters
     const cleaned = word.replace(/[^a-zA-Z0-9]/g, '');
     if (cleaned.length > 0 && !tags.includes(cleaned)) {
@@ -217,7 +217,7 @@ export function extractChapterMarkers(script: string, audioDuration: number): Ch
   const totalWords = script.split(/\s+/).length;
   const wordsPerSecond = totalWords / audioDuration;
 
-  matches.forEach((match, index) => {
+  matches.forEach((match, _index) => {
     const position = match.index || 0;
     const wordsBefore = script.substring(0, position).split(/\s+/).length;
     const secondsElapsed = Math.floor(wordsBefore / wordsPerSecond);
@@ -259,11 +259,11 @@ export async function generateMetadata(
 ): Promise<VideoMetadata> {
   const { topic, script, sourceUrls, pipelineId, audioDuration } = options;
 
-  logger.info('Generating metadata', {
+  logger.info({
     pipelineId,
     stage: 'metadata',
-    topicId: topic.id
-  });
+    topicTitle: topic.title
+  }, 'Generating metadata');
 
   try {
     // 1. Load configuration
@@ -335,22 +335,23 @@ export async function generateMetadata(
     };
 
     // 6. Persist to Firestore
-    const firestore = FirestoreClient.getInstance();
-    const path = `pipelines/${pipelineId}/youtube/metadata`;
-    await firestore.doc(path).set({
+    const firestore = new FirestoreClient();
+    const collection = `pipelines/${pipelineId}/youtube`;
+    const docId = 'metadata';
+    await firestore.setDocument(collection, docId, {
       ...metadata,
       generatedAt: new Date().toISOString(),
       version: '1.0'
     });
 
-    logger.info('Metadata generated and stored', {
+    logger.info({
       pipelineId,
       stage: 'metadata',
-      path,
+      path: `${collection}/${docId}`,
       titleLength: title.length,
       descriptionBytes: Buffer.byteLength(description, 'utf8'),
       tagCount: tags.length
-    });
+    }, 'Metadata generated and stored');
 
     return metadata;
 
@@ -359,11 +360,11 @@ export async function generateMetadata(
       throw error;
     }
 
-    logger.error('Failed to generate metadata', {
+    logger.error({
       error,
       pipelineId,
       stage: 'metadata'
-    });
+    }, 'Failed to generate metadata');
 
     throw NexusError.critical(
       'NEXUS_YOUTUBE_METADATA_GENERATION_FAILED',

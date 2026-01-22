@@ -29,6 +29,8 @@
   "license": "MIT",
   "dependencies": {
     "@nexus-ai/core": "workspace:*",
+    "@nexus-ai/news-sourcing": "workspace:*",
+    "google-auth-library": "^9.0.0",
     "googleapis": "^140.0.0",
     "image-size": "^2.0.2"
   },

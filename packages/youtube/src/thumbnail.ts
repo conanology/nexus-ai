@@ -25,7 +25,7 @@ const MAX_THUMBNAIL_SIZE = 2 * 1024 * 1024;
  * @throws NexusError if URL is invalid or download fails
  */
 export async function downloadThumbnail(url: string): Promise<Buffer> {
-  logger.info('Downloading thumbnail', { url });
+  logger.info({ url }, 'Downloading thumbnail');
 
   // Validate URL format
   if (!url.startsWith('gs://')) {
@@ -57,10 +57,10 @@ export async function downloadThumbnail(url: string): Promise<Buffer> {
     const client = new CloudStorageClient();
     const buffer = await client.downloadFile(path);
 
-    logger.info('Thumbnail downloaded successfully', {
+    logger.info({
       url,
       size: buffer.byteLength,
-    });
+    }, 'Thumbnail downloaded successfully');
 
     return buffer;
   } catch (error) {
@@ -68,7 +68,7 @@ export async function downloadThumbnail(url: string): Promise<Buffer> {
       throw error;
     }
 
-    logger.error('Failed to download thumbnail', { error, url });
+    logger.error({ error, url }, 'Failed to download thumbnail');
     throw NexusError.fromError(error, 'thumbnail');
   }
 }
@@ -85,7 +85,7 @@ export async function downloadThumbnail(url: string): Promise<Buffer> {
  * @throws NexusError if validation fails
  */
 export function validateThumbnail(buffer: Buffer): void {
-  logger.debug('Validating thumbnail', { size: buffer.byteLength });
+  logger.debug({ size: buffer.byteLength }, 'Validating thumbnail');
 
   // Check file size
   if (buffer.byteLength > MAX_THUMBNAIL_SIZE) {
@@ -125,12 +125,12 @@ export function validateThumbnail(buffer: Buffer): void {
       );
     }
 
-    logger.debug('Thumbnail validation passed', {
+    logger.debug({
       size: buffer.byteLength,
       format: dimensions.type,
       width: dimensions.width,
       height: dimensions.height,
-    });
+    }, 'Thumbnail validation passed');
   } catch (error) {
     if (error instanceof NexusError) {
       throw error;
@@ -174,10 +174,10 @@ export async function uploadThumbnailToYouTube(
   videoId: string,
   buffer: Buffer
 ): Promise<void> {
-  logger.info('Uploading thumbnail to YouTube', {
+  logger.info({
     videoId,
     size: buffer.byteLength,
-  });
+  }, 'Uploading thumbnail to YouTube');
 
   try {
     const client = await getYouTubeClient();
@@ -201,11 +201,11 @@ export async function uploadThumbnailToYouTube(
     // Record quota usage
     await recordThumbnailSet();
 
-    logger.info('Thumbnail uploaded successfully', {
+    logger.info({
       videoId,
       quotaUsed: QUOTA_COSTS.THUMBNAIL_SET,
       mimeType,
-    });
+    }, 'Thumbnail uploaded successfully');
 
     // Verify response
     if (!response.data || !response.data.items || response.data.items.length === 0) {
@@ -221,10 +221,10 @@ export async function uploadThumbnailToYouTube(
       throw error;
     }
 
-    logger.error('Failed to upload thumbnail to YouTube', {
+    logger.error({
       error,
       videoId,
-    });
+    }, 'Failed to upload thumbnail to YouTube');
     throw NexusError.fromError(error, 'thumbnail');
   }
 }
@@ -246,7 +246,7 @@ export async function setThumbnail(
   videoId: string,
   thumbnailUrl: string
 ): Promise<boolean> {
-  logger.info('Setting thumbnail', { videoId, thumbnailUrl });
+  logger.info({ videoId, thumbnailUrl }, 'Setting thumbnail');
 
   try {
     // Download thumbnail
@@ -261,21 +261,20 @@ export async function setThumbnail(
       {
         maxRetries: 3,
         stage: 'thumbnail',
-        operation: 'upload',
       }
     );
 
-    logger.info('Thumbnail set successfully', { videoId, thumbnailUrl });
+    logger.info({ videoId, thumbnailUrl }, 'Thumbnail set successfully');
     return true;
   } catch (error) {
     // CRITICAL: Thumbnail failure is RECOVERABLE/DEGRADED
     // Log warning and return false instead of throwing
-    logger.warn('Thumbnail upload failed, video will use auto-generated thumbnail', {
+    logger.warn({
       error: error instanceof Error ? error.message : String(error),
       videoId,
       thumbnailUrl,
       stack: error instanceof Error ? error.stack : undefined,
-    });
+    }, 'Thumbnail upload failed, video will use auto-generated thumbnail');
 
     return false;
   }

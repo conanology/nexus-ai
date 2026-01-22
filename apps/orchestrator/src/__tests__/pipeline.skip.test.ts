@@ -221,9 +221,9 @@ describe('Pipeline Skip Functionality', () => {
       const ttsError = NexusError.critical(
         'NEXUS_RETRY_EXHAUSTED',
         'TTS failed after 5 retries',
-        'tts'
+        'tts',
+        { originalSeverity: ErrorSeverity.RETRYABLE }
       );
-      ttsError.context = { originalSeverity: ErrorSeverity.RETRYABLE };
 
       (stageRegistry['tts'] as ReturnType<typeof vi.fn>).mockRejectedValue(ttsError);
 

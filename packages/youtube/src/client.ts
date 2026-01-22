@@ -61,10 +61,10 @@ export class YouTubeClient {
 
       // Set up automatic token refresh handler
       this.oauth2Client.on('tokens', (tokens: Credentials) => {
-        this.logger.info('OAuth tokens refreshed', {
+        this.logger.info({
           hasAccessToken: !!tokens.access_token,
           expiryDate: tokens.expiry_date,
-        });
+        }, 'OAuth tokens refreshed');
         // Note: In production, you might want to persist the refreshed tokens
         // back to Secret Manager
       });
@@ -77,7 +77,7 @@ export class YouTubeClient {
 
       this.logger.info('YouTube client initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize YouTube client', { error });
+      this.logger.error({ error }, 'Failed to initialize YouTube client');
       throw error;
     }
   }
@@ -137,11 +137,11 @@ export class YouTubeClient {
       const { credentials } = await this.oauth2Client.refreshAccessToken();
       this.oauth2Client.setCredentials(credentials);
 
-      this.logger.info('Access token refreshed successfully', {
+      this.logger.info({
         expiryDate: credentials.expiry_date,
-      });
+      }, 'Access token refreshed successfully');
     } catch (error) {
-      this.logger.error('Failed to refresh access token', { error });
+      this.logger.error({ error }, 'Failed to refresh access token');
       throw error;
     }
   }

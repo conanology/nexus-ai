@@ -181,9 +181,87 @@ export class PronunciationClient {
     }
   }
 
-  async getAllTerms(tracker?: CostTracker): Promise<PronunciationEntry[]> {
+  /**
+   * Get all terms from the dictionary
+   */
+  async getAllTerms(limit?: number, tracker?: CostTracker): Promise<PronunciationEntry[]> {
     const dictionary = await this.getDictionary(tracker);
-    return Array.from(dictionary.values());
+    const entries = Array.from(dictionary.values());
+    return limit ? entries.slice(0, limit) : entries;
+  }
+
+  /**
+   * Get only unverified terms
+   */
+  async getUnverifiedTerms(limit?: number, tracker?: CostTracker): Promise<PronunciationEntry[]> {
+    const dictionary = await this.getDictionary(tracker);
+    const unverified = Array.from(dictionary.values()).filter((e) => !e.verified);
+    return limit ? unverified.slice(0, limit) : unverified;
+  }
+
+  /**
+   * Get a single term by name
+   */
+  async getTerm(term: string, tracker?: CostTracker): Promise<PronunciationEntry | null> {
+    const dictionary = await this.getDictionary(tracker);
+    return dictionary.get(term.toLowerCase()) || null;
+  }
+
+  /**
+   * Search terms by prefix
+   */
+  async searchTerms(query: string, limit = 20, tracker?: CostTracker): Promise<PronunciationEntry[]> {
+    const dictionary = await this.getDictionary(tracker);
+    const normalizedQuery = query.toLowerCase();
+    const results: PronunciationEntry[] = [];
+
+    for (const [key, entry] of dictionary) {
+      if (key.startsWith(normalizedQuery) || key.includes(normalizedQuery)) {
+        results.push(entry);
+        if (results.length >= limit) break;
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Update a term's properties
+   */
+  async updateTerm(
+    term: string,
+    updates: Partial<Pick<PronunciationEntry, 'verified' | 'ipa' | 'ssml'>>,
+    tracker?: CostTracker
+  ): Promise<void> {
+    const normalizedTerm = term.toLowerCase();
+
+    try {
+      await withRetry(
+        () => this.firestore.updateDocument<PronunciationEntry>(this.collectionName, normalizedTerm, updates),
+        { stage: 'pronunciation' }
+      );
+
+      if (tracker) {
+        tracker.recordApiCall('firestore-write', { output: 1 }, 0);
+      }
+
+      // Update cache
+      if (this.cache) {
+        const entry = this.cache.get(normalizedTerm);
+        if (entry) {
+          Object.assign(entry, updates);
+        }
+      }
+
+      this.log.info({ term: normalizedTerm, updates }, 'Term updated successfully');
+    } catch (error) {
+      throw NexusError.critical(
+        'NEXUS_PRONUNCIATION_UPDATE_ERROR',
+        `Failed to update pronunciation for term: ${term}`,
+        'pronunciation',
+        { term, updates, error }
+      );
+    }
   }
 
   clearCache(): void {

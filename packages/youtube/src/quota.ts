@@ -101,7 +101,6 @@ export class QuotaTracker {
     const targetDate = date ?? getCurrentDate();
 
     try {
-      const docPath = `${QUOTA_COLLECTION}/${targetDate}`;
       const usage = await this.firestoreClient.getDocument<QuotaUsage>(QUOTA_COLLECTION, targetDate);
 
       if (usage) {

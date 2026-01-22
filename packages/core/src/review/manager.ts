@@ -132,10 +132,10 @@ export async function getReviewQueue(filters?: ReviewQueueFilters): Promise<Revi
       queryFilters.push({ field: 'pipelineId', operator: '==', value: filters.pipelineId });
     }
 
-    // Query with filters, or pass undefined for no filters (get all documents)
+    // Query with filters, or pass empty array for no filters (get all documents)
     const items = await client.queryDocuments<ReviewItem>(
       REVIEW_QUEUE_COLLECTION,
-      queryFilters.length > 0 ? queryFilters : undefined
+      queryFilters.length > 0 ? queryFilters : []
     );
 
     logger.debug(

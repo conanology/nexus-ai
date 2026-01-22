@@ -23,7 +23,7 @@ import { QUOTA_COSTS } from './types.js';
 import { ResumableUploader } from './uploader.js';
 import { getQuotaTracker, canUploadVideo, recordVideoUpload } from './quota.js';
 import { setThumbnail } from './thumbnail.js';
-import { scheduleVideo, calculatePublishTime } from './scheduler.js';
+import { scheduleVideo } from './scheduler.js';
 import { FirestoreClient } from '@nexus-ai/core';
 
 const logger = createLogger('youtube.stage');
@@ -82,7 +82,7 @@ export async function executeYouTubeUpload(
     // Create uploader and perform upload with retry
     const uploader = new ResumableUploader();
 
-    const uploadResult = await withRetry(
+    const retryResult = await withRetry(
       async () => {
         return uploader.upload({
           pipelineId,
@@ -100,9 +100,11 @@ export async function executeYouTubeUpload(
       {
         maxRetries: config.retries || 3,
         stage: 'youtube',
-        operation: 'upload',
       }
     );
+
+    // Extract the actual upload result from the retry wrapper
+    const uploadResult = retryResult.result;
 
     // Record quota usage after successful upload
     await recordVideoUpload();
@@ -121,7 +123,9 @@ export async function executeYouTubeUpload(
 
       // Store thumbnail details in Firestore
       const firestore = new FirestoreClient();
-      await firestore.updateDocument(`pipelines/${pipelineId}/youtube`, {
+      const collection = `pipelines/${pipelineId}`;
+      const docId = 'youtube';
+      await firestore.updateDocument(collection, docId, {
         thumbnail: {
           thumbnailVariant,
           thumbnailUrl,
@@ -144,8 +148,10 @@ export async function executeYouTubeUpload(
 
       // Store scheduling details in Firestore (with error handling)
       try {
-        const firestore = new FirestoreClient();
-        await firestore.updateDocument(`pipelines/${pipelineId}/youtube`, {
+        const firestoreSchedule = new FirestoreClient();
+        const scheduleCollection = `pipelines/${pipelineId}`;
+        const scheduleDocId = 'youtube';
+        await firestoreSchedule.updateDocument(scheduleCollection, scheduleDocId, {
           scheduledFor: scheduledFor,
           videoId: uploadResult.videoId,
           videoUrl: videoUrl,
