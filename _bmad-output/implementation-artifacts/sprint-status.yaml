@@ -100,7 +100,7 @@ development_status:
   5-4-create-notifications-package: done
   5-5-implement-cost-dashboard: done
   5-6-implement-incident-logging: done
-  5-7-create-buffer-video-system: backlog
+  5-7-create-buffer-video-system: ready-for-dev
   5-8-implement-skip-and-recovery: backlog
   5-9-create-human-review-queue: backlog
   5-10-create-operator-cli: backlog
