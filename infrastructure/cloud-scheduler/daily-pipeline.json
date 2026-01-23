@@ -1,0 +1,50 @@
+{
+  "$schema": "https://cloud.google.com/scheduler/docs/reference/rest/v1/projects.locations.jobs",
+  "_comment": "Reference job definition - Terraform is source of truth. Use for manual setup or documentation.",
+  "name": "projects/${PROJECT_ID}/locations/${REGION}/jobs/nexus-daily-pipeline",
+  "description": "Triggers NEXUS-AI pipeline daily at 6:00 AM UTC",
+  "schedule": "0 6 * * *",
+  "timeZone": "UTC",
+  "attemptDeadline": "1800s",
+  "retryConfig": {
+    "retryCount": 3,
+    "minBackoffDuration": "30s",
+    "maxBackoffDuration": "300s",
+    "maxRetryDuration": "3600s"
+  },
+  "httpTarget": {
+    "uri": "${ORCHESTRATOR_URL}/trigger/scheduled",
+    "httpMethod": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "eyJzb3VyY2UiOiJzY2hlZHVsZXIiLCJqb2JfbmFtZSI6Im5leHVzLWRhaWx5LXBpcGVsaW5lIiwic2NoZWR1bGVkIjp0cnVlfQ==",
+    "oidcToken": {
+      "serviceAccountEmail": "nexus-scheduler-sa@${PROJECT_ID}.iam.gserviceaccount.com",
+      "audience": "${ORCHESTRATOR_URL}"
+    }
+  },
+  "_manual_setup": {
+    "description": "Alternative manual setup using gcloud CLI",
+    "commands": [
+      "# Create the scheduler job manually",
+      "gcloud scheduler jobs create http nexus-daily-pipeline \\",
+      "  --project=${PROJECT_ID} \\",
+      "  --location=${REGION} \\",
+      "  --schedule='0 6 * * *' \\",
+      "  --time-zone='UTC' \\",
+      "  --uri='${ORCHESTRATOR_URL}/trigger/scheduled' \\",
+      "  --http-method=POST \\",
+      "  --headers='Content-Type=application/json' \\",
+      "  --message-body='{\"source\":\"scheduler\",\"job_name\":\"nexus-daily-pipeline\",\"scheduled\":true}' \\",
+      "  --oidc-service-account-email='nexus-scheduler-sa@${PROJECT_ID}.iam.gserviceaccount.com' \\",
+      "  --oidc-token-audience='${ORCHESTRATOR_URL}' \\",
+      "  --attempt-deadline='1800s' \\",
+      "  --max-retry-attempts=3 \\",
+      "  --min-backoff='30s' \\",
+      "  --max-backoff='300s' \\",
+      "  --max-retry-duration='3600s' \\",
+      "  --description='Triggers NEXUS-AI pipeline daily at 6:00 AM UTC'"
+    ]
+  }
+}

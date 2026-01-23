@@ -1,0 +1,68 @@
+# Multi-stage Dockerfile for NEXUS-AI Orchestrator Service
+# Optimized for Cloud Run deployment following 2026 best practices
+
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm@10
+
+# Copy all packages and apps (needed for workspace resolution)
+COPY packages ./packages
+COPY apps/orchestrator ./apps/orchestrator
+COPY tsconfig.base.json ./
+
+# Install dependencies (including workspace packages)
+RUN pnpm install --no-frozen-lockfile
+
+# Install esbuild for bundling
+RUN pnpm add -w esbuild
+
+# Build all packages (orchestrator depends on them)
+RUN pnpm -r build:ts 2>/dev/null || pnpm -r build
+
+# Bundle orchestrator into single file
+RUN cd apps/orchestrator && pnpm build:bundle
+
+# Production stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install pnpm in production stage
+RUN npm install -g pnpm@10
+
+# Copy workspace files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy package.json files (needed for workspace resolution)
+COPY packages ./packages
+COPY apps/orchestrator/package.json ./apps/orchestrator/
+
+# Install only production dependencies
+RUN pnpm install --no-frozen-lockfile --prod
+
+# Copy bundled application from builder
+COPY --from=builder /app/apps/orchestrator/dist/bundle.cjs ./apps/orchestrator/dist/
+
+# Run as non-root user for security
+USER node
+
+# Expose port (Cloud Run will set PORT env var)
+ENV PORT=8080
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
+
+# Start server using bundled CommonJS file
+CMD ["node", "apps/orchestrator/dist/bundle.cjs"]

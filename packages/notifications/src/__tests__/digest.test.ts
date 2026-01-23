@@ -155,6 +155,114 @@ describe('Digest Generation', () => {
       expect(digest.health.buffersRemaining).toBe(-1); // -1 indicates unknown
       expect(digest.health.budgetRemaining).toBe('Unknown');
     });
+
+    it('should include AUTO_PUBLISH_WITH_WARNING alerts from qualityDecision', async () => {
+      const pipelineResult: PipelineResultData = {
+        status: 'success',
+        videoTitle: 'Test Video',
+        videoUrl: 'https://youtube.com/test',
+        durationMs: 3600000,
+        totalCost: 0.45,
+        stages: [],
+      };
+
+      const digest = await generateDigest(pipelineResult, {
+        qualityDecision: {
+          decision: 'AUTO_PUBLISH_WITH_WARNING',
+          reasons: ['1 minor issue detected - publishing with warnings'],
+          issues: [
+            { code: 'tts-retry-high', severity: 'minor', stage: 'tts', message: 'TTS required 4 attempts' },
+          ],
+          metrics: {
+            totalStages: 5,
+            degradedStages: 0,
+            fallbacksUsed: 0,
+            totalWarnings: 1,
+            scriptWordCount: 1500,
+            visualFallbackPercent: 0,
+            pronunciationUnknowns: 0,
+            ttsProvider: 'gemini-2.5-pro-tts',
+            thumbnailFallback: false,
+          },
+          timestamp: '2026-01-22T12:00:00.000Z',
+        },
+      });
+
+      expect(digest.alerts.some(a => a.message.includes('AUTO_PUBLISH_WITH_WARNING'))).toBe(true);
+      expect(digest.alerts.some(a => a.message.includes('TTS required 4 attempts'))).toBe(true);
+    });
+
+    it('should include HUMAN_REVIEW alerts from qualityDecision', async () => {
+      const pipelineResult: PipelineResultData = {
+        status: 'success',
+        videoTitle: 'Test Video',
+        videoUrl: 'https://youtube.com/test',
+        durationMs: 3600000,
+        totalCost: 0.45,
+        stages: [],
+      };
+
+      const digest = await generateDigest(pipelineResult, {
+        qualityDecision: {
+          decision: 'HUMAN_REVIEW',
+          reasons: ['1 major issue detected requiring human review'],
+          issues: [
+            { code: 'tts-provider-fallback', severity: 'major', stage: 'tts', message: 'TTS fallback provider used' },
+          ],
+          metrics: {
+            totalStages: 5,
+            degradedStages: 1,
+            fallbacksUsed: 1,
+            totalWarnings: 0,
+            scriptWordCount: 1500,
+            visualFallbackPercent: 0,
+            pronunciationUnknowns: 0,
+            ttsProvider: 'chirp3-hd',
+            thumbnailFallback: false,
+          },
+          timestamp: '2026-01-22T12:00:00.000Z',
+          reviewItemId: 'review-123',
+        },
+      });
+
+      expect(digest.alerts.some(a => a.type === 'critical' && a.message.includes('HUMAN_REVIEW'))).toBe(true);
+      expect(digest.alerts.some(a => a.message.includes('TTS fallback provider used'))).toBe(true);
+      expect(digest.alerts.some(a => a.message.includes('review-123'))).toBe(true);
+    });
+
+    it('should include AUTO_PUBLISH info alert from qualityDecision', async () => {
+      const pipelineResult: PipelineResultData = {
+        status: 'success',
+        videoTitle: 'Test Video',
+        videoUrl: 'https://youtube.com/test',
+        durationMs: 3600000,
+        totalCost: 0.45,
+        stages: [],
+      };
+
+      const digest = await generateDigest(pipelineResult, {
+        qualityDecision: {
+          decision: 'AUTO_PUBLISH',
+          reasons: ['All checks passed'],
+          issues: [],
+          metrics: {
+            totalStages: 5,
+            degradedStages: 0,
+            fallbacksUsed: 0,
+            totalWarnings: 0,
+            scriptWordCount: 1500,
+            visualFallbackPercent: 0,
+            pronunciationUnknowns: 0,
+            ttsProvider: 'gemini-2.5-pro-tts',
+            thumbnailFallback: false,
+          },
+          timestamp: '2026-01-22T12:00:00.000Z',
+        },
+      });
+
+      expect(digest.alerts.some(a => a.type === 'info' && a.message.includes('AUTO_PUBLISH'))).toBe(true);
+      expect(digest.alerts.some(a => a.message.includes('All checks passed'))).toBe(true);
+    });
   });
 
   describe('collectDigestData', () => {

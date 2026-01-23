@@ -347,17 +347,26 @@ export class FirestoreClient {
 
   /**
    * Parse a path helper result into collection and docId
-   * Path format: "collection/docId/subdoc" -> collection="collection/docId", docId="subdoc"
+   * Path format: "collection/docId/subdoc" -> collection="collection", docId="docId-subdoc"
+   * This flattens the subcollection into the document ID for simpler Firestore structure
    */
   private parsePipelinePath(path: string): { collection: string; docId: string } {
     const parts = path.split('/');
-    if (parts.length < 3) {
+    if (parts.length < 2) {
       throw new Error(`Invalid pipeline path format: ${path}`);
     }
-    // pipelines/2026-01-08/state -> collection="pipelines/2026-01-08", docId="state"
+    // pipelines/2026-01-08/state -> collection="pipelines", docId="2026-01-08_state"
+    // pipelines/2026-01-08 -> collection="pipelines", docId="2026-01-08"
+    if (parts.length === 2) {
+      return {
+        collection: parts[0],
+        docId: parts[1],
+      };
+    }
+    // For 3+ parts, flatten: pipelines/2026-01-08/state -> pipelines, 2026-01-08_state
     return {
-      collection: parts.slice(0, -1).join('/'),
-      docId: parts[parts.length - 1],
+      collection: parts[0],
+      docId: parts.slice(1).join('_'),
     };
   }
 

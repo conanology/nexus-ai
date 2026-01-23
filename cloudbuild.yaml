@@ -1,0 +1,30 @@
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nexus-orchestrator:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nexus-orchestrator:latest'
+      - '-f'
+      - 'apps/orchestrator/Dockerfile.simple'
+      - '.'
+
+  # Push image with build ID tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/nexus-orchestrator:$BUILD_ID'
+
+  # Push image with latest tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/nexus-orchestrator:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/nexus-orchestrator:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/nexus-orchestrator:latest'
+
+timeout: '1800s'

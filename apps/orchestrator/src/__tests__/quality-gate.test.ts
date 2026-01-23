@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { qualityGateCheck } from '../quality-gate.js';
+import { legacyQualityGateCheck } from '../quality-gate.js';
 import type { PipelineState } from '../state.js';
 
 // Mock @nexus-ai/core to prevent review queue checks
@@ -34,7 +34,7 @@ describe('Quality Gate', () => {
 
   describe('AUTO_PUBLISH decision', () => {
     it('should return AUTO_PUBLISH when no quality issues', async () => {
-      const result = await qualityGateCheck(basePipelineState);
+      const result = await legacyQualityGateCheck(basePipelineState);
 
       expect(result.decision).toBe('AUTO_PUBLISH');
       expect(result.reason).toContain('No quality issues');
@@ -53,7 +53,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = await qualityGateCheck(state);
+      const result = await legacyQualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.issues).toContain('TTS fallback used');
@@ -69,7 +69,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = await qualityGateCheck(state);
+      const result = await legacyQualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.issues).toContain('Word count outside acceptable range');
@@ -85,7 +85,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = await qualityGateCheck(state);
+      const result = await legacyQualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.issues).toContain(
@@ -105,7 +105,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = await qualityGateCheck(state);
+      const result = await legacyQualityGateCheck(state);
 
       expect(result.decision).toBe('AUTO_PUBLISH_WITH_WARNING');
       expect(result.reason).toContain('Minor quality issues');
@@ -121,7 +121,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = await qualityGateCheck(state);
+      const result = await legacyQualityGateCheck(state);
 
       expect(result.decision).toBe('AUTO_PUBLISH_WITH_WARNING');
     });
@@ -136,7 +136,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = await qualityGateCheck(state);
+      const result = await legacyQualityGateCheck(state);
 
       expect(result.decision).toBe('AUTO_PUBLISH_WITH_WARNING');
     });
@@ -153,7 +153,7 @@ describe('Quality Gate', () => {
         },
       };
 
-      const result = await qualityGateCheck(state);
+      const result = await legacyQualityGateCheck(state);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.reason).toContain('Multiple quality concerns');

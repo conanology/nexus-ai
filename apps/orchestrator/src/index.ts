@@ -32,6 +32,15 @@ export function createServer(): express.Application {
   app.post('/trigger/manual', handleManualTrigger);
   app.post('/trigger/resume', handleResumeTrigger);
 
+  // Backwards-compatible route: /trigger -> /trigger/manual
+  // This supports older CLI versions or direct API calls
+  app.post('/trigger', (req, res) => {
+    logger.info({
+      deprecation: 'Using /trigger is deprecated, use /trigger/manual instead',
+    }, 'Deprecated trigger endpoint used');
+    handleManualTrigger(req, res);
+  });
+
   return app;
 }
 
@@ -74,8 +83,12 @@ async function startServer(): Promise<void> {
   process.on('SIGINT', shutdown);
 }
 
-// Only start server if this is the main module
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Start server when this is the main module
+// In bundled production builds, always start; in dev, check module path
+const isBundled = import.meta.url.includes('server.mjs');
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+
+if (isBundled || isMainModule) {
   startServer().catch((error) => {
     logger.error({
       stage: 'orchestrator',

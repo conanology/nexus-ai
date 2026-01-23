@@ -25,7 +25,7 @@ vi.mock('@nexus-ai/core', () => {
 });
 
 // Import after mocking
-import { qualityGateCheck } from '../quality-gate.js';
+import { legacyQualityGateCheck } from '../quality-gate.js';
 import { hasPendingCriticalReviews, getPendingCriticalReviews } from '@nexus-ai/core';
 
 describe('Quality Gate Review Queue Integration', () => {
@@ -69,7 +69,7 @@ describe('Quality Gate Review Queue Integration', () => {
         },
       ]);
 
-      const result = await qualityGateCheck(basePipelineState);
+      const result = await legacyQualityGateCheck(basePipelineState);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.reason).toContain('1 pending review items');
@@ -82,7 +82,7 @@ describe('Quality Gate Review Queue Integration', () => {
         { id: 'review-2', type: 'quality', stage: 'script-gen', status: 'pending', pipelineId: '2026-01-22', item: {}, context: {}, createdAt: '2026-01-22T09:00:00.000Z', resolution: null, resolvedAt: null, resolvedBy: null },
       ]);
 
-      const result = await qualityGateCheck(basePipelineState);
+      const result = await legacyQualityGateCheck(basePipelineState);
 
       expect(result.reviewItemIds).toEqual(['review-1', 'review-2']);
     });
@@ -93,7 +93,7 @@ describe('Quality Gate Review Queue Integration', () => {
         { id: 'review-1', type: 'quality', stage: 'script-gen', status: 'pending', pipelineId: '2026-01-22', item: {}, context: {}, createdAt: '2026-01-22T09:00:00.000Z', resolution: null, resolvedAt: null, resolvedBy: null },
       ]);
 
-      const result = await qualityGateCheck(basePipelineState);
+      const result = await legacyQualityGateCheck(basePipelineState);
 
       expect(result.pauseBeforeStage).toBe('youtube');
     });
@@ -105,7 +105,7 @@ describe('Quality Gate Review Queue Integration', () => {
         { id: 'review-2', type: 'quality', stage: 'thumbnail', status: 'pending', pipelineId: '2026-01-22', item: {}, context: {}, createdAt: '2026-01-22T09:00:00.000Z', resolution: null, resolvedAt: null, resolvedBy: null },
       ]);
 
-      const result = await qualityGateCheck(basePipelineState);
+      const result = await legacyQualityGateCheck(basePipelineState);
 
       expect(result.issues).toContain('Pending pronunciation review from pronunciation stage');
       expect(result.issues).toContain('Pending quality review from thumbnail stage');
@@ -123,7 +123,7 @@ describe('Quality Gate Review Queue Integration', () => {
         },
       };
 
-      const result = await qualityGateCheck(cleanState);
+      const result = await legacyQualityGateCheck(cleanState);
 
       expect(result.decision).toBe('AUTO_PUBLISH');
       expect(result.reviewItemIds).toBeUndefined();
@@ -143,7 +143,7 @@ describe('Quality Gate Review Queue Integration', () => {
       };
 
       // Should not throw, should continue with other checks
-      const result = await qualityGateCheck(cleanState);
+      const result = await legacyQualityGateCheck(cleanState);
 
       expect(result.decision).toBe('AUTO_PUBLISH');
     });
@@ -156,7 +156,7 @@ describe('Quality Gate Review Queue Integration', () => {
         { id: 'review-3', type: 'quality', stage: 'thumbnail', status: 'pending', pipelineId: '2026-01-22', item: {}, context: {}, createdAt: '2026-01-22T09:00:00.000Z', resolution: null, resolvedAt: null, resolvedBy: null },
       ]);
 
-      const result = await qualityGateCheck(basePipelineState);
+      const result = await legacyQualityGateCheck(basePipelineState);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.reason).toContain('3 pending review items');
@@ -181,7 +181,7 @@ describe('Quality Gate Review Queue Integration', () => {
         },
       };
 
-      const result = await qualityGateCheck(stateWithIssues);
+      const result = await legacyQualityGateCheck(stateWithIssues);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       // The reason should be about pending reviews, not fallbacks
@@ -201,7 +201,7 @@ describe('Quality Gate Review Queue Integration', () => {
         },
       };
 
-      const result = await qualityGateCheck(stateWithTTSFallback);
+      const result = await legacyQualityGateCheck(stateWithTTSFallback);
 
       expect(result.decision).toBe('HUMAN_REVIEW');
       expect(result.issues).toContain('TTS fallback used');

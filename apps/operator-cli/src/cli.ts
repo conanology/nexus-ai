@@ -13,6 +13,7 @@ import { registerBufferCommand } from './commands/buffer.js';
 import { registerPronunciationCommand } from './commands/pronunciation.js';
 import { registerReviewCommand } from './commands/review.js';
 import { registerRetryCommand } from './commands/retry.js';
+import { registerSchedulerCommand } from './commands/scheduler.js';
 
 const VERSION = '1.0.0';
 
@@ -34,3 +35,4 @@ registerBufferCommand(program);
 registerPronunciationCommand(program);
 registerReviewCommand(program);
 registerRetryCommand(program);
+registerSchedulerCommand(program);

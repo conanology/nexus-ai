@@ -87,7 +87,7 @@ describe('Trigger Command', () => {
     await program.parseAsync(['node', 'test', 'trigger', '--date', '2026-01-22']);
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://orchestrator.example.com/trigger',
+      'https://orchestrator.example.com/trigger/manual',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

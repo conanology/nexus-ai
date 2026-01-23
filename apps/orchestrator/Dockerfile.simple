@@ -1,0 +1,94 @@
+# Dockerfile for NEXUS-AI Orchestrator with esbuild bundling
+# Bundles workspace packages, externalizes npm dependencies
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy workspace files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+
+# Install pnpm and esbuild
+RUN npm install -g pnpm@10 esbuild
+
+# Copy all source code
+COPY packages ./packages
+COPY apps/orchestrator ./apps/orchestrator
+COPY tsconfig.base.json ./
+
+# Install all dependencies
+RUN pnpm install --no-frozen-lockfile
+
+# Build all TypeScript packages
+RUN pnpm -r build
+
+# Bundle orchestrator - include ALL workspace packages, externalize npm packages only
+WORKDIR /app/apps/orchestrator
+RUN esbuild dist/index.js \
+    --bundle \
+    --platform=node \
+    --target=node20 \
+    --format=esm \
+    --outfile=dist/server.mjs \
+    --banner:js="// NEXUS-AI Orchestrator - Bundled" \
+    --external:express \
+    --external:@google-cloud/* \
+    --external:@google/* \
+    --external:googleapis \
+    --external:google-auth-library \
+    --external:sharp \
+    --external:pino \
+    --external:pino-pretty \
+    --external:@sendgrid/mail \
+    --external:twitter-api-v2 \
+    --external:fast-xml-parser \
+    --external:zod \
+    --external:wav \
+    --external:image-size
+WORKDIR /app
+
+# Production stage - minimal
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install pnpm
+RUN npm install -g pnpm@10
+
+# Copy package files for installing production dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/orchestrator/package.json ./apps/orchestrator/
+
+# Copy all workspace package.json files (needed for pnpm to resolve workspace deps)
+COPY packages/config/package.json ./packages/config/
+COPY packages/core/package.json ./packages/core/
+COPY packages/news-sourcing/package.json ./packages/news-sourcing/
+COPY packages/research/package.json ./packages/research/
+COPY packages/script-gen/package.json ./packages/script-gen/
+COPY packages/pronunciation/package.json ./packages/pronunciation/
+COPY packages/tts/package.json ./packages/tts/
+COPY packages/visual-gen/package.json ./packages/visual-gen/
+COPY packages/thumbnail/package.json ./packages/thumbnail/
+COPY packages/youtube/package.json ./packages/youtube/
+COPY packages/twitter/package.json ./packages/twitter/
+COPY packages/notifications/package.json ./packages/notifications/
+
+# Install production dependencies only
+# Use --shamefully-hoist to flatten node_modules for easier module resolution
+RUN pnpm install --no-frozen-lockfile --prod --ignore-scripts --shamefully-hoist
+
+# Copy the bundled server file to apps/orchestrator (where node_modules resolution works)
+COPY --from=builder /app/apps/orchestrator/dist/server.mjs ./apps/orchestrator/server.mjs
+
+# Security: run as non-root user
+USER node
+
+# Port configuration
+ENV PORT=8080
+EXPOSE 8080
+
+# Start the bundled server from apps/orchestrator (where node_modules resolution works)
+WORKDIR /app/apps/orchestrator
+CMD ["node", "server.mjs"]

@@ -64,7 +64,7 @@ export function registerTriggerCommand(program: Command): void {
       logger.info({ date, wait: options.wait }, 'Triggering pipeline');
 
       try {
-        const response = await fetch(`${orchestratorUrl}/trigger`, {
+        const response = await fetch(`${orchestratorUrl}/trigger/manual`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

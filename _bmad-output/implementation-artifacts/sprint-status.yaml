@@ -93,7 +93,7 @@ development_status:
   epic-4-retrospective: optional
 
   # Epic 5: Operations & Autonomous Running
-  epic-5: in-progress
+  epic-5: done
   5-1-create-orchestrator-service: done
   5-2-implement-pipeline-execution: done
   5-3-implement-daily-health-check: done
@@ -104,6 +104,6 @@ development_status:
   5-8-implement-skip-and-recovery: done
   5-9-create-human-review-queue: done
   5-10-create-operator-cli: done
-  5-11-implement-pre-publish-quality-gate: ready-for-dev
-  5-12-configure-cloud-scheduler: backlog
+  5-11-implement-pre-publish-quality-gate: done
+  5-12-configure-cloud-scheduler: done
   epic-5-retrospective: optional

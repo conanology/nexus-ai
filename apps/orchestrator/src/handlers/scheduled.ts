@@ -18,29 +18,56 @@ const logger = createLogger('orchestrator.handlers.scheduled');
  * Executes health check before pipeline to verify all services are available.
  * If critical services fail, pipeline is skipped and buffer video is deployed.
  *
- * Note: Story 5.12 will configure Cloud Scheduler with OIDC authentication
+ * SECURITY MODEL:
+ * - Primary auth: Cloud Run IAM (configured via Terraform in infrastructure/service-accounts/)
+ *   - Only nexus-scheduler-sa service account has roles/run.invoker
+ *   - Cloud Run validates OIDC token and enforces IAM before request reaches this handler
+ * - Secondary auth: Bearer token presence check (defense in depth)
+ *   - Cloud Scheduler sends OIDC token as Bearer token
+ *   - We verify token exists and has reasonable format
+ *   - Full OIDC signature validation is handled by Cloud Run, not application code
+ *
+ * For local/dev testing without Cloud Run IAM, set NEXUS_SKIP_SCHEDULER_AUTH=true
  */
 export async function handleScheduledTrigger(
   req: Request,
   res: Response
 ): Promise<void> {
-  // Verify request is from Cloud Scheduler (basic auth check)
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.length < 10) {
-    logger.warn({
-      ip: req.ip,
-      headers: req.headers,
-    }, 'Unauthorized scheduled trigger attempt');
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+  // Skip auth check in development if explicitly configured
+  const skipAuth = process.env['NEXUS_SKIP_SCHEDULER_AUTH'] === 'true';
+
+  if (!skipAuth) {
+    // Verify Bearer token is present (Cloud Run IAM handles actual OIDC validation)
+    // This is defense-in-depth - Cloud Run should reject unauthorized requests before they reach here
+    const authHeader = req.headers.authorization;
+    const isValidFormat = authHeader &&
+      authHeader.startsWith('Bearer ') &&
+      authHeader.length > 20; // OIDC tokens are much longer than 20 chars
+
+    if (!isValidFormat) {
+      logger.warn({
+        ip: req.ip,
+        hasAuth: !!authHeader,
+        authPrefix: authHeader?.substring(0, 10),
+      }, 'Unauthorized scheduled trigger attempt - missing or malformed Bearer token');
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
   }
 
   // Generate pipeline ID from current date
   const pipelineId = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
+  // Extract scheduler metadata from request body if provided
+  const schedulerSource = req.body?.source || 'cloud-scheduler';
+  const jobName = req.body?.job_name || 'nexus-daily-pipeline';
+
   logger.info({
     pipelineId,
-    source: 'cloud-scheduler',
+    source: schedulerSource,
+    jobName,
+    triggeredAt: new Date().toISOString(),
+    userAgent: req.headers['user-agent'],
   }, 'Scheduled pipeline trigger received');
 
   // Execute health check BEFORE pipeline (AC #6)

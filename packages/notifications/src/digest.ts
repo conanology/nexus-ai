@@ -7,7 +7,7 @@
  * @module notifications/digest
  */
 
-import { createLogger } from '@nexus-ai/core';
+import { createLogger, type QualityDecisionResult } from '@nexus-ai/core';
 import type {
   DigestAlert,
   DigestData,
@@ -36,6 +36,7 @@ export async function generateDigest(
     performance?: DigestPerformanceData;
     tomorrow?: DigestTomorrowData;
     alerts?: DigestAlert[];
+    qualityDecision?: QualityDecisionResult;
   }
 ): Promise<DigestData> {
   logger.info(
@@ -52,8 +53,8 @@ export async function generateDigest(
   // Collect health data with defaults
   const health = collectHealthData(additionalData?.health);
 
-  // Collect alerts from pipeline warnings and quality context
-  const alerts = collectAlerts(pipelineResult, additionalData?.alerts);
+  // Collect alerts from pipeline warnings, quality context, and quality decision
+  const alerts = collectAlerts(pipelineResult, additionalData?.alerts, additionalData?.qualityDecision);
 
   const digest: DigestData = {
     video,
@@ -195,15 +196,17 @@ function collectHealthData(health?: Partial<DigestHealthData>): DigestHealthData
 }
 
 /**
- * Collect alerts from pipeline result and quality context
+ * Collect alerts from pipeline result, quality context, and pre-publish quality decision
  *
  * @param result - Pipeline result
  * @param additionalAlerts - Additional alerts to include
+ * @param qualityDecision - Pre-publish quality gate decision (optional)
  * @returns Array of digest alerts
  */
 function collectAlerts(
   result: PipelineResultData,
-  additionalAlerts?: DigestAlert[]
+  additionalAlerts?: DigestAlert[],
+  qualityDecision?: QualityDecisionResult
 ): DigestAlert[] {
   const alerts: DigestAlert[] = [];
   const timestamp = new Date().toISOString();
@@ -300,6 +303,61 @@ function collectAlerts(
       alerts.push({
         type: 'warning',
         message: warning,
+        timestamp,
+      });
+    }
+  }
+
+  // Add pre-publish quality gate decision alerts (AC3: log warning for AUTO_PUBLISH_WITH_WARNING)
+  if (qualityDecision) {
+    if (qualityDecision.decision === 'AUTO_PUBLISH_WITH_WARNING') {
+      alerts.push({
+        type: 'warning',
+        message: `Pre-publish quality gate: AUTO_PUBLISH_WITH_WARNING - ${qualityDecision.reasons[0] || 'Minor issues detected'}`,
+        timestamp,
+      });
+
+      // Add individual minor issues
+      for (const issue of qualityDecision.issues) {
+        if (issue.severity === 'minor') {
+          alerts.push({
+            type: 'warning',
+            message: `[${issue.stage}] ${issue.message}`,
+            timestamp,
+          });
+        }
+      }
+    } else if (qualityDecision.decision === 'HUMAN_REVIEW') {
+      alerts.push({
+        type: 'critical',
+        message: `Pre-publish quality gate: HUMAN_REVIEW required - ${qualityDecision.reasons[0] || 'Major issues detected'}`,
+        timestamp,
+      });
+
+      // Add major issues
+      for (const issue of qualityDecision.issues) {
+        if (issue.severity === 'major') {
+          alerts.push({
+            type: 'critical',
+            message: `[${issue.stage}] ${issue.message}`,
+            timestamp,
+          });
+        }
+      }
+
+      // Note review item ID if present
+      if (qualityDecision.reviewItemId) {
+        alerts.push({
+          type: 'info',
+          message: `Review item created: ${qualityDecision.reviewItemId}`,
+          timestamp,
+        });
+      }
+    } else if (qualityDecision.decision === 'AUTO_PUBLISH') {
+      // Only log INFO for AUTO_PUBLISH (no issues)
+      alerts.push({
+        type: 'info',
+        message: 'Pre-publish quality gate: AUTO_PUBLISH - All checks passed',
         timestamp,
       });
     }

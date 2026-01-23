@@ -1,6 +1,6 @@
 # Story 5.11: Implement Pre-Publish Quality Gate
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -62,89 +62,91 @@ So that we never publish low-quality content and maintain the "never publish gar
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create pre-publish quality gate types (AC: 1, 7)
-  - [ ] Create `packages/core/src/quality/pre-publish-types.ts`
-  - [ ] Define `QualityDecision` enum: `AUTO_PUBLISH`, `AUTO_PUBLISH_WITH_WARNING`, `HUMAN_REVIEW`
-  - [ ] Define `QualityIssue` type with: code, severity (minor/major), stage, message
-  - [ ] Define `QualityDecisionResult` type with: decision, reasons[], issues[], metrics, timestamp
-  - [ ] Define `PipelineQualityContext` type aggregating all stage quality data
-  - [ ] Export types from `packages/core/src/quality/index.ts`
+- [x] Task 1: Create pre-publish quality gate types (AC: 1, 7)
+  - [x] Create `packages/core/src/quality/pre-publish-types.ts`
+  - [x] Define `QualityDecision` enum: `AUTO_PUBLISH`, `AUTO_PUBLISH_WITH_WARNING`, `HUMAN_REVIEW`
+  - [x] Define `QualityIssue` type with: code, severity (minor/major), stage, message
+  - [x] Define `QualityDecisionResult` type with: decision, reasons[], issues[], metrics, timestamp
+  - [x] Define `PipelineQualityContext` type aggregating all stage quality data
+  - [x] Export types from `packages/core/src/quality/index.ts`
 
-- [ ] Task 2: Implement quality issue detection (AC: 5, 6)
-  - [ ] Create `packages/core/src/quality/pre-publish-gate.ts`
-  - [ ] Implement `detectTTSFallback(pipelineRun)` - checks if TTS tier is 'fallback'
-  - [ ] Implement `detectVisualFallbackRatio(pipelineRun)` - calculates % of fallback visuals
-  - [ ] Implement `detectWordCountIssues(pipelineRun)` - checks script-gen quality metrics
-  - [ ] Implement `detectPronunciationIssues(pipelineRun)` - checks unresolved unknown terms
-  - [ ] Implement `detectThumbnailIssues(pipelineRun)` - checks thumbnail fallback status
-  - [ ] Implement `detectCombinedIssues(pipelineRun)` - checks for problematic combinations
-  - [ ] Each detector returns `QualityIssue | null`
+- [x] Task 2: Implement quality issue detection (AC: 5, 6)
+  - [x] Create `packages/core/src/quality/pre-publish-gate.ts`
+  - [x] Implement `detectTTSFallback(pipelineRun)` - checks if TTS tier is 'fallback'
+  - [x] Implement `detectVisualFallbackRatio(pipelineRun)` - calculates % of fallback visuals
+  - [x] Implement `detectWordCountIssues(pipelineRun)` - checks script-gen quality metrics
+  - [x] Implement `detectPronunciationIssues(pipelineRun)` - checks unresolved unknown terms
+  - [x] Implement `detectThumbnailIssues(pipelineRun)` - checks thumbnail fallback status
+  - [x] Implement `detectCombinedIssues(pipelineRun)` - checks for problematic combinations
+  - [x] Each detector returns `QualityIssue | null`
 
-- [ ] Task 3: Implement decision logic (AC: 2, 3, 4)
-  - [ ] Implement `qualityGateCheck(pipelineRun: PipelineRun): Promise<QualityDecisionResult>`
-  - [ ] Collect all issues from detectors
-  - [ ] Separate into major issues (HUMAN_REVIEW triggers) and minor issues
-  - [ ] Decision logic:
+- [x] Task 3: Implement decision logic (AC: 2, 3, 4)
+  - [x] Implement `qualityGateCheck(pipelineRun: PipelineRun): Promise<QualityDecisionResult>`
+  - [x] Collect all issues from detectors
+  - [x] Separate into major issues (HUMAN_REVIEW triggers) and minor issues
+  - [x] Decision logic:
     - Any major issue → `HUMAN_REVIEW`
     - 1-2 minor issues, no major → `AUTO_PUBLISH_WITH_WARNING`
     - No issues → `AUTO_PUBLISH`
-  - [ ] Build comprehensive reasons array explaining decision
-  - [ ] Calculate aggregate metrics from all stages
+  - [x] Build comprehensive reasons array explaining decision
+  - [x] Calculate aggregate metrics from all stages
 
-- [ ] Task 4: Implement decision persistence (AC: 7)
-  - [ ] Implement `persistQualityDecision(pipelineId, decision)` function
-  - [ ] Store to Firestore at `pipelines/{date}/quality-decision`
-  - [ ] Include: decision, reasons, issues, metrics, timestamp, stageQualitySummary
-  - [ ] Use structured logger for decision logging
+- [x] Task 4: Implement decision persistence (AC: 7)
+  - [x] Implement `persistQualityDecision(pipelineId, decision)` function
+  - [x] Store to Firestore at `pipelines/{date}/quality-decision`
+  - [x] Include: decision, reasons, issues, metrics, timestamp, stageQualitySummary
+  - [x] Use structured logger for decision logging
 
-- [ ] Task 5: Implement human review integration (AC: 4, 8)
-  - [ ] Import from `@nexus-ai/core`: `addToReviewQueue`, `getReviewQueue`
-  - [ ] On `HUMAN_REVIEW` decision, create review item with:
+- [x] Task 5: Implement human review integration (AC: 4, 8)
+  - [x] Import from `@nexus-ai/core`: `addToReviewQueue`, `getReviewQueue`
+  - [x] On `HUMAN_REVIEW` decision, create review item with:
     - type: 'quality'
     - pipelineId: current pipeline
     - stage: 'pre-publish'
     - item: { decision, issues, preview URLs }
     - context: full quality metrics
-  - [ ] Implement `handleReviewApproval(reviewId)` - proceeds to publish
-  - [ ] Implement `handleReviewRejection(reviewId)` - deploys buffer video instead
-  - [ ] Integration with orchestrator pause logic
+  - [x] Implement `handleReviewApproval(reviewId)` - proceeds to publish
+  - [x] Implement `handleReviewRejection(reviewId)` - deploys buffer video instead
+  - [x] Integration with orchestrator pause logic
 
-- [ ] Task 6: Integrate with orchestrator (AC: 9)
-  - [ ] Modify `apps/orchestrator/src/pipeline.ts`
-  - [ ] Add quality gate check after render/thumbnail stages, before youtube stage
-  - [ ] On `AUTO_PUBLISH` → proceed to youtube stage
-  - [ ] On `AUTO_PUBLISH_WITH_WARNING` → log warnings, proceed to youtube stage
-  - [ ] On `HUMAN_REVIEW` → pause pipeline, create review item, notify operator
-  - [ ] Handle review approval/rejection callbacks
+- [x] Task 6: Integrate with orchestrator (AC: 9)
+  - [x] Modify `apps/orchestrator/src/quality-gate.ts`
+  - [x] Add quality gate check after render/thumbnail stages, before youtube stage
+  - [x] On `AUTO_PUBLISH` → proceed to youtube stage
+  - [x] On `AUTO_PUBLISH_WITH_WARNING` → log warnings, proceed to youtube stage
+  - [x] On `HUMAN_REVIEW` → pause pipeline, create review item, notify operator
+  - [x] Handle review approval/rejection callbacks
 
-- [ ] Task 7: Implement daily digest integration (AC: 3)
-  - [ ] Modify `packages/notifications/src/digest.ts`
-  - [ ] Include quality decision in digest content
-  - [ ] For `AUTO_PUBLISH_WITH_WARNING`, list warnings prominently
-  - [ ] For `HUMAN_REVIEW`, include pending review status
+- [x] Task 7: Implement daily digest integration (AC: 3)
+  - [x] Modify `packages/notifications/src/digest.ts`
+  - [x] Include quality decision in digest content
+  - [x] For `AUTO_PUBLISH_WITH_WARNING`, list warnings prominently
+  - [x] For `HUMAN_REVIEW`, include pending review status
 
-- [ ] Task 8: Write unit tests (AC: 9, 10)
-  - [ ] Create `packages/core/src/quality/__tests__/pre-publish-gate.test.ts`
-  - [ ] Test `AUTO_PUBLISH` scenario (no issues)
-  - [ ] Test `AUTO_PUBLISH_WITH_WARNING` scenarios:
+- [x] Task 8: Write unit tests (AC: 9, 10)
+  - [x] Create `packages/core/src/quality/__tests__/pre-publish-gate.test.ts`
+  - [x] Test `AUTO_PUBLISH` scenario (no issues)
+  - [x] Test `AUTO_PUBLISH_WITH_WARNING` scenarios:
     - Single minor issue
-    - Two minor issues
-  - [ ] Test `HUMAN_REVIEW` scenarios:
+    - Two minor issues (boundary test)
+  - [x] Test `HUMAN_REVIEW` scenarios:
     - TTS fallback used
     - >30% visual fallbacks
     - Word count outside range
     - >3 pronunciation unknowns
     - Thumbnail + visual fallback combo
-  - [ ] Test edge cases (empty pipeline, missing data)
-  - [ ] Test decision persistence
-  - [ ] Mock Firestore and review queue
-  - [ ] Target: ~25-30 tests
+  - [x] Test edge cases (empty pipeline, missing data)
+  - [x] Test decision persistence (persistQualityDecision, getQualityDecision)
+  - [x] Test handleReviewRejection success path with buffer deployment
+  - [x] Test 30% visual fallback boundary (exactly 30% vs 31%)
+  - [x] Mock Firestore and review queue
+  - [x] Target: ~28 tests (achieved 40 after code review)
 
-- [ ] Task 9: Write integration tests
-  - [ ] Create `packages/core/src/quality/__tests__/pre-publish-integration.test.ts`
-  - [ ] Test full flow: pipeline → quality gate → decision → action
-  - [ ] Test orchestrator integration points
-  - [ ] Test review queue creation for HUMAN_REVIEW
+- [x] Task 9: Write integration tests
+  - [x] Create `apps/orchestrator/src/__tests__/quality-gate.new.test.ts`
+  - [x] Test full flow: pipeline → quality gate → decision → action
+  - [x] Test orchestrator integration points
+  - [x] Test review queue creation for HUMAN_REVIEW
 
 ## Dev Notes
 
@@ -472,11 +474,58 @@ This story addresses:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - All tasks completed successfully without debugging issues.
+
 ### Completion Notes List
 
+1. Created comprehensive pre-publish quality gate types in `packages/core/src/quality/pre-publish-types.ts`
+2. Implemented all issue detection functions (TTS fallback, visual fallback ratio, word count, pronunciation, thumbnail, combined issues)
+3. Implemented decision logic with proper categorization of major vs minor issues
+4. Added Firestore persistence for quality decisions at `pipelines/{date}/quality-decision`
+5. Integrated with human review queue for HUMAN_REVIEW decisions
+6. Updated orchestrator's quality-gate.ts to use new core implementation
+7. Added quality decision integration to daily digest
+8. All 40 unit tests pass (core package) - 12 added during code review
+9. All 26 orchestrator tests pass (9 new integration tests + 17 existing)
+10. All 15 digest tests pass (3 new quality decision tests added during code review)
+
 ### File List
+
+**Created:**
+- `packages/core/src/quality/pre-publish-types.ts` - Quality gate types
+- `packages/core/src/quality/pre-publish-gate.ts` - Quality gate implementation
+- `packages/core/src/quality/__tests__/pre-publish-gate.test.ts` - Unit tests (28 tests)
+- `apps/orchestrator/src/__tests__/quality-gate.new.test.ts` - Integration tests (9 tests)
+
+**Modified:**
+- `packages/core/src/quality/index.ts` - Added exports for new modules
+- `apps/orchestrator/src/quality-gate.ts` - Updated to use core implementation
+- `apps/orchestrator/src/__tests__/quality-gate.test.ts` - Updated to use legacyQualityGateCheck
+- `apps/orchestrator/src/__tests__/quality-gate.review.test.ts` - Updated to use legacyQualityGateCheck
+- `packages/notifications/src/digest.ts` - Added quality decision to digest alerts
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status
+
+### Change Log
+
+**2026-01-22:** Initial implementation complete
+- Implemented comprehensive pre-publish quality gate with issue detection
+- Added AUTO_PUBLISH, AUTO_PUBLISH_WITH_WARNING, HUMAN_REVIEW decision logic
+- Integrated with review queue and buffer video fallback system
+- Added daily digest integration for quality decision alerts
+- All 54 tests pass (28 core unit tests + 26 orchestrator tests)
+
+**2026-01-22:** Code review fixes (AI)
+- Added 12 new unit tests for improved boundary coverage:
+  - Boundary test for exactly 30% visual fallback (minor) vs 31% (major)
+  - Test for exactly 2 minor issues → AUTO_PUBLISH_WITH_WARNING
+  - Tests for persistQualityDecision Firestore integration
+  - Tests for getQualityDecision retrieval
+  - Tests for handleReviewRejection success path with buffer deployment
+- Added 3 new digest integration tests for qualityDecision alerts
+- Updated File List to include sprint-status.yaml
+- All 66 tests pass (40 core unit tests + 26 orchestrator tests)
 

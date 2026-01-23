@@ -30,6 +30,22 @@ vi.mock('../pipeline.js', () => ({
   }),
 }));
 
+// Mock the health module for test isolation
+vi.mock('../health/index.js', () => ({
+  performHealthCheck: vi.fn().mockResolvedValue({
+    allPassed: true,
+    criticalFailures: [],
+    warnings: [],
+    totalDurationMs: 100,
+    results: [],
+  }),
+  hasCriticalFailures: vi.fn().mockReturnValue(false),
+  handleHealthCheckFailure: vi.fn().mockResolvedValue({
+    bufferDeploymentTriggered: false,
+  }),
+  getHealthCheckSummary: vi.fn().mockReturnValue('All services healthy'),
+}));
+
 // Mock logger
 vi.mock('@nexus-ai/core', async () => {
   const actual = await vi.importActual('@nexus-ai/core');
@@ -126,13 +142,38 @@ describe('Handlers', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Unauthorized' });
     });
 
-    it('should return 202 Accepted when authorized', async () => {
+    it('should return 401 when Bearer token is too short', async () => {
       const req = {
         headers: {
-          authorization: 'Bearer fake-token',
+          authorization: 'Bearer short', // Too short for OIDC token
         },
         ip: '127.0.0.1',
       } as Request;
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn(),
+      } as unknown as Response;
+
+      await handleScheduledTrigger(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+    });
+
+    it('should return 202 Accepted when authorized', async () => {
+      const req = {
+        headers: {
+          // OIDC tokens are long - simulate realistic token length
+          authorization: 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.fake-oidc-token-payload',
+          'user-agent': 'Google-Cloud-Scheduler',
+        },
+        body: {
+          source: 'scheduler',
+          job_name: 'nexus-daily-pipeline',
+          scheduled: true,
+        },
+        ip: '127.0.0.1',
+      } as unknown as Request;
       const res = {
         status: vi.fn().mockReturnThis(),
         json: vi.fn(),
@@ -148,6 +189,29 @@ describe('Handlers', () => {
           status: 'accepted',
         })
       );
+    });
+
+    it('should log scheduler metadata from request body', async () => {
+      const req = {
+        headers: {
+          // OIDC tokens are long - simulate realistic token length
+          authorization: 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.fake-oidc-token-payload',
+          'user-agent': 'Google-Cloud-Scheduler',
+        },
+        body: {
+          source: 'scheduler',
+          job_name: 'nexus-daily-pipeline',
+        },
+        ip: '127.0.0.1',
+      } as unknown as Request;
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn(),
+      } as unknown as Response;
+
+      await handleScheduledTrigger(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(202);
     });
   });
 

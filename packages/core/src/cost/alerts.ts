@@ -285,12 +285,16 @@ let notificationFns: NotificationFunctions | null = null;
 
 /**
  * Get notification functions (lazy loaded)
+ * Uses dynamic import with .catch() to signal esbuild this is a runtime dependency
  */
 async function getNotificationFunctions(): Promise<NotificationFunctions> {
   if (!notificationFns) {
-    // Dynamic import at runtime - types are defined in NotificationFunctions interface
+    // Dynamic import at runtime - the .catch() signals to esbuild to leave as external
     // @ts-expect-error - @nexus-ai/notifications is a workspace package loaded at runtime
-    const notifications = await import('@nexus-ai/notifications');
+    const notifications = await import('@nexus-ai/notifications').catch((err) => {
+      logger.error({ error: err }, 'Failed to load @nexus-ai/notifications');
+      throw NexusError.fromError(err, 'cost-alerts');
+    });
     notificationFns = {
       sendDiscordAlert: notifications.sendDiscordAlert,
       sendAlertEmail: notifications.sendAlertEmail,
