@@ -51,6 +51,8 @@ export interface NewsSourcingData {
 export interface TopicSelectionResult {
   /** The selected topic (null if fallback triggered) */
   selected: NewsItem | null;
+  /** Alias for selected - used by downstream stages */
+  topic: NewsItem | null;
   /** Top 10 candidate topics considered */
   candidates: NewsItem[];
   /** ISO 8601 UTC timestamp of selection */

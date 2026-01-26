@@ -9,6 +9,15 @@ export interface VisualGenInput {
   script: string;
   audioUrl: string;
   audioDurationSec: number;
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -18,6 +27,20 @@ export interface VisualGenOutput {
   timelineUrl: string;
   sceneCount: number;
   fallbackUsage: number;
+  videoPath: string;  // GCS path to rendered video from render-service
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
+  };
+  /** Pass-through script for YouTube metadata generation */
+  script?: string;
+  /** Pass-through audio duration for YouTube chapter markers */
+  audioDurationSec?: number;
 }
 
 /**

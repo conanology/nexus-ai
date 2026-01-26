@@ -24,7 +24,7 @@ RUN corepack enable
 WORKDIR /app
 
 # Copy configuration
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
 
 # Copy packages and apps
 COPY packages ./packages
@@ -32,11 +32,15 @@ COPY apps/video-studio ./apps/video-studio
 COPY apps/render-service ./apps/render-service
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
-# Install Chrome
-RUN npx remotion browser ensure
+# Build all TypeScript packages (required for @nexus-ai/core)
+RUN pnpm -r build
 
 WORKDIR /app/apps/render-service
 
+# Install Chrome for Remotion (run from package directory where remotion is available)
+RUN pnpm exec remotion browser ensure
+
+# Use tsx to run the TypeScript directly (packages are now built)
 CMD ["pnpm", "start"]

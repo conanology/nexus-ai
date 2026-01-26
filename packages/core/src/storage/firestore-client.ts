@@ -95,6 +95,23 @@ interface QuerySnapshot {
 let firestoreSDK: FirestoreSDK | null = null;
 
 /**
+ * Sanitize an object for Firestore by removing undefined values
+ * Firestore SDK throws errors when writing objects with undefined fields
+ */
+function sanitizeForFirestore<T extends object>(obj: T): T {
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) continue;
+    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      sanitized[key] = sanitizeForFirestore(value as object);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized as T;
+}
+
+/**
  * Lazily load the Firestore SDK
  */
 async function getFirestoreSDK(): Promise<FirestoreSDK> {
@@ -176,9 +193,29 @@ export class FirestoreClient {
   }
 
   /**
+   * Resolve a collection/docId path to a flat collection and docId
+   * Handles paths like 'pipelines/2026-01-08' + 'state' -> 'pipelines' + '2026-01-08_state'
+   */
+  private resolveDocPath(collection: string, docId: string): { collection: string; docId: string } {
+    const fullPath = `${collection}/${docId}`;
+    const pathParts = fullPath.split('/');
+
+    // For any path with >2 parts, flatten to collection + underscore-joined docId
+    if (pathParts.length > 2) {
+      return {
+        collection: pathParts[0],
+        docId: pathParts.slice(1).join('_'),
+      };
+    }
+
+    // Simple 2-part path: collection/doc
+    return { collection, docId };
+  }
+
+  /**
    * Get a document by ID
    *
-   * @param collection - Collection name
+   * @param collection - Collection name or parent document path (e.g., 'pipelines' or 'pipelines/2026-01-08')
    * @param docId - Document ID
    * @returns Document data or null if not found
    * @throws NexusError on Firestore errors
@@ -194,7 +231,8 @@ export class FirestoreClient {
   async getDocument<T>(collection: string, docId: string): Promise<T | null> {
     try {
       const db = await this.getDb();
-      const doc = await db.collection(collection).doc(docId).get();
+      const resolved = this.resolveDocPath(collection, docId);
+      const doc = await db.collection(resolved.collection).doc(resolved.docId).get();
 
       if (!doc.exists) {
         return null;
@@ -212,8 +250,8 @@ export class FirestoreClient {
   /**
    * Set a document (create or overwrite)
    *
-   * @param collection - Collection name
-   * @param docId - Document ID
+   * @param collection - Collection name or parent document path (e.g., 'pipelines' or 'pipelines/2026-01-08')
+   * @param docId - Document ID (can include subcollection path like 'state' or 'outputs/research')
    * @param data - Document data
    * @throws NexusError on Firestore errors
    *
@@ -233,7 +271,8 @@ export class FirestoreClient {
   ): Promise<void> {
     try {
       const db = await this.getDb();
-      await db.collection(collection).doc(docId).set(data);
+      const resolved = this.resolveDocPath(collection, docId);
+      await db.collection(resolved.collection).doc(resolved.docId).set(sanitizeForFirestore(data));
     } catch (error) {
       if (error instanceof NexusError) {
         throw error;
@@ -245,7 +284,7 @@ export class FirestoreClient {
   /**
    * Update a document (partial update)
    *
-   * @param collection - Collection name
+   * @param collection - Collection name or parent document path
    * @param docId - Document ID
    * @param updates - Partial document data to merge
    * @throws NexusError on Firestore errors (including if document doesn't exist)
@@ -265,7 +304,8 @@ export class FirestoreClient {
   ): Promise<void> {
     try {
       const db = await this.getDb();
-      await db.collection(collection).doc(docId).update(updates as object);
+      const resolved = this.resolveDocPath(collection, docId);
+      await db.collection(resolved.collection).doc(resolved.docId).update(sanitizeForFirestore(updates as object));
     } catch (error) {
       if (error instanceof NexusError) {
         throw error;
@@ -320,7 +360,7 @@ export class FirestoreClient {
   /**
    * Delete a document
    *
-   * @param collection - Collection name
+   * @param collection - Collection name or parent document path
    * @param docId - Document ID
    * @throws NexusError on Firestore errors
    *
@@ -332,7 +372,8 @@ export class FirestoreClient {
   async deleteDocument(collection: string, docId: string): Promise<void> {
     try {
       const db = await this.getDb();
-      await db.collection(collection).doc(docId).delete();
+      const resolved = this.resolveDocPath(collection, docId);
+      await db.collection(resolved.collection).doc(resolved.docId).delete();
     } catch (error) {
       if (error instanceof NexusError) {
         throw error;

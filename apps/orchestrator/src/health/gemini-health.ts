@@ -79,7 +79,7 @@ async function performGeminiCheck(): Promise<void> {
   const genAI = new GoogleGenerativeAI(apiKey);
 
   // Use flash model for health check (fastest, cheapest)
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   // Minimal health check prompt
   const result = await model.generateContent({

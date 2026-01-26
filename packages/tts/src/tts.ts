@@ -94,7 +94,9 @@ export async function executeTTS(
     }
 
     // Determine max chunk size
-    const maxChars = maxChunkChars || 5000;
+    // Note: TTS API has a 5000 BYTE limit, not character limit
+    // Use 4000 chars to account for SSML overhead and UTF-8 encoding
+    const maxChars = maxChunkChars || 4000;
 
     // Chunk script with SSML preservation
     const chunks = chunkScript(ssmlScript, maxChars);
@@ -123,7 +125,8 @@ export async function executeTTS(
         ttsOptions,
         config.tracker as any, // Cast because executeStage types might not fully expose tracker
         storage,
-        ssmlScript
+        ssmlScript,
+        data.topicData
       );
     }
 
@@ -307,12 +310,18 @@ export async function executeTTS(
     // Construct stage result (to be processed by executeStage)
     // We return additional properties like artifacts and provider info
     // executeStage will pick these up
+    // Include script for visual-gen (strip SSML tags to get plain text with [VISUAL:] cues)
+    const scriptForVisualGen = ssmlScript.replace(/<[^>]+>/g, '').trim();
+
     return {
       audioUrl,
       durationSec: totalDuration,
+      audioDurationSec: totalDuration, // Alias for visual-gen compatibility
       format: 'wav',
       sampleRate,
       segmentCount: segments.length,
+      script: scriptForVisualGen, // Pass through for visual-gen
+      topicData: data.topicData, // Pass through for YouTube metadata generation
       // Metadata for executeStage
       artifacts: [
         {
@@ -361,7 +370,8 @@ async function synthesizeSingleChunk(
   ttsOptions: TTSOptions,
   tracker: any,
   storage: CloudStorageClient,
-  originalScript: string
+  originalScript: string,
+  topicData?: any
 ): Promise<any> {
   logger.debug({
     pipelineId,
@@ -464,11 +474,17 @@ async function synthesizeSingleChunk(
     durationSec: audioResult.durationSec,
   };
 
+  // Strip SSML tags to get plain text with [VISUAL:] cues for visual-gen
+  const scriptForVisualGen = originalScript.replace(/<[^>]+>/g, '').trim();
+
   return {
     audioUrl,
     durationSec: audioResult.durationSec,
+    audioDurationSec: audioResult.durationSec, // Alias for visual-gen compatibility
     format: audioResult.codec,
     sampleRate: audioResult.sampleRate,
+    script: scriptForVisualGen, // Pass through for visual-gen
+    topicData, // Pass through for YouTube metadata generation
     artifacts: [
       {
         type: 'audio',

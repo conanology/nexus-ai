@@ -313,24 +313,19 @@ export async function executeScriptGen(
         validation = validateWordCount(wordCount, targetWordCount);
       }
 
-      // Final validation check
+      // Final validation check - log warning but continue with degraded quality
+      const qualityStatus = validation.valid ? 'PASS' : 'DEGRADED';
       if (!validation.valid) {
-        logger.error(
-          { pipelineId, wordCount, targetWordCount, regenerationAttempts },
-          `Script generation failed after ${MAX_REGENERATION_ATTEMPTS} attempts: ${validation.reason}`
+        logger.warn(
+          { pipelineId, wordCount, targetWordCount, regenerationAttempts, qualityStatus },
+          `Script word count outside target after ${MAX_REGENERATION_ATTEMPTS} attempts: ${validation.reason}. Continuing with DEGRADED quality.`
         );
-        throw NexusError.degraded(
-          'NEXUS_SCRIPTGEN_WORD_COUNT_FAIL',
-          validation.reason || 'Word count validation failed',
-          'script-gen',
-          { wordCount, targetWordCount, regenerationAttempts }
+      } else {
+        logger.info(
+          { pipelineId, wordCount, regenerationAttempts },
+          'Script generation complete and validated'
         );
       }
-
-      logger.info(
-        { pipelineId, wordCount, regenerationAttempts },
-        'Script generation complete and validated'
-      );
 
       // Save all drafts to Cloud Storage
       const storage = new CloudStorageClient();
@@ -358,6 +353,13 @@ export async function executeScriptGen(
           critic: multiAgentResult.criticDraft.provider,
           optimizer: multiAgentResult.optimizerDraft.provider,
         },
+        quality: {
+          metrics: { wordCount, targetMin: targetWordCount.min, targetMax: targetWordCount.max },
+          status: qualityStatus,
+          reason: validation.valid ? undefined : validation.reason,
+        },
+        // Pass-through topic data for YouTube metadata generation
+        topicData: data.topicData,
       };
     },
     { qualityGate: 'script-gen' }

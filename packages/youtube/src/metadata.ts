@@ -291,14 +291,49 @@ export async function generateMetadata(
           description += `\n\nTimestamps:\n${chapterText}`;
         }
 
-        // Re-validate byte length after adding chapters
+        // Re-validate byte length after adding chapters and truncate if needed
         if (Buffer.byteLength(description, 'utf8') > 5000) {
-          throw NexusError.degraded(
-            'NEXUS_YOUTUBE_DESCRIPTION_TOO_LONG',
-            'Description exceeds 5000 bytes after adding chapters',
-            'metadata',
-            { byteLength: Buffer.byteLength(description, 'utf8') }
-          );
+          const lines = description.split('\n');
+
+          // Find key sections
+          const timestampsIndex = lines.findIndex(l => l === 'Timestamps:');
+          const hashtagsIndex = lines.findIndex(l => l.startsWith('#AI'));
+
+          // Strategy 1: Shorten the hook (first line) to make room
+          const excess = Buffer.byteLength(description, 'utf8') - 4800; // Leave 200 byte buffer
+          if (lines[0].length > excess + 50) {
+            lines[0] = lines[0].substring(0, lines[0].length - excess - 3) + '...';
+            description = lines.join('\n');
+          }
+
+          // Strategy 2: Reduce chapters if still too long
+          if (Buffer.byteLength(description, 'utf8') > 5000 && timestampsIndex >= 0) {
+            // Find chapter lines (between Timestamps: and hashtags or end)
+            const endIndex = hashtagsIndex >= 0 ? hashtagsIndex : lines.length;
+            const chapterStartIndex = timestampsIndex + 1;
+
+            // Keep only first 5 chapters
+            const chapterLines = lines.slice(chapterStartIndex, endIndex).filter(l => l.trim().length > 0);
+            const keptChapters = chapterLines.slice(0, 5);
+
+            // Rebuild description
+            const beforeTimestamps = lines.slice(0, timestampsIndex + 1);
+            const afterChapters = hashtagsIndex >= 0 ? lines.slice(hashtagsIndex) : [];
+
+            description = [...beforeTimestamps, ...keptChapters, '', ...afterChapters].join('\n');
+          }
+
+          // Strategy 3: Final safety truncation if still over
+          while (Buffer.byteLength(description, 'utf8') > 5000) {
+            description = description.substring(0, description.length - 100) + '...';
+          }
+
+          logger.info({
+            pipelineId,
+            stage: 'metadata',
+            originalExcess: excess,
+            finalBytes: Buffer.byteLength(description, 'utf8')
+          }, 'Description truncated after adding chapters');
         }
       }
     }

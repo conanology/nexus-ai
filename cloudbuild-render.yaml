@@ -1,0 +1,31 @@
+steps:
+  # Build Docker image for render-service
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nexus-render-service:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nexus-render-service:latest'
+      - '-f'
+      - 'apps/render-service/Dockerfile'
+      - '.'
+
+  # Push image with build ID tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/nexus-render-service:$BUILD_ID'
+
+  # Push image with latest tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/nexus-render-service:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/nexus-render-service:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/nexus-render-service:latest'
+
+# Longer timeout for Remotion/Chrome installation
+timeout: '2400s'

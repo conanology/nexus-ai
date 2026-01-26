@@ -14,6 +14,15 @@ export interface ScriptGenInput {
     min: number;
     max: number;
   };
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -39,6 +48,28 @@ export interface ScriptGenOutput {
     writer: AgentProviderInfo;
     critic: AgentProviderInfo;
     optimizer: AgentProviderInfo;
+  };
+  /** Quality assessment for the generated script */
+  quality?: {
+    /** Metrics used for validation */
+    metrics: {
+      wordCount: number;
+      targetMin: number;
+      targetMax: number;
+    };
+    /** Quality status: PASS if within target, DEGRADED if outside target */
+    status: 'PASS' | 'DEGRADED';
+    /** Reason for degraded quality (if applicable) */
+    reason?: string;
+  };
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
   };
 }
 

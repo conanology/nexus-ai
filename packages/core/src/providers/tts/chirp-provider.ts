@@ -9,7 +9,6 @@ import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import type { TTSProvider, TTSOptions, TTSResult, Voice } from '../../types/providers.js';
 import { withRetry } from '../../utils/with-retry.js';
 import { NexusError } from '../../errors/index.js';
-import { getSecret } from '../../secrets/index.js';
 
 // =============================================================================
 // Constants
@@ -65,8 +64,9 @@ export class ChirpProvider implements TTSProvider {
    */
   private async getClient(): Promise<TextToSpeechClient> {
     if (!this.client) {
-      const apiKey = await getSecret('nexus-gemini-api-key').catch(() => undefined);
-      this.client = new TextToSpeechClient(apiKey ? { apiKey } : undefined);
+      // TextToSpeechClient uses Application Default Credentials (ADC)
+      // In Cloud Run, this is automatically provided by the service account
+      this.client = new TextToSpeechClient();
     }
     return this.client;
   }
@@ -133,6 +133,13 @@ export class ChirpProvider implements TTSProvider {
 
           return result;
         } catch (error) {
+          // Log the actual error for debugging
+          console.error('[TTS] Chirp synthesis error:', {
+            name: error instanceof Error ? error.name : 'unknown',
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : undefined,
+          });
+
           if (error instanceof NexusError) {
             throw error;
           }

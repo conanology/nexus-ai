@@ -181,14 +181,25 @@ export async function executeResearch(
       );
 
       // Return the research output with provider info
+      // Pass through topic data for downstream stages (YouTube metadata)
       return {
         brief,
+        researchBrief: brief,
         wordCount,
         artifactUrl,
         provider: {
           name: providerName,
           tier: providerTier,
           attempts: fallbackResult.attempts.length,
+        },
+        // Pass-through topic for YouTube metadata generation
+        topicData: {
+          title: topic.title,
+          url: topic.url,
+          source: topic.source || 'unknown',
+          publishedAt: (topic as any).publishedAt || new Date().toISOString(),
+          viralityScore: (topic as any).viralityScore || 0,
+          metadata: topic.metadata,
         },
       };
     },

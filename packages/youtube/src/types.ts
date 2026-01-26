@@ -69,10 +69,14 @@ export type PrivacyStatus = 'private' | 'unlisted' | 'public';
 export interface YouTubeUploadInput {
   pipelineId: string;
   videoPath: string;         // GCS path to rendered video
-  metadata: VideoMetadata;   // Title, description, tags (Story 4.2)
+  metadata?: VideoMetadata;  // Title, description, tags (Story 4.2) - can be generated
   privacyStatus: PrivacyStatus;
   thumbnailUrl?: string;     // Optional GCS path to thumbnail (Story 4.3)
   thumbnailVariant?: number; // Optional variant ID (1, 2, or 3) for A/B testing
+  // Pass-through fields for metadata generation if metadata not provided
+  topicData?: NewsItem;      // Topic data for metadata generation
+  script?: string;           // Script for metadata generation
+  audioDurationSec?: number; // Audio duration for chapter markers
 }
 
 /**

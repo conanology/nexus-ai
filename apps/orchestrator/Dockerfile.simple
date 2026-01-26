@@ -82,6 +82,9 @@ RUN pnpm install --no-frozen-lockfile --prod --ignore-scripts --shamefully-hoist
 # Copy the bundled server file to apps/orchestrator (where node_modules resolution works)
 COPY --from=builder /app/apps/orchestrator/dist/server.mjs ./apps/orchestrator/server.mjs
 
+# Copy data directory for templates and other static assets
+COPY data ./apps/orchestrator/data
+
 # Security: run as non-root user
 USER node
 

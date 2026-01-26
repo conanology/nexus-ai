@@ -49,12 +49,17 @@ const SOURCE_REGISTRY: Record<string, NewsSource> = {
  * Main execution logic for the News Sourcing stage
  * Orchestrates fetching, scoring, selection, and persistence
  */
+/**
+ * Default enabled sources when none are provided
+ */
+const DEFAULT_ENABLED_SOURCES = ['github-trending', 'hacker-news', 'reddit'];
+
 async function newsSourcingLogic(
   data: NewsSourcingConfig,
   _config: StageConfig,
   pipelineId: string
 ): Promise<TopicSelectionResult> {
-  const { enabledSources, minViralityScore = 0 } = data;
+  const { enabledSources = DEFAULT_ENABLED_SOURCES, minViralityScore = 0 } = data || {};
   const items: NewsItem[] = [];
   const sourceCounts: Record<string, number> = {};
 
@@ -221,6 +226,7 @@ export function selectTopic(
 
     return {
       selected: null,
+      topic: null,
       candidates: freshItems,
       selectionTime,
       fallback: true,
@@ -239,6 +245,7 @@ export function selectTopic(
 
   return {
     selected,
+    topic: selected,
     candidates,
     selectionTime,
     fallback: false,

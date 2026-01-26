@@ -9,6 +9,7 @@ import type { LLMProvider, LLMOptions, LLMResult } from '../../types/providers.j
 import { withRetry } from '../../utils/with-retry.js';
 import { NexusError } from '../../errors/index.js';
 import { getSecret } from '../../secrets/index.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // =============================================================================
 // Constants
@@ -75,7 +76,7 @@ export class GeminiLLMProvider implements LLMProvider {
    * @param options - Generation options
    * @returns LLMResult with generated text and metadata
    */
-  async generate(prompt: string, _options?: LLMOptions): Promise<LLMResult> {
+  async generate(prompt: string, options?: LLMOptions): Promise<LLMResult> {
     // Validate input
     if (!prompt || prompt.trim().length === 0) {
       throw NexusError.critical(
@@ -91,31 +92,43 @@ export class GeminiLLMProvider implements LLMProvider {
     const retryResult = await withRetry(
       async () => {
         try {
-          // TODO: Story 1.6 - Replace with actual Google AI SDK call
-          // For now, this is a placeholder that would be replaced with:
-          //
-          // import { GoogleGenerativeAI } from '@google/generative-ai';
-          // const genAI = new GoogleGenerativeAI(apiKey);
-          // const model = genAI.getGenerativeModel({ model: this.model });
-          // const result = await model.generateContent({
-          //   contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          //   generationConfig: {
-          //     temperature: options?.temperature ?? 1,
-          //     maxOutputTokens: options?.maxTokens,
-          //     topP: options?.topP,
-          //     topK: options?.topK,
-          //   },
-          //   systemInstruction: options?.systemPrompt,
-          // });
+          const genAI = new GoogleGenerativeAI(apiKey);
+          const model = genAI.getGenerativeModel({ model: this.model });
 
-          // Placeholder implementation - throws to indicate not configured
-          // This will be caught by tests with mocks
-          throw NexusError.critical(
-            'NEXUS_LLM_NOT_CONFIGURED',
-            `Gemini SDK not configured. Set NEXUS_GEMINI_API_KEY and implement SDK integration in Story 1.6.`,
-            'llm',
-            { model: this.model, apiKeyPresent: !!apiKey }
-          );
+          const result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: options?.temperature ?? 0.7,
+              maxOutputTokens: options?.maxTokens ?? 8192,
+              topP: options?.topP,
+              topK: options?.topK,
+            },
+            systemInstruction: options?.systemPrompt,
+          });
+
+          const response = result.response;
+          const text = response.text();
+
+          // Extract token usage from response metadata
+          const usageMetadata = response.usageMetadata;
+          const inputTokens = usageMetadata?.promptTokenCount ?? Math.ceil(prompt.length / CHARS_PER_TOKEN);
+          const outputTokens = usageMetadata?.candidatesTokenCount ?? Math.ceil(text.length / CHARS_PER_TOKEN);
+
+          // Calculate cost
+          const inputCost = (inputTokens / 1000) * PRICING.inputPer1K;
+          const outputCost = (outputTokens / 1000) * PRICING.outputPer1K;
+          const totalCost = Number((inputCost + outputCost).toFixed(4));
+
+          return {
+            text,
+            tokens: {
+              input: inputTokens,
+              output: outputTokens,
+            },
+            cost: totalCost,
+            model: this.model,
+            quality: 'primary' as const,
+          };
         } catch (error) {
           // Re-throw NexusErrors as-is
           if (error instanceof NexusError) {

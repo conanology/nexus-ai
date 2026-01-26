@@ -119,8 +119,8 @@ export class SceneMapper {
   }
 
   /**
-   * Map cue with TextOnGradient fallback
-   * Tries keyword matching first, then TextOnGradient if no match
+   * Map cue with LowerThird fallback
+   * Tries keyword matching first, then LowerThird if no match
    */
   async mapCueWithFallback(cue: VisualCue): Promise<SceneMapping> {
     // Try keyword matching first
@@ -129,7 +129,7 @@ export class SceneMapper {
       return keywordResult;
     }
 
-    // Keyword matching failed, use TextOnGradient fallback
+    // Keyword matching failed, use LowerThird fallback (available in video-studio)
     logger.warn({
       msg: '[VisualGen] Unmapped cue',
       cue: cue.description,
@@ -139,11 +139,12 @@ export class SceneMapper {
     // Track fallback usage for quality metrics
     this.fallbackUsage++;
 
-    // Return TextOnGradient component with cue text as prop
+    // Return LowerThird component with cue text as prop
     return {
-      component: 'TextOnGradient',
+      component: 'LowerThird',
       props: {
         text: cue.description,
+        title: cue.description,
       },
       duration: DEFAULT_SCENE_DURATION,
       startTime: 0,

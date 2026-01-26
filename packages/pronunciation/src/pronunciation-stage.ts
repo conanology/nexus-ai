@@ -20,6 +20,15 @@ import type { PronunciationEntry } from './types.js';
 export interface PronunciationInput {
   /** Script content to process */
   script: string;
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -32,6 +41,15 @@ export interface PronunciationOutput {
   flaggedTerms: string[];
   /** Whether this stage output requires human review */
   requiresReview?: boolean;
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -139,6 +157,8 @@ export async function executePronunciation(
         ssmlScript,
         flaggedTerms,
         requiresReview,
+        // Pass-through topic data for YouTube metadata generation
+        topicData: data.topicData,
       };
 
       return {

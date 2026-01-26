@@ -46,20 +46,27 @@ export async function executeStage<TIn, TOut>(
 
     if (options?.qualityGate) {
       const gateResult = await qualityGate.check(stageName, result);
-      
+
       qualityMetrics = {
           stage: gateResult.stage,
           timestamp: new Date().toISOString(),
-          measurements: gateResult.metrics as Record<string, unknown>
+          measurements: {
+            ...gateResult.metrics as Record<string, unknown>,
+            qualityStatus: gateResult.status,
+            qualityReason: gateResult.reason,
+          },
       };
       warnings = gateResult.warnings;
 
+      // Don't throw on quality gate FAIL - let the data flow through
+      // The orchestrator will handle degraded stages appropriately
       if (gateResult.status === 'FAIL') {
-        throw NexusError.degraded(
-          'NEXUS_QUALITY_GATE_FAIL',
-          gateResult.reason || 'Quality gate failed',
-          stageName
-        );
+        logger.warn({
+          pipelineId: input.pipelineId,
+          stage: stageName,
+          reason: gateResult.reason,
+        }, 'Quality gate failed - continuing with degraded quality');
+        warnings.push(`Quality gate failed: ${gateResult.reason}`);
       }
     }
 

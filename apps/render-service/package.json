@@ -12,6 +12,7 @@
   "dependencies": {
     "@nexus-ai/core": "workspace:*",
     "@remotion/bundler": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
     "@remotion/renderer": "^4.0.0",
     "express": "^4.18.2",
     "remotion": "^4.0.0",

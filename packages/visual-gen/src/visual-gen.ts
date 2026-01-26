@@ -3,7 +3,7 @@
  */
 
 import type { StageInput, StageOutput, ArtifactRef } from '@nexus-ai/core';
-import { logger, CloudStorageClient, executeStage } from '@nexus-ai/core';
+import { logger, CloudStorageClient, executeStage, NexusError } from '@nexus-ai/core';
 import type { VisualGenInput, VisualGenOutput, SceneMapping } from './types.js';
 import { parseVisualCues } from './visual-cue-parser.js';
 import { SceneMapper } from './scene-mapper.js';
@@ -106,7 +106,55 @@ export async function executeVisualGen(
       size: timelineJson.length,
     });
 
-    // Step 5: Calculate quality metrics
+    // Step 5: Call render service to generate video
+    const renderServiceUrl = process.env.RENDER_SERVICE_URL || 'http://localhost:8081';
+    const renderSecret = process.env.NEXUS_SECRET || '';
+
+    logger.info({
+      msg: 'Calling render service',
+      pipelineId,
+      stage: 'visual-gen',
+      renderServiceUrl,
+      timelineUrl,
+      audioUrl: data.audioUrl,
+    });
+
+    const renderResponse = await fetch(`${renderServiceUrl}/render`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Nexus-Secret': renderSecret,
+      },
+      body: JSON.stringify({
+        pipelineId,
+        timelineUrl,
+        audioUrl: data.audioUrl,
+        resolution: '1080p',
+      }),
+    });
+
+    if (!renderResponse.ok) {
+      const errorBody = await renderResponse.text().catch(() => 'unknown');
+      throw NexusError.critical(
+        'NEXUS_RENDER_FAILED',
+        `Render service returned ${renderResponse.status}: ${errorBody}`,
+        'visual-gen'
+      );
+    }
+
+    const renderResult = await renderResponse.json() as { videoUrl: string; duration: number; fileSize: number };
+    const videoPath = renderResult.videoUrl;
+
+    logger.info({
+      msg: 'Render complete',
+      pipelineId,
+      stage: 'visual-gen',
+      videoPath,
+      duration: renderResult.duration,
+      fileSize: renderResult.fileSize,
+    });
+
+    // Step 6: Calculate quality metrics
     const fallbackUsage = mapper.getFallbackUsage();
     const fallbackPercentage = visualCues.length > 0
       ? (fallbackUsage / visualCues.length) * 100
@@ -165,6 +213,14 @@ export async function executeVisualGen(
         generatedAt: new Date().toISOString(),
         stage: 'visual-gen',
       },
+      {
+        type: 'video',
+        url: videoPath,
+        size: renderResult.fileSize,
+        contentType: 'video/mp4',
+        generatedAt: new Date().toISOString(),
+        stage: 'visual-gen',
+      },
     ];
 
     // Return data for executeStage
@@ -172,6 +228,11 @@ export async function executeVisualGen(
       timelineUrl,
       sceneCount: timeline.scenes.length,
       fallbackUsage,
+      videoPath,  // GCS path to rendered video
+      // Pass-through data for YouTube metadata generation
+      topicData: data.topicData,
+      script: data.script,
+      audioDurationSec: data.audioDurationSec,
       // Metadata for executeStage
       artifacts,
       quality: {

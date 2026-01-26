@@ -18,12 +18,14 @@ import {
 import type {
   YouTubeUploadInput,
   YouTubeUploadOutput,
+  VideoMetadata,
 } from './types.js';
 import { QUOTA_COSTS } from './types.js';
 import { ResumableUploader } from './uploader.js';
 import { getQuotaTracker, canUploadVideo, recordVideoUpload } from './quota.js';
 import { setThumbnail } from './thumbnail.js';
 import { scheduleVideo } from './scheduler.js';
+import { generateMetadata } from './metadata.js';
 import { FirestoreClient } from '@nexus-ai/core';
 
 const logger = createLogger('youtube.stage');
@@ -61,7 +63,61 @@ export async function executeYouTubeUpload(
   input: StageInput<YouTubeUploadInput>
 ): Promise<StageOutput<YouTubeUploadOutput>> {
   return executeStage(input, 'youtube', async (data: YouTubeUploadInput, config: StageConfig) => {
-    const { pipelineId, videoPath, metadata, privacyStatus, thumbnailUrl } = data;
+    // Use input.pipelineId (from orchestrator) as authoritative source
+    const pipelineId = input.pipelineId;
+    const { videoPath, privacyStatus, thumbnailUrl, topicData, script, audioDurationSec } = data || {};
+
+    // Validate required fields (videoPath and privacyStatus are always required)
+    const missingFields: string[] = [];
+    if (!videoPath) missingFields.push('videoPath');
+    if (!privacyStatus) missingFields.push('privacyStatus');
+
+    if (missingFields.length > 0) {
+      throw NexusError.critical(
+        'NEXUS_YOUTUBE_MISSING_INPUT',
+        `YouTube stage missing required fields: ${missingFields.join(', ')}. ` +
+          `This typically means the render stage did not complete or data flow is misconfigured.`,
+        'youtube',
+        { missingFields, receivedFields: Object.keys(data || {}) }
+      );
+    }
+
+    // Generate metadata if not provided but topic and script are available
+    let metadata: VideoMetadata | undefined = data?.metadata;
+
+    if (!metadata) {
+      if (topicData && script) {
+        logger.info({
+          pipelineId,
+          stage: 'youtube',
+          msg: 'Generating metadata from topic and script',
+        });
+
+        metadata = await generateMetadata({
+          topic: topicData,
+          script,
+          sourceUrls: topicData.url ? [topicData.url] : [],
+          audioDuration: audioDurationSec,
+          pipelineId,
+        });
+
+        logger.info({
+          pipelineId,
+          stage: 'youtube',
+          msg: 'Metadata generated successfully',
+          title: metadata.title,
+          tagCount: metadata.tags.length,
+        });
+      } else {
+        throw NexusError.critical(
+          'NEXUS_YOUTUBE_MISSING_METADATA',
+          `YouTube stage missing metadata and cannot generate it. ` +
+            `Either provide metadata directly or include topicData and script for generation.`,
+          'youtube',
+          { hasMetadata: !!data?.metadata, hasTopicData: !!topicData, hasScript: !!script }
+        );
+      }
+    }
 
     // Initialize cost tracker
     const tracker = new CostTracker(pipelineId, 'youtube');

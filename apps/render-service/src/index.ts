@@ -35,18 +35,29 @@ const renderSchema = z.object({
 app.post('/render', authMiddleware, async (req, res) => {
   try {
     const input = renderSchema.parse(req.body);
-    
+
     logger.info({ input }, 'Received render request');
-    
+
     const result = await renderService.renderVideo(input);
-    
+
     res.status(200).json(result);
   } catch (error) {
-    logger.error({ error }, 'Render request failed');
+    // Log error with full details (Error objects don't serialize well by default)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error({
+      errorMessage,
+      errorStack,
+      errorName: error instanceof Error ? error.name : 'Unknown',
+    }, 'Render request failed');
+
     if (error instanceof z.ZodError) {
-         res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Invalid input', details: error.errors });
     } else {
-         res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: errorMessage
+      });
     }
   }
 });

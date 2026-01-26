@@ -142,6 +142,9 @@ importers:
       '@remotion/bundler':
         specifier: ^4.0.0
         version: 4.0.404(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@remotion/cli':
+        specifier: ^4.0.0
+        version: 4.0.404(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@remotion/renderer':
         specifier: ^4.0.0
         version: 4.0.404(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -230,6 +233,9 @@ importers:
       '@google-cloud/text-to-speech':
         specifier: ^5.8.1
         version: 5.8.1
+      '@google/generative-ai':
+        specifier: ^0.16.1
+        version: 0.16.1
       pino:
         specifier: ^10.1.1
         version: 10.1.1
@@ -4129,14 +4135,14 @@ snapshots:
       '@remotion/media-parser': 4.0.404
       '@remotion/studio': 4.0.404(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@remotion/studio-shared': 4.0.404(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      css-loader: 5.2.7(webpack@5.96.1(esbuild@0.25.0))
+      css-loader: 5.2.7(webpack@5.96.1)
       esbuild: 0.25.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-refresh: 0.9.0
       remotion: 4.0.404(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       source-map: 0.7.3
-      style-loader: 4.0.0(webpack@5.96.1(esbuild@0.25.0))
+      style-loader: 4.0.0(webpack@5.96.1)
       webpack: 5.96.1(esbuild@0.25.0)
     transitivePeerDependencies:
       - '@swc/core'
@@ -4984,7 +4990,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  css-loader@5.2.7(webpack@5.96.1(esbuild@0.25.0)):
+  css-loader@5.2.7(webpack@5.96.1):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       loader-utils: 2.0.4
@@ -6447,7 +6453,7 @@ snapshots:
 
   stubs@3.0.0: {}
 
-  style-loader@4.0.0(webpack@5.96.1(esbuild@0.25.0)):
+  style-loader@4.0.0(webpack@5.96.1):
     dependencies:
       webpack: 5.96.1(esbuild@0.25.0)
 

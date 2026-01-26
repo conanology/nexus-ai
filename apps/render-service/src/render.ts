@@ -6,6 +6,8 @@ import fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import http from 'http';
+import express from 'express';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +42,22 @@ export class RenderService {
     const outputPath = path.join(tmpDir, 'output.mp4');
 
     logger.info({ pipelineId: input.pipelineId, tmpDir }, 'Starting render');
+
+    // Start local file server for audio (Remotion doesn't support file:// URLs)
+    const fileServer = express();
+    fileServer.use('/assets', express.static(tmpDir));
+    const server = http.createServer(fileServer);
+
+    // Find available port
+    const serverPort = await new Promise<number>((resolve) => {
+      server.listen(0, () => {
+        const addr = server.address();
+        resolve(typeof addr === 'object' && addr ? addr.port : 3333);
+      });
+    });
+
+    const localAudioUrl = `http://localhost:${serverPort}/assets/audio.wav`;
+    logger.info({ serverPort, localAudioUrl }, 'Started local file server for audio');
 
     try {
       // 1. Download Assets
@@ -89,7 +107,7 @@ export class RenderService {
         id: 'TechExplainer', // Matches apps/video-studio/src/Root.tsx
         inputProps: {
           timeline: timelineData,
-          audioUrl: `file://${audioPath}`, // Use file protocol for local access
+          audioUrl: localAudioUrl, // Use HTTP URL served by local file server
         },
       });
 
@@ -101,7 +119,7 @@ export class RenderService {
         outputLocation: outputPath,
         inputProps: {
           timeline: timelineData,
-          audioUrl: `file://${audioPath}`,
+          audioUrl: localAudioUrl, // Use HTTP URL served by local file server
         },
         timeoutInMilliseconds: 45 * 60 * 1000, // 45 minutes
         chromiumOptions: {
@@ -138,10 +156,19 @@ export class RenderService {
       };
 
     } catch (error) {
-      logger.error({ error, pipelineId: input.pipelineId }, 'Render failed');
+      // Log error with full details (Error objects don't serialize well by default)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error({
+        errorMessage,
+        errorStack,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        pipelineId: input.pipelineId
+      }, 'Render failed');
       throw error;
     } finally {
       // Cleanup
+      server.close();
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
   }

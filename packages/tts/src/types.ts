@@ -17,6 +17,15 @@ export interface TTSInput {
   pitch?: number;
   /** Maximum characters per chunk (default: 5000) */
   maxChunkChars?: number;
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -33,6 +42,15 @@ export interface TTSOutput {
   sampleRate: number;
   /** Number of segments if chunking was used */
   segmentCount?: number;
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
+  };
 }
 
 /**

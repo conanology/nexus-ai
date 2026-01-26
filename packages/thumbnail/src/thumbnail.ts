@@ -93,7 +93,9 @@ export async function executeThumbnail(
             const buffer = Buffer.from(await response.arrayBuffer());
             finalUrl = await storage.uploadFile(targetPath, buffer, 'image/png');
           } else if (sourceUrl.startsWith('gs://')) {
-            const buffer = await storage.downloadFile(sourceUrl);
+            // Extract path from gs:// URL (remove gs://bucket-name/ prefix)
+            const sourcePath = sourceUrl.replace(/^gs:\/\/[^\/]+\//, '');
+            const buffer = await storage.downloadFile(sourcePath);
             finalUrl = await storage.uploadFile(targetPath, buffer, 'image/png');
           }
         }
@@ -128,9 +130,19 @@ export async function executeThumbnail(
       (config.tracker as any).recordApiCall(usedProvider, { input: 0, output: 0 }, totalCost);
     }
 
+    // Get the first variant URL for YouTube thumbnail
+    const thumbnailUrl = variants[0]?.url;
+
     return {
       variants,
       artifacts,
+      // Pass-through fields for YouTube stage
+      videoPath: data.videoPath,
+      topicData: data.topicData,
+      script: data.script,
+      audioDurationSec: data.audioDurationSec,
+      privacyStatus: 'private' as const,  // Default to private for scheduled publication
+      thumbnailUrl,
       provider: {
         name: usedProvider,
         tier: worstTier,

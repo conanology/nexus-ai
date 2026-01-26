@@ -28,6 +28,8 @@ export interface ResearchInput {
 export interface ResearchOutput {
   /** Generated research brief (markdown format) */
   brief: string;
+  /** Alias for brief - used by script-gen stage */
+  researchBrief: string;
   /** Word count of the brief */
   wordCount: number;
   /** GCS URL where the brief is stored */
@@ -37,6 +39,15 @@ export interface ResearchOutput {
     name: string;
     tier: 'primary' | 'fallback';
     attempts: number;
+  };
+  /** Pass-through topic data for downstream stages (YouTube metadata) */
+  topicData?: {
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: string;
+    viralityScore: number;
+    metadata?: Record<string, unknown>;
   };
 }
 

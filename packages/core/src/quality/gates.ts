@@ -81,7 +81,7 @@ export class QualityGateRegistry implements QualityGate {
   private registerDefaultGates(): void {
     // script-gen: word count 1200-1800
     this.registerGate('script-gen', async (output: any, context?: QualityGateContext) => {
-      const data = output.data || {};
+      const data = output.data || output;
       const wordCount = data.wordCount || 0;
       const min = 1200;
       const max = 1800;
@@ -188,7 +188,7 @@ export class QualityGateRegistry implements QualityGate {
 
     // thumbnail: 3 variants
     this.registerGate('thumbnail', async (output: any, context?: QualityGateContext) => {
-      const data = output.data || output;
+      const data = output.data || output;  // Handle both wrapped and unwrapped output
       const variants = Array.isArray(data) ? data.length : (data.variants?.length || 0);
       const expectedCount = 3;
 
@@ -244,7 +244,7 @@ export class QualityGateRegistry implements QualityGate {
 
     // news-sourcing: verify topic selection succeeded or fallback identified
     this.registerGate('news-sourcing', (output: any) => {
-      const data = output.data || output;
+      const data = output.data || output;  // Handle both wrapped and unwrapped output
       const selected = data.selected;
       const fallback = data.fallback || false;
       const candidateCount = data.candidates?.length || 0;
@@ -286,7 +286,7 @@ export class QualityGateRegistry implements QualityGate {
 
     // research: minimum word count and content presence check
     this.registerGate('research', (output: any) => {
-      const data = output.data || output;
+      const data = output.data || output;  // Handle both wrapped and unwrapped output
       const wordCount = data.wordCount || 0;
       const brief = data.brief || '';
       const minWords = 1800; // Minimum acceptable word count
