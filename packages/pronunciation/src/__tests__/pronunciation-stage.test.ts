@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import type { ScriptGenOutput } from '@nexus-ai/script-gen';
 
 // MOCK EVERYTHING BEFORE IMPORTS
 vi.mock('@nexus-ai/core', async () => {
@@ -31,6 +32,8 @@ vi.mock('@nexus-ai/core', async () => {
       getSummary: vi.fn().mockReturnValue({ totalCost: 0 }),
       persist: vi.fn().mockResolvedValue(undefined),
     })),
+    addToReviewQueue: vi.fn().mockResolvedValue(undefined),
+    PRONUNCIATION_UNKNOWN_THRESHOLD: 3,
     logger: {
       child: vi.fn().mockReturnValue({
         info: vi.fn(),
@@ -63,7 +66,7 @@ describe('executePronunciation', () => {
     retries: 3,
   };
 
-  const createStageInput = (script: string): StageInput<PronunciationInput> => ({
+  const createStageInput = (script: string | ScriptGenOutput): StageInput<PronunciationInput> => ({
     pipelineId: '2026-01-16',
     previousStage: 'script-gen',
     data: { script },
@@ -99,6 +102,137 @@ describe('executePronunciation', () => {
       const input = createStageInput('Test script');
       const result = await executePronunciation(input);
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('V1 Input Handling (string with brackets)', () => {
+    it('should strip [VISUAL:...] tags from V1 input', async () => {
+      const v1Script = `[VISUAL:neural_network]
+Today we're exploring transformers.
+
+[VISUAL:code_highlight]
+Here's the attention mechanism with GPT and LLM.`;
+
+      const input = createStageInput(v1Script);
+      const result = await executePronunciation(input);
+
+      expect(result.success).toBe(true);
+      expect(result.data.ssmlScript).toBeDefined();
+      // SSML output should not contain [VISUAL:...] tags
+      expect(result.data.ssmlScript).not.toMatch(/\[VISUAL:[^\]]+\]/);
+    });
+
+    it('should strip [PRONOUNCE:...] tags from V1 input', async () => {
+      const v1Script = `Let's talk about [PRONOUNCE:softmax:ˈsɒftmæks] and GPT.`;
+
+      const input = createStageInput(v1Script);
+      const result = await executePronunciation(input);
+
+      expect(result.success).toBe(true);
+      expect(result.data.ssmlScript).toBeDefined();
+      // SSML output should not contain [PRONOUNCE:...] tags
+      expect(result.data.ssmlScript).not.toMatch(/\[PRONOUNCE:[^\]]+\]/);
+    });
+
+    it('should strip [MUSIC:...] and [SFX:...] tags from V1 input', async () => {
+      const v1Script = `[MUSIC:upbeat]
+Welcome to our video!
+
+[SFX:whoosh]
+Let's dive in.`;
+
+      const input = createStageInput(v1Script);
+      const result = await executePronunciation(input);
+
+      expect(result.success).toBe(true);
+      expect(result.data.ssmlScript).toBeDefined();
+      // SSML output should not contain [MUSIC:...] or [SFX:...] tags
+      expect(result.data.ssmlScript).not.toMatch(/\[MUSIC:[^\]]+\]/);
+      expect(result.data.ssmlScript).not.toMatch(/\[SFX:[^\]]+\]/);
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should throw NexusError for empty string input', async () => {
+      const input = createStageInput('');
+
+      await expect(executePronunciation(input)).rejects.toThrow('Script input cannot be empty');
+    });
+
+    it('should throw NexusError for whitespace-only string input', async () => {
+      const input = createStageInput('   \n\t  ');
+
+      await expect(executePronunciation(input)).rejects.toThrow('Script input cannot be empty');
+    });
+  });
+
+  describe('V2 Input Handling (ScriptGenOutput object)', () => {
+    it('should use scriptText directly from V2 ScriptGenOutput', async () => {
+      const v2Output: ScriptGenOutput = {
+        version: '2.0',
+        script: 'Today we explore transformers. Here is the attention mechanism: softmax.',
+        scriptText: 'Today we explore transformers.\n\nHere is the attention mechanism: softmax.',
+        scriptUrl: 'gs://nexus-ai-artifacts/2026-01-27/script-gen/script.md',
+        directionDocument: {
+          version: '2.0',
+          metadata: {
+            title: 'Test Video',
+            slug: 'test-video',
+            estimatedDurationSec: 120,
+            fps: 30,
+            resolution: { width: 1920, height: 1080 },
+            generatedAt: new Date().toISOString(),
+          },
+          segments: [],
+          globalAudio: {
+            defaultMood: 'neutral',
+            musicTransitions: 'smooth',
+          },
+        },
+        directionUrl: 'gs://nexus-ai-artifacts/2026-01-27/script-gen/direction.json',
+        wordCount: 12,
+        artifactUrl: 'gs://nexus-ai-artifacts/2026-01-27/script-gen/script.md',
+        draftUrls: {},
+      };
+
+      const input = createStageInput(v2Output);
+      const result = await executePronunciation(input);
+
+      expect(result.success).toBe(true);
+      expect(result.data.ssmlScript).toBeDefined();
+    });
+
+    it('should produce SSML without any bracket patterns from V2 input', async () => {
+      const v2Output: ScriptGenOutput = {
+        version: '2.0',
+        script: 'GPT and LLM are AI technologies.',
+        scriptText: 'GPT and LLM are AI technologies.',
+        scriptUrl: 'gs://nexus-ai-artifacts/2026-01-27/script-gen/script.md',
+        directionDocument: {
+          version: '2.0',
+          metadata: {
+            title: 'Test',
+            slug: 'test',
+            estimatedDurationSec: 60,
+            fps: 30,
+            resolution: { width: 1920, height: 1080 },
+            generatedAt: new Date().toISOString(),
+          },
+          segments: [],
+          globalAudio: { defaultMood: 'neutral', musicTransitions: 'smooth' },
+        },
+        directionUrl: 'gs://test',
+        wordCount: 5,
+        artifactUrl: 'gs://test',
+        draftUrls: {},
+      };
+
+      const input = createStageInput(v2Output);
+      const result = await executePronunciation(input);
+
+      expect(result.success).toBe(true);
+      // SSML should not contain any bracket patterns
+      expect(result.data.ssmlScript).not.toMatch(/\[[A-Z]+:[^\]]+\]/);
     });
   });
 });

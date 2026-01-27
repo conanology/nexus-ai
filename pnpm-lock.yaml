@@ -302,6 +302,9 @@ importers:
       '@nexus-ai/core':
         specifier: workspace:*
         version: link:../core
+      '@nexus-ai/script-gen':
+        specifier: workspace:*
+        version: link:../script-gen
     devDependencies:
       '@nexus-ai/config':
         specifier: workspace:*

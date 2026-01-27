@@ -113,7 +113,7 @@ development_status:
   6-1-define-direction-document-schema: done
   6-2-implement-backward-compatibility-layer: done
   6-3-update-script-generation-dual-output: done
-  6-4-update-tts-to-read-script-only: backlog
+  6-4-update-tts-to-read-script-only: done
   6-5-create-timestamp-extraction-package: backlog
   6-6-implement-google-cloud-stt-integration: backlog
   6-7-implement-estimated-timing-fallback: backlog

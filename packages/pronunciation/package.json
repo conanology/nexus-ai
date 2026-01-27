@@ -28,7 +28,8 @@
   "author": "Cryptology",
   "license": "MIT",
   "dependencies": {
-    "@nexus-ai/core": "workspace:*"
+    "@nexus-ai/core": "workspace:*",
+    "@nexus-ai/script-gen": "workspace:*"
   },
   "devDependencies": {
     "@nexus-ai/config": "workspace:*",
