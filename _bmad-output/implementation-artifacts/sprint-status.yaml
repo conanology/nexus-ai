@@ -123,7 +123,7 @@ development_status:
   6-11-update-pipeline-data-flow-timestamps: done
   6-12-add-timestamp-extraction-tests: done
   6-13-define-motionconfig-interface: done
-  6-14-create-usemotion-hook: backlog
+  6-14-create-usemotion-hook: done
   6-15-update-component-prop-interfaces: backlog
   6-16-refactor-components-motion-support: backlog
   6-17-create-kinetictext-component: backlog
