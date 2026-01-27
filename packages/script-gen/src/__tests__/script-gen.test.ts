@@ -241,16 +241,25 @@ Predictions for next-generation AI systems and capabilities.
     expect(result.data.wordCount).toBeLessThanOrEqual(1800);
   });
 
-  it('should include visual cues in script', async () => {
+  it('should produce V2 output with clean script field (no brackets)', async () => {
     const result = await executeScriptGen(mockInput);
 
-    expect(result.data.script).toContain('[VISUAL:');
+    // V2: script field should be clean narration for backward compatibility
+    // Legacy consumers use getScriptText() which handles both V1 and V2
+    expect(result.data.script).not.toContain('[VISUAL:');
+    expect(result.data.script).not.toContain('## NARRATION');
+    expect(result.data.script).not.toContain('## DIRECTION');
   });
 
-  it('should include pronunciation hints in script', async () => {
+  it('should produce V2 output with scriptText and directionDocument', async () => {
     const result = await executeScriptGen(mockInput);
 
-    expect(result.data.script).toContain('[PRONOUNCE:');
+    // V2-specific fields
+    expect((result.data as any).version).toBe('2.0');
+    expect((result.data as any).scriptText).toBeDefined();
+    expect((result.data as any).scriptUrl).toContain('script.md');
+    expect((result.data as any).directionDocument).toBeDefined();
+    expect((result.data as any).directionUrl).toContain('direction.json');
   });
 
   it('should save all drafts to Cloud Storage', async () => {

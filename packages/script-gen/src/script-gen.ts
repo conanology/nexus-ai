@@ -21,9 +21,18 @@ import {
 import type {
   ScriptGenInput,
   ScriptGenOutput,
+  ScriptGenOutputV2,
   AgentDraft,
   AgentProviderInfo,
   MultiAgentResult,
+  DirectionDocument,
+  DirectionSegment,
+  SegmentType,
+  ComponentName,
+} from './types.js';
+import {
+  safeValidateDirectionDocument,
+  MOTION_PRESETS,
 } from './types.js';
 import {
   buildWriterPrompt,
@@ -31,6 +40,9 @@ import {
   buildOptimizerPrompt,
   buildWordCountAdjustmentPrompt,
 } from './prompts.js';
+import {
+  detectSegmentType,
+} from './compatibility.js';
 
 // Default word count range
 const DEFAULT_WORD_COUNT = { min: 1200, max: 1800 };
@@ -38,11 +50,241 @@ const DEFAULT_WORD_COUNT = { min: 1200, max: 1800 };
 // Maximum regeneration attempts
 const MAX_REGENERATION_ATTEMPTS = 3;
 
+// Words per minute for TTS timing estimation (150 WPM = 2.5 words per second)
+const WORDS_PER_MINUTE = 150;
+const WORDS_PER_SECOND = WORDS_PER_MINUTE / 60; // 2.5
+
+// Patterns for parsing dual output from optimizer
+const NARRATION_PATTERN = /## NARRATION\s*\n([\s\S]*?)(?=## DIRECTION|$)/i;
+const DIRECTION_PATTERN = /## DIRECTION\s*\n```json\n([\s\S]*?)\n```/i;
+
+// Note: detectSegmentType is imported from compatibility.ts to avoid duplication
+
+// Default visual templates based on segment type
+const DEFAULT_VISUAL_TEMPLATE: Record<SegmentType, ComponentName> = {
+  intro: 'BrandedTransition',
+  hook: 'TextOnGradient',
+  explanation: 'TextOnGradient',
+  code_demo: 'CodeHighlight',
+  comparison: 'ComparisonChart',
+  example: 'TextOnGradient',
+  transition: 'BrandedTransition',
+  recap: 'KineticText',
+  outro: 'BrandedTransition',
+};
+
 /**
  * Count words in text
  */
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Calculate estimated duration in seconds from word count
+ * Based on 150 words per minute (2.5 words per second)
+ */
+function calculateEstimatedDuration(wordCount: number): number {
+  return wordCount / WORDS_PER_SECOND;
+}
+
+/**
+ * Generate a URL-safe slug from title
+ */
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 50);
+}
+
+/**
+ * Extract keywords from text (first 3-5 significant words)
+ */
+function extractKeywords(text: string): string[] {
+  const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'but', 'and', 'or', 'if', 'because', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once']);
+
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter((word) => word.length > 3 && !stopWords.has(word));
+
+  // Get unique words and return first 5
+  const unique = [...new Set(words)];
+  return unique.slice(0, 5);
+}
+
+
+/**
+ * Parse dual output from optimizer
+ * Returns narration text and direction document (or null if parsing fails)
+ * @exported for testing
+ */
+export function parseDualOutput(content: string): { narration: string; direction: DirectionDocument | null } {
+  const narrationMatch = content.match(NARRATION_PATTERN);
+  const directionMatch = content.match(DIRECTION_PATTERN);
+
+  // Extract narration - fallback to full content if no section found
+  const narration = narrationMatch?.[1]?.trim() ?? content;
+
+  let direction: DirectionDocument | null = null;
+  if (directionMatch?.[1]) {
+    try {
+      const parsed = JSON.parse(directionMatch[1]);
+      const result = safeValidateDirectionDocument(parsed);
+      if (result.success) {
+        direction = result.data;
+      } else {
+        logger.warn({ errors: result.error.errors }, 'Direction document validation failed');
+      }
+    } catch (error) {
+      logger.warn({ error }, 'Failed to parse direction JSON from optimizer output');
+    }
+  }
+
+  return { narration, direction };
+}
+
+/**
+ * Generate segments from narration text when LLM fails to produce direction JSON
+ * @exported for testing
+ */
+export function generateSegmentsFromNarration(
+  narration: string,
+  totalDurationSec: number
+): DirectionSegment[] {
+  // Split narration by double newlines (paragraph breaks)
+  const paragraphs = narration
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  // Handle edge case: no paragraphs or single very short text
+  if (paragraphs.length === 0) {
+    paragraphs.push(narration.trim() || 'Content');
+  }
+
+  // Calculate word counts for each paragraph
+  const segmentData = paragraphs.map((text, index) => ({
+    text,
+    wordCount: countWords(text),
+    index,
+  }));
+
+  // Calculate total words for proportional timing
+  const totalWords = segmentData.reduce((sum, s) => sum + s.wordCount, 0);
+
+  // Handle edge case: no words
+  const actualTotalWords = totalWords > 0 ? totalWords : segmentData.length;
+
+  // Distribute timing and generate segments
+  let currentTime = 0;
+
+  return segmentData.map((data, index) => {
+    const wordCount = data.wordCount > 0 ? data.wordCount : 1; // Prevent division by zero
+    const proportion = wordCount / actualTotalWords;
+    const duration = totalDurationSec * proportion;
+
+    const segmentType = detectSegmentType(data.text, index, segmentData.length);
+    const keywords = extractKeywords(data.text);
+
+    const segment: DirectionSegment = {
+      id: crypto.randomUUID(),
+      index,
+      type: segmentType,
+      content: {
+        text: data.text,
+        wordCount: data.wordCount,
+        keywords,
+        emphasis: [], // No emphasis detection in fallback mode
+      },
+      timing: {
+        estimatedStartSec: currentTime,
+        estimatedEndSec: currentTime + duration,
+        estimatedDurationSec: duration,
+        timingSource: 'estimated',
+      },
+      visual: {
+        template: DEFAULT_VISUAL_TEMPLATE[segmentType],
+        motion: { ...MOTION_PRESETS.standard },
+      },
+      audio: {
+        mood: 'neutral',
+      },
+    };
+
+    currentTime += duration;
+    return segment;
+  });
+}
+
+/**
+ * Strip visual cue brackets from text
+ * Removes [VISUAL:...], [PRONOUNCE:...], [MUSIC:...], [SFX:...] tags
+ * @exported for testing
+ */
+export function stripBrackets(text: string): string {
+  return text
+    .replace(/\[VISUAL:[^\]]+\]\s*/g, '')
+    .replace(/\[PRONOUNCE:([^:]+):[^\]]+\]/g, '$1')
+    .replace(/\[MUSIC:[^\]]+\]\s*/g, '')
+    .replace(/\[SFX:[^\]]+\]\s*/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Build a complete DirectionDocument from narration and segments
+ */
+function buildDirectionDocument(
+  narration: string,
+  segments: DirectionSegment[],
+  totalDurationSec: number,
+  topicData?: { title: string; url: string; source: string; publishedAt: string; viralityScore: number; metadata?: Record<string, unknown> }
+): DirectionDocument {
+  // Generate title and slug from topic data or narration
+  const title = topicData?.title || extractTitleFromNarration(narration);
+  const slug = generateSlug(title);
+
+  return {
+    version: '2.0',
+    metadata: {
+      title,
+      slug,
+      estimatedDurationSec: totalDurationSec,
+      fps: 30,
+      resolution: { width: 1920, height: 1080 },
+      generatedAt: new Date().toISOString(),
+    },
+    segments,
+    globalAudio: {
+      defaultMood: 'neutral',
+      musicTransitions: 'smooth',
+    },
+  };
+}
+
+/**
+ * Extract a title from the first sentence of narration
+ */
+function extractTitleFromNarration(narration: string): string {
+  // Get first sentence or first 50 words
+  const firstLine = narration.split(/[.!?]/)[0]?.trim();
+  if (firstLine && firstLine.length > 0 && firstLine.length < 100) {
+    return firstLine;
+  }
+
+  // Fallback to first N words
+  const words = narration.split(/\s+/).slice(0, 10);
+  if (words.length > 0) {
+    return words.join(' ') + '...';
+  }
+
+  return 'Untitled';
 }
 
 /**
@@ -331,20 +573,93 @@ export async function executeScriptGen(
       const storage = new CloudStorageClient();
       const draftUrls = await saveDrafts(pipelineId, multiAgentResult, storage);
 
-      // Save final script
-      const artifactUrl = await storage.uploadArtifact(
+      // Parse dual output from optimizer
+      const { narration, direction } = parseDualOutput(finalScript);
+
+      // Get clean narration text (strip any remaining brackets)
+      const cleanNarration = stripBrackets(narration);
+      const narrationWordCount = countWords(cleanNarration);
+
+      // Calculate estimated duration based on narration word count
+      const estimatedDurationSec = calculateEstimatedDuration(narrationWordCount);
+
+      // Get or generate DirectionDocument
+      let directionDocument: DirectionDocument;
+      if (direction) {
+        // LLM produced valid direction - use it but ensure timing is populated
+        directionDocument = direction;
+
+        // Update metadata with calculated duration if not set
+        if (!directionDocument.metadata.estimatedDurationSec) {
+          directionDocument.metadata.estimatedDurationSec = estimatedDurationSec;
+        }
+
+        // Ensure all segments have timing source set to 'estimated'
+        directionDocument.segments = directionDocument.segments.map((segment) => ({
+          ...segment,
+          timing: {
+            ...segment.timing,
+            timingSource: 'estimated' as const,
+          },
+        }));
+
+        logger.info({ pipelineId, segmentCount: directionDocument.segments.length }, 'Using LLM-generated direction document');
+      } else {
+        // Fallback: generate direction from narration paragraphs
+        logger.warn({ pipelineId }, 'LLM failed to produce valid direction JSON, using paragraph-based fallback');
+
+        const segments = generateSegmentsFromNarration(cleanNarration, estimatedDurationSec);
+        directionDocument = buildDirectionDocument(
+          cleanNarration,
+          segments,
+          estimatedDurationSec,
+          data.topicData
+        );
+      }
+
+      // Update title/slug from topic data if available
+      if (data.topicData?.title) {
+        directionDocument.metadata.title = data.topicData.title;
+        directionDocument.metadata.slug = generateSlug(data.topicData.title);
+      }
+
+      // Save script.md (plain narration) to Cloud Storage
+      const scriptUrl = await storage.uploadArtifact(
         pipelineId,
         'script-gen',
         'script.md',
-        finalScript,
+        cleanNarration,
         'text/markdown'
       );
 
-      logger.info({ pipelineId, artifactUrl }, 'Final script saved to Cloud Storage');
+      // Save direction.json to Cloud Storage
+      const directionUrl = await storage.uploadArtifact(
+        pipelineId,
+        'script-gen',
+        'direction.json',
+        JSON.stringify(directionDocument, null, 2),
+        'application/json'
+      );
 
-      return {
-        script: finalScript,
-        wordCount,
+      // Keep legacy artifactUrl pointing to script.md for V1 compatibility
+      const artifactUrl = scriptUrl;
+
+      logger.info(
+        { pipelineId, scriptUrl, directionUrl, segmentCount: directionDocument.segments.length },
+        'V2 dual output saved to Cloud Storage'
+      );
+
+      // Build V2 output structure
+      const output: ScriptGenOutputV2 = {
+        // V2 fields
+        version: '2.0',
+        scriptText: cleanNarration,
+        scriptUrl,
+        directionDocument,
+        directionUrl,
+        // V1 compatible fields (for backward compatibility)
+        script: cleanNarration, // Plain narration for V1 consumers (use getScriptText() for best compatibility)
+        wordCount: narrationWordCount,
         artifactUrl,
         draftUrls,
         regenerationAttempts,
@@ -354,13 +669,15 @@ export async function executeScriptGen(
           optimizer: multiAgentResult.optimizerDraft.provider,
         },
         quality: {
-          metrics: { wordCount, targetMin: targetWordCount.min, targetMax: targetWordCount.max },
+          metrics: { wordCount: narrationWordCount, targetMin: targetWordCount.min, targetMax: targetWordCount.max },
           status: qualityStatus,
           reason: validation.valid ? undefined : validation.reason,
         },
         // Pass-through topic data for YouTube metadata generation
         topicData: data.topicData,
       };
+
+      return output;
     },
     { qualityGate: 'script-gen' }
   );

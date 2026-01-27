@@ -77,10 +77,12 @@ Generate your critique and revised script now in ${language}:`;
 
 /**
  * Optimizer agent prompt
- * Refines the script based on critic's feedback
+ * Refines the script based on critic's feedback and produces dual output
+ * - Part 1: Pure narration text (no brackets) for TTS
+ * - Part 2: Direction document JSON for visual/audio blueprint
  */
 export function buildOptimizerPrompt(criticDraft: string, targetWordCount: { min: number; max: number }, language: string = 'English'): string {
-  return `You are a professional YouTube script optimizer. Your task is to take the critic's revised script and create the final, polished version.
+  return `You are a professional YouTube script optimizer. Your task is to take the critic's revised script and create the final, polished version in TWO PARTS.
 
 OUTPUT LANGUAGE: ${language}
 
@@ -92,15 +94,92 @@ TARGET WORD COUNT: ${targetWordCount.min}-${targetWordCount.max} words
 OPTIMIZATION FOCUS:
 1. **Polish**: Refine language for maximum impact and clarity
 2. **Pacing**: Ensure perfect pacing and rhythm for voice-over
-3. **Visual Alignment**: Verify [VISUAL: ...] cues are optimally placed
-4. **Pronunciation**: Confirm all [PRONOUNCE: ...] tags are accurate and complete
-5. **Word Count**: Ensure final script is within ${targetWordCount.min}-${targetWordCount.max} words
-6. **Engagement**: Maximize audience retention throughout
+3. **Segment Breaks**: Each paragraph represents a natural video segment
+4. **Word Count**: Ensure final narration is within ${targetWordCount.min}-${targetWordCount.max} words
+5. **Engagement**: Maximize audience retention throughout
 
-OUTPUT FORMAT:
-Provide ONLY the final optimized script in markdown format. Do NOT include any commentary or explanation - just the polished script with all [VISUAL: ...] and [PRONOUNCE: ...] tags intact.
+## OUTPUT FORMAT
 
-Generate the final optimized script now in ${language}:`;
+You MUST produce exactly TWO sections:
+
+## NARRATION
+
+Write the pure narration text here. This is what the TTS will read aloud.
+- NO [VISUAL:...] tags
+- NO [PRONOUNCE:...] tags
+- NO stage directions or brackets of any kind
+- Each paragraph represents a natural break point for a video segment
+- Separate paragraphs with blank lines
+
+## DIRECTION
+
+\`\`\`json
+{
+  "version": "2.0",
+  "metadata": {
+    "title": "Your video title here",
+    "slug": "url-safe-slug-here",
+    "estimatedDurationSec": 0,
+    "fps": 30,
+    "resolution": { "width": 1920, "height": 1080 },
+    "generatedAt": "ISO-timestamp"
+  },
+  "segments": [
+    {
+      "id": "uuid-here",
+      "index": 0,
+      "type": "intro|hook|explanation|code_demo|comparison|example|transition|recap|outro",
+      "content": {
+        "text": "Paragraph text from narration",
+        "wordCount": 50,
+        "keywords": ["key", "terms"],
+        "emphasis": [
+          { "word": "important", "effect": "glow", "intensity": 0.5 }
+        ]
+      },
+      "timing": {
+        "estimatedStartSec": 0,
+        "estimatedEndSec": 20,
+        "estimatedDurationSec": 20,
+        "timingSource": "estimated"
+      },
+      "visual": {
+        "template": "TextOnGradient|NeuralNetworkAnimation|DataFlowDiagram|ComparisonChart|MetricsCounter|ProductMockup|CodeHighlight|BrandedTransition|LowerThird|KineticText|BrowserFrame",
+        "motion": {
+          "entrance": { "type": "slide", "direction": "up", "delay": 0, "duration": 15, "easing": "spring" },
+          "emphasis": { "type": "pulse", "trigger": "onWord", "intensity": 0.3, "duration": 10 },
+          "exit": { "type": "fade", "duration": 15, "startBeforeEnd": 15 }
+        }
+      },
+      "audio": {
+        "mood": "neutral|energetic|contemplative|urgent",
+        "musicTransition": "continue|fade|cut|smooth"
+      }
+    }
+  ],
+  "globalAudio": {
+    "defaultMood": "neutral",
+    "musicTransitions": "smooth"
+  }
+}
+\`\`\`
+
+## IMPORTANT RULES FOR DIRECTION JSON:
+1. Create one segment per paragraph from NARRATION
+2. Calculate estimatedDurationSec: wordCount / 2.5 (150 words per minute)
+3. Distribute segment timing proportionally by word count
+4. Choose visual template based on content type:
+   - intro/outro: BrandedTransition or TextOnGradient
+   - code mentions: CodeHighlight
+   - comparisons: ComparisonChart
+   - data/metrics: MetricsCounter or DataFlowDiagram
+   - general explanation: TextOnGradient or KineticText
+5. Generate unique UUIDs for each segment id
+6. Set mood based on segment emotional tone
+7. Include keywords (3-5 significant terms per segment)
+8. Mark technical terms or important words in emphasis array
+
+Generate the dual output now in ${language}:`;
 }
 
 /**

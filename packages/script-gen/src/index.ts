@@ -6,6 +6,13 @@
 // Export main stage function
 export { executeScriptGen } from './script-gen.js';
 
+// Export internal functions for testing
+export {
+  parseDualOutput,
+  generateSegmentsFromNarration,
+  stripBrackets,
+} from './script-gen.js';
+
 // Export types
 export type {
   ScriptGenInput,
@@ -137,3 +144,12 @@ export {
   buildOptimizerPrompt,
   buildWordCountAdjustmentPrompt,
 } from './prompts.js';
+
+// Export compatibility utilities (V1 → V2 migration)
+export {
+  getScriptText,
+  getDirectionDocument,
+  parseLegacyVisualCues,
+  mapV1ComponentToV2,
+  detectSegmentType,
+} from './compatibility.js';

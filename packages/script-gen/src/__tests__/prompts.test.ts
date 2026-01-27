@@ -119,16 +119,32 @@ Enhanced content about AI research with better pacing.
       expect(prompt).toContain('optimize');
     });
 
-    it('should request final script only', () => {
+    it('should request dual output format with NARRATION and DIRECTION sections', () => {
       const prompt = buildOptimizerPrompt(mockCriticDraft, targetWordCount);
-      expect(prompt).toContain('ONLY the final optimized script');
-      expect(prompt).toContain('Do NOT include any commentary');
+      expect(prompt).toContain('## NARRATION');
+      expect(prompt).toContain('## DIRECTION');
+      expect(prompt).toContain('TWO PARTS');
     });
 
-    it('should verify visual and pronunciation tags', () => {
+    it('should instruct clean narration without brackets', () => {
       const prompt = buildOptimizerPrompt(mockCriticDraft, targetWordCount);
-      expect(prompt).toContain('[VISUAL:');
-      expect(prompt).toContain('[PRONOUNCE:');
+      expect(prompt).toContain('NO [VISUAL:...] tags');
+      expect(prompt).toContain('NO [PRONOUNCE:...] tags');
+      expect(prompt).toContain('pure narration text');
+    });
+
+    it('should include direction document schema structure', () => {
+      const prompt = buildOptimizerPrompt(mockCriticDraft, targetWordCount);
+      expect(prompt).toContain('"version": "2.0"');
+      expect(prompt).toContain('"segments"');
+      expect(prompt).toContain('"metadata"');
+      expect(prompt).toContain('"globalAudio"');
+    });
+
+    it('should include timing calculation instructions', () => {
+      const prompt = buildOptimizerPrompt(mockCriticDraft, targetWordCount);
+      expect(prompt).toContain('wordCount / 2.5');
+      expect(prompt).toContain('150 words per minute');
     });
 
     it('should support custom language', () => {
