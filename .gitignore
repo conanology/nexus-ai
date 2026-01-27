@@ -33,6 +33,9 @@ out/
 build
 dist
 
+.ralph/
+.ralph.backup.epic5/
+
 
 # Debug
 npm-debug.log*

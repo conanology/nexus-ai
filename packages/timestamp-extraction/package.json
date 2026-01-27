@@ -23,16 +23,21 @@
     "nexus-ai",
     "timestamp",
     "word-timing",
-    "audio"
+    "audio",
+    "speech-to-text"
   ],
   "author": "Cryptology",
   "license": "MIT",
   "dependencies": {
     "@nexus-ai/core": "workspace:*",
-    "@nexus-ai/script-gen": "workspace:*"
+    "@nexus-ai/script-gen": "workspace:*",
+    "@google-cloud/speech": "^6.0.0",
+    "@google-cloud/storage": "^7.0.0",
+    "wavefile": "^11.0.0"
   },
   "devDependencies": {
     "@nexus-ai/config": "workspace:*",
+    "@types/node": "^20.0.0",
     "typescript": "^5.3.0",
     "vitest": "^1.1.0"
   }

@@ -37,6 +37,62 @@ pnpm typecheck
 pnpm lint
 ```
 
+## Git Commit Format (Phase 4)
+
+### Commit Message Template
+```
+feat({package}): {story-title} (Story {story-key})
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+```
+
+### Commit Examples
+```bash
+# Feature implementation
+git commit -m "feat(timestamp-extraction): create timestamp extraction package (Story 6-5)
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+
+# Bug fix from code review
+git commit -m "fix(tts): correct audio chunking boundary detection (Story 6-4)
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+
+# Refactoring
+git commit -m "refactor(visual-gen): optimize motion hook performance (Story 6-14)
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+```
+
+### Package Scope Reference
+Use the package name from the story for the scope:
+- `timestamp-extraction` - Stories 6-5 through 6-12
+- `visual-generation` - Stories 6-13 through 6-18
+- `audio-mixer` - Stories 6-19 through 6-26
+- `broll-engine` - Stories 6-27 through 6-31
+- `orchestrator` - Stories 6-32 through 6-34
+
+## Quality Gates Before Commit
+
+Before creating a commit (Phase 4), ALL of these must pass:
+
+```bash
+# 1. Build must succeed
+pnpm build
+
+# 2. All tests must pass
+pnpm test
+
+# 3. Type checking must pass (optional but recommended)
+pnpm typecheck
+```
+
+### Quality Gate Checklist
+- [ ] `pnpm build` exits with code 0
+- [ ] `pnpm test` exits with code 0
+- [ ] Story status is `done` in sprint-status.yaml
+- [ ] Code review has passed (status changed from `review` to `done`)
+
 ## Key Learnings
 - Update this section when you learn new build optimizations
 - Document any gotchas or special setup requirements
@@ -153,3 +209,24 @@ These standards ensure:
 - **Automation**: Ralph integration ensures continuous development practices
 
 **Enforcement**: AI agents should automatically apply these standards to all feature development tasks without requiring explicit instruction for each task.
+
+## Ralph Status Block Format
+
+At the end of every response, include:
+
+```
+---RALPH_STATUS---
+STATUS: IN_PROGRESS | COMPLETE | BLOCKED
+CURRENT_PHASE: create-story | dev-story | code-review | commit
+CURRENT_STORY: {story-key}
+CODE_REVIEW_RESULT: passed | issues-found | N/A
+CODE_REVIEW_ITERATION: {n}/5
+TASKS_COMPLETED_THIS_LOOP: <number>
+FILES_MODIFIED: <number>
+TESTS_STATUS: PASSING | FAILING | NOT_RUN
+BUILD_STATUS: PASSING | FAILING | NOT_RUN
+WORK_TYPE: IMPLEMENTATION | TESTING | REVIEW | COMMIT
+EXIT_SIGNAL: false | true
+RECOMMENDATION: <one line summary of what to do next>
+---END_RALPH_STATUS---
+```

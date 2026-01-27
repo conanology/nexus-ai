@@ -77,9 +77,48 @@ export interface TimingMetadata {
   extractionConfidence?: number;
   /** Estimation method used (only if estimated) */
   estimationMethod?: 'character-weighted' | 'uniform';
+  /** Fallback reason if estimated timing used */
+  fallbackReason?: string;
+  /** Word mapping statistics (only if extracted) */
+  mappingStats?: {
+    expectedWords: number;
+    sttWords: number;
+    mappedWords: number;
+    matchRatio: number;
+  };
   /** Warning flags for quality gate */
   warningFlags: string[];
 }
+
+// -----------------------------------------------------------------------------
+// STT-Specific Types (Story 6.6)
+// -----------------------------------------------------------------------------
+
+/**
+ * Re-export STT types for convenience.
+ * These are defined in stt-client.ts but re-exported here for external use.
+ */
+export type {
+  STTConfig,
+  STTWord,
+  STTExtractionResult,
+} from './stt-client.js';
+
+/**
+ * Re-export audio utility types.
+ */
+export type {
+  AudioFormatInfo,
+  AudioDownloadResult,
+} from './audio-utils.js';
+
+/**
+ * Re-export word mapper types.
+ */
+export type {
+  WordMappingResult,
+  MappingStats,
+} from './word-mapper.js';
 
 // -----------------------------------------------------------------------------
 // Configuration Interfaces
@@ -180,6 +219,10 @@ export const TIMESTAMP_ERROR_CODES = {
   FALLBACK_USED: 'NEXUS_TIMESTAMP_FALLBACK',
   NO_SEGMENTS: 'NEXUS_TIMESTAMP_NO_SEGMENTS',
   QUALITY_GATE_FAIL: 'NEXUS_TIMESTAMP_QUALITY_GATE_FAIL',
+  STT_API_ERROR: 'NEXUS_TIMESTAMP_STT_API_ERROR',
+  LOW_CONFIDENCE: 'NEXUS_TIMESTAMP_LOW_CONFIDENCE',
+  GCS_DOWNLOAD_FAILED: 'NEXUS_TIMESTAMP_GCS_DOWNLOAD_FAILED',
+  AUDIO_FORMAT_ERROR: 'NEXUS_TIMESTAMP_AUDIO_FORMAT_ERROR',
 } as const;
 
 // -----------------------------------------------------------------------------

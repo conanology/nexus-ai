@@ -8,6 +8,7 @@ import { executeTimestampExtraction } from '../timestamp-extraction.js';
 import type { StageInput } from '@nexus-ai/core';
 import type { TimestampExtractionInput } from '../types.js';
 import type { DirectionDocument } from '@nexus-ai/script-gen';
+import { shouldUseFallback } from '../stt-client.js';
 
 // Mock functions need to be defined with vi.fn() inline in the mock
 // because vi.mock is hoisted before variable declarations
@@ -16,6 +17,7 @@ vi.mock('@nexus-ai/core', () => {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
   };
 
@@ -53,8 +55,54 @@ vi.mock('@nexus-ai/core', () => {
       }),
     })),
     NexusError: MockNexusError,
+    // withRetry mock - pass through the function call, wrapping in RetryResult
+    withRetry: vi.fn().mockImplementation(async (fn: () => Promise<unknown>) => {
+      const result = await fn();
+      return { result, attempts: 1, totalDelayMs: 0 };
+    }),
   };
 });
+
+// Mock audio-utils for STT path testing
+vi.mock('../audio-utils.js', () => ({
+  downloadAndConvert: vi.fn().mockResolvedValue({
+    buffer: Buffer.from('mock-audio'),
+    originalFormat: {
+      encoding: 'LINEAR16',
+      sampleRate: 24000,
+      channels: 1,
+      bitDepth: 16,
+      durationSec: 10,
+      fileSizeBytes: 480000,
+    },
+    conversionPerformed: false,
+  }),
+  isValidGcsUrl: vi.fn().mockReturnValue(true),
+}));
+
+// Mock stt-client for STT path testing
+vi.mock('../stt-client.js', () => ({
+  recognizeLongRunning: vi.fn().mockResolvedValue({
+    words: [
+      { word: 'word', startTime: 0, endTime: 0.4, confidence: 0.95 },
+    ],
+    transcript: 'word',
+    confidence: 0.95,
+    audioDurationSec: 10,
+    processingTimeMs: 500,
+  }),
+  shouldUseFallback: vi.fn().mockReturnValue({ useFallback: true, reason: 'stt-api-error' }),
+  DEFAULT_STT_CONFIG: {
+    encoding: 'LINEAR16',
+    sampleRateHertz: 24000,
+    languageCode: 'en-US',
+    model: 'latest_long',
+    useEnhanced: true,
+  },
+}));
+
+// Get mocked version for test control
+const mockedShouldUseFallback = vi.mocked(shouldUseFallback);
 
 // -----------------------------------------------------------------------------
 // Test Fixtures
@@ -145,6 +193,8 @@ function createMockInput(
 describe('executeTimestampExtraction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset shouldUseFallback to default (fallback mode)
+    mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
   });
 
   describe('successful execution', () => {
@@ -232,6 +282,14 @@ describe('executeTimestampExtraction', () => {
       // Duration should be a non-negative number (can be 0 in fast tests)
       expect(result.durationMs).toBeGreaterThanOrEqual(0);
       expect(typeof result.durationMs).toBe('number');
+    });
+
+    it('should track retry attempts in provider info', async () => {
+      const input = createMockInput();
+
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.provider.attempts).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -360,6 +418,46 @@ describe('executeTimestampExtraction', () => {
       const result = await executeTimestampExtraction(input);
 
       expect(result.data.timingMetadata.warningFlags).toContain('no-words-extracted');
+    });
+  });
+
+  describe('withRetry integration', () => {
+    it('should use withRetry for STT recognition call', async () => {
+      const { withRetry } = await import('@nexus-ai/core');
+      const input = createMockInput();
+
+      await executeTimestampExtraction(input);
+
+      // withRetry is called within attemptSTTExtraction to wrap recognizeLongRunning
+      expect(withRetry).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ maxRetries: 3, stage: 'timestamp-extraction' })
+      );
+    });
+
+    it('should fall back to estimated timing when STT fails', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.provider.name).toBe('estimated');
+      expect(result.provider.tier).toBe('fallback');
+    });
+
+    it('should use STT results when extraction succeeds', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: false, reason: '' });
+
+      const input = createMockInput();
+      // Use a single-word document to match the STT mock (1 word)
+      input.data.directionDocument = createMockDocument(1);
+
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('extracted');
+      expect(result.provider.name).toBe('google-stt');
+      expect(result.provider.tier).toBe('primary');
     });
   });
 });

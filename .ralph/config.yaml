@@ -1,10 +1,20 @@
-# Ralph Configuration for NEXUS-AI Epic 5
+# Ralph Configuration for NEXUS-AI BMAD Workflow
 
 # Rate limiting
 rate_limit: 80  # Conservative to avoid hitting limits (calls per hour)
 
 # Session settings
-session_expiry: 48h  # Allow for long-running epic
+session_expiry: 72h  # Extended for multi-story runs
+
+# Context management - use /clear between phases
+# Phase 1 → /clear → Phase 2 → /clear → Phase 3+4 (no /clear between 3 and 4)
+context_clear_command: /clear
+clear_between_phases: [1, 2]  # Run /clear after these phases
+no_clear_between: [3, 4]      # Phase 3 and 4 run together without /clear
+
+# Testing mode - limit to ONE story per epic cycle
+testing_mode: true
+stories_per_cycle: 1  # Set to 0 for unlimited (full epic)
 
 # Circuit breaker settings
 circuit_breaker:
@@ -12,19 +22,51 @@ circuit_breaker:
   action: pause_and_notify
   test_only_loops_limit: 3  # Exit after 3 consecutive test-only loops
   error_repeat_limit: 5  # Pause after same error 5 times
+  review_loop_limit: 5  # Max code-review iterations before human intervention
 
 # Workflow settings
 workflow:
   max_retries: 3
-  build_timeout: 300  # 5 minutes for build
-  test_timeout: 600   # 10 minutes for tests
+  build_timeout: 600   # 10 minutes for build
+  test_timeout: 900    # 15 minutes for tests
+
+# Phase-specific timeouts (in seconds)
+phase_timeouts:
+  create_story: 600    # 10 minutes
+  dev_story: 7200      # 2 hours (stories can be complex)
+  code_review: 3600    # 1 hour (includes fixing issues)
+  commit: 300          # 5 minutes
 
 # Project-specific settings
 project:
-  name: nexus-ai-epic5
+  name: nexus-ai-bmad
   type: bmad-workflow
   sprint_status_file: _bmad-output/implementation-artifacts/sprint-status.yaml
   stories_dir: _bmad-output/implementation-artifacts
+
+# 4-Phase workflow configuration
+phases:
+  - name: create-story
+    workflow: /create-story
+    entry_status: backlog
+    exit_status: ready-for-dev
+  - name: dev-story
+    workflow: /dev-story
+    entry_status: ready-for-dev
+    exit_status: review
+  - name: code-review
+    workflow: /code-review
+    entry_status: review
+    exit_status: done
+    self_fix: true  # Code-review fixes its own issues (choose "fix all" option)
+    max_iterations: 5  # Re-run review up to 5 times if issues persist
+  - name: commit
+    entry_status: done
+    commands:
+      - pnpm build
+      - pnpm test
+      - git add .
+      - git commit
 
 # Logging
 logging:

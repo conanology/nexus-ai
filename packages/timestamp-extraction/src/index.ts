@@ -4,6 +4,9 @@
  *
  * Extracts word-level timing from TTS audio for synchronized
  * visual animations and text rendering.
+ *
+ * Primary: Google Cloud Speech-to-Text
+ * Fallback: Character-weighted estimation
  */
 
 // Main stage executor
@@ -18,6 +21,36 @@ export {
 // Quality gate validation
 export { validateTimestampExtraction } from './quality-gate.js';
 
+// STT client (Story 6.6)
+export {
+  recognizeLongRunning,
+  createSpeechClient,
+  closeSpeechClient,
+  resetSpeechClient,
+  shouldUseFallback,
+  DEFAULT_STT_CONFIG,
+  FALLBACK_THRESHOLDS,
+} from './stt-client.js';
+
+// Audio utilities (Story 6.6)
+export {
+  downloadFromGCS,
+  downloadAndConvert,
+  validateAudioFormat,
+  convertToLinear16,
+  isValidGcsUrl,
+} from './audio-utils.js';
+
+// Word mapping (Story 6.6)
+export {
+  mapWordsToSegments,
+  applyWordTimingsToSegments,
+  updateSegmentTiming,
+  normalizeWord,
+  wordsMatch,
+  levenshteinDistance,
+} from './word-mapper.js';
+
 // Types - input/output interfaces
 export type {
   TimestampExtractionInput,
@@ -26,6 +59,17 @@ export type {
   EstimatedTimingConfig,
   TimestampQualityResult,
   QualityCheckResult,
+} from './types.js';
+
+// STT-specific types (Story 6.6)
+export type {
+  STTConfig,
+  STTWord,
+  STTExtractionResult,
+  AudioFormatInfo,
+  AudioDownloadResult,
+  WordMappingResult,
+  MappingStats,
 } from './types.js';
 
 // Re-exported types from script-gen
