@@ -1,7 +1,7 @@
 /**
  * Re-export motion types from script-gen for video-studio consumers
  */
-import type { MotionConfig } from '@nexus-ai/script-gen';
+import type { MotionConfig, WordTiming, EmphasisWord, EmphasisEffect } from '@nexus-ai/script-gen';
 
 export type {
   MotionConfig,
@@ -16,6 +16,9 @@ export type {
   EasingType,
   EmphasisTrigger,
   MotionPreset,
+  WordTiming,
+  EmphasisWord,
+  EmphasisEffect,
 } from '@nexus-ai/script-gen';
 
 export { MOTION_PRESETS } from '@nexus-ai/script-gen';
@@ -148,4 +151,21 @@ export interface TextOnGradientProps {
     fontSize?: number;
   };
   motion?: MotionConfig;
+}
+
+export interface KineticTextProps {
+  text?: string;
+  data?: {
+    text?: string;
+    wordTimings?: WordTiming[];
+    emphasis?: EmphasisWord[];
+  };
+  style?: {
+    fontSize?: number;
+    fontFamily?: string;
+    color?: string;
+    fontWeight?: string | number;
+  };
+  motion?: MotionConfig;
+  emphasisEffect?: EmphasisEffect;
 }

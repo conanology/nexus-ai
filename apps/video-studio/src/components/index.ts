@@ -11,3 +11,4 @@ export { CodeHighlight } from './CodeHighlight';
 export { BrandedTransition } from './BrandedTransition';
 export { LowerThird } from './LowerThird';
 export { TextOnGradient } from './TextOnGradient';
+export { KineticText } from './KineticText';

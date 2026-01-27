@@ -10,6 +10,7 @@ import {
   CodeHighlight,
   BrandedTransition,
   LowerThird,
+  KineticText,
 } from '../components';
 
 /**
@@ -45,6 +46,7 @@ const COMPONENT_MAP: Record<string, React.FC<any>> = {
   CodeHighlight,
   BrandedTransition,
   LowerThird,
+  KineticText,
 };
 
 /**
