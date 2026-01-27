@@ -114,7 +114,7 @@ development_status:
   6-2-implement-backward-compatibility-layer: done
   6-3-update-script-generation-dual-output: done
   6-4-update-tts-to-read-script-only: done
-  6-5-create-timestamp-extraction-package: backlog
+  6-5-create-timestamp-extraction-package: done
   6-6-implement-google-cloud-stt-integration: backlog
   6-7-implement-estimated-timing-fallback: backlog
   6-8-create-reference-test-audio-files: backlog

@@ -1,0 +1,39 @@
+{
+  "name": "@nexus-ai/timestamp-extraction",
+  "version": "0.1.0",
+  "description": "Timestamp extraction stage for word-level timing in NEXUS-AI pipeline",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "nexus-ai",
+    "timestamp",
+    "word-timing",
+    "audio"
+  ],
+  "author": "Cryptology",
+  "license": "MIT",
+  "dependencies": {
+    "@nexus-ai/core": "workspace:*",
+    "@nexus-ai/script-gen": "workspace:*"
+  },
+  "devDependencies": {
+    "@nexus-ai/config": "workspace:*",
+    "typescript": "^5.3.0",
+    "vitest": "^1.1.0"
+  }
+}
