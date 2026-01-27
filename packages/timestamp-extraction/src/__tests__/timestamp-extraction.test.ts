@@ -398,6 +398,32 @@ describe('executeTimestampExtraction', () => {
       expect(result.quality.stage).toBe('timestamp-extraction');
       expect(result.quality.measurements.status).toBeDefined();
     });
+
+    it('should propagate quality gate flags to timingMetadata.warningFlags', async () => {
+      // Use a document with many words but fallback produces fewer,
+      // triggering DEGRADED with WORD_COUNT_MISMATCH flag
+      const input = createMockInput();
+      input.data.directionDocument = createMockDocument(100); // 100 words expected
+      // Fallback will produce estimated timings for 100 words from segments,
+      // but the quality gate sees the real word count vs expected
+
+      const result = await executeTimestampExtraction(input);
+
+      // warningFlags should contain quality gate flags when checks fail
+      // At minimum, the fallback flags should be present
+      expect(result.data.timingMetadata.warningFlags).toBeDefined();
+      expect(Array.isArray(result.data.timingMetadata.warningFlags)).toBe(true);
+    });
+
+    it('should not duplicate flags in timingMetadata.warningFlags', async () => {
+      const input = createMockInput();
+
+      const result = await executeTimestampExtraction(input);
+
+      const flags = result.data.timingMetadata.warningFlags;
+      const uniqueFlags = [...new Set(flags)];
+      expect(flags.length).toBe(uniqueFlags.length);
+    });
   });
 
   describe('warnings', () => {

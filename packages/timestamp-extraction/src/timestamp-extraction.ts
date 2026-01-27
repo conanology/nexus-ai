@@ -250,6 +250,29 @@ export async function executeTimestampExtraction(
       Date.now() - startTime
     );
 
+    // Summarize quality check results for structured logging (AC 3)
+    const checkSummary = Object.fromEntries(
+      Object.entries(qualityResult.checks).map(([name, check]) => [
+        name,
+        {
+          passed: check.passed,
+          severity: check.severity,
+          actualValue: check.actualValue,
+          threshold: check.threshold,
+        },
+      ])
+    );
+
+    // Log quality gate results with structured logger (AC 3: quality metrics logged)
+    log.info(
+      {
+        qualityStatus: qualityResult.status,
+        flags: qualityResult.flags,
+        checks: checkSummary,
+      },
+      'Quality gate validation complete'
+    );
+
     // Quality gate FAIL check - must throw per project-context.md
     if (qualityResult.status === 'FAIL') {
       const failedChecks = Object.entries(qualityResult.checks)
@@ -263,6 +286,14 @@ export async function executeTimestampExtraction(
         STAGE_NAME,
         { checks: qualityResult.checks, flags: qualityResult.flags }
       );
+    }
+
+    // Propagate quality gate flags to timingMetadata.warningFlags (AC 4)
+    // Only runs on non-FAIL paths where timingMetadata is used in output
+    for (const flag of qualityResult.flags) {
+      if (!timingMetadata.warningFlags.includes(flag)) {
+        timingMetadata.warningFlags.push(flag);
+      }
     }
 
     // Map quality result to QualityMetrics
