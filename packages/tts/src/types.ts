@@ -3,6 +3,8 @@
  * @module @nexus-ai/tts/types
  */
 
+import type { DirectionDocument } from '@nexus-ai/script-gen';
+
 /**
  * Input for TTS synthesis stage
  */
@@ -26,6 +28,8 @@ export interface TTSInput {
     viralityScore: number;
     metadata?: Record<string, unknown>;
   };
+  /** Pass-through direction document for downstream stages (timestamp-extraction, visual-gen) */
+  directionDocument?: DirectionDocument;
 }
 
 /**
@@ -51,6 +55,8 @@ export interface TTSOutput {
     viralityScore: number;
     metadata?: Record<string, unknown>;
   };
+  /** Pass-through direction document for downstream stages (timestamp-extraction, visual-gen) */
+  directionDocument?: DirectionDocument;
 }
 
 /**

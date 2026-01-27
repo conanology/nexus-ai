@@ -12,9 +12,9 @@ context_clear_command: /clear
 clear_between_phases: [1, 2]  # Run /clear after these phases
 no_clear_between: [3, 4]      # Phase 3 and 4 run together without /clear
 
-# Testing mode - limit to ONE story per epic cycle
-testing_mode: true
-stories_per_cycle: 1  # Set to 0 for unlimited (full epic)
+# Cycle mode - process 5 stories per cycle
+testing_mode: false
+stories_per_cycle: 5  # Set to 0 for unlimited (full epic)
 
 # Circuit breaker settings
 circuit_breaker:
@@ -62,11 +62,12 @@ phases:
     max_iterations: 5  # Re-run review up to 5 times if issues persist
   - name: commit
     entry_status: done
+    auto_commit: true  # Commit automatically without waiting for confirmation
     commands:
       - pnpm build
       - pnpm test
       - git add .
-      - git commit
+      - 'git commit -m "feat({package}): {story-title} (Story {story-key})\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"'
 
 # Logging
 logging:

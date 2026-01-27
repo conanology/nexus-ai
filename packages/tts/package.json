@@ -29,6 +29,7 @@
   "license": "MIT",
   "dependencies": {
     "@nexus-ai/core": "workspace:*",
+    "@nexus-ai/script-gen": "workspace:*",
     "@google-cloud/text-to-speech": "^5.6.0",
     "wav": "^1.0.2"
   },

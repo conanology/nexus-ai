@@ -2,6 +2,9 @@
  * Type definitions for visual generation stage
  */
 
+import type { DirectionDocument } from '@nexus-ai/script-gen';
+import type { WordTiming } from '@nexus-ai/timestamp-extraction';
+
 /**
  * Input data for visual generation stage
  */
@@ -18,6 +21,10 @@ export interface VisualGenInput {
     viralityScore: number;
     metadata?: Record<string, unknown>;
   };
+  /** Direction document with segment timings (V2 path) */
+  directionDocument?: DirectionDocument;
+  /** Flat array of word-level timings from timestamp-extraction */
+  wordTimings?: WordTiming[];
 }
 
 /**

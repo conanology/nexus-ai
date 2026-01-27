@@ -403,6 +403,9 @@ importers:
       '@nexus-ai/core':
         specifier: workspace:*
         version: link:../core
+      '@nexus-ai/script-gen':
+        specifier: workspace:*
+        version: link:../script-gen
       wav:
         specifier: ^1.0.2
         version: 1.0.2
@@ -447,6 +450,12 @@ importers:
       '@nexus-ai/core':
         specifier: workspace:*
         version: link:../core
+      '@nexus-ai/script-gen':
+        specifier: workspace:*
+        version: link:../script-gen
+      '@nexus-ai/timestamp-extraction':
+        specifier: workspace:*
+        version: link:../timestamp-extraction
     devDependencies:
       '@nexus-ai/config':
         specifier: workspace:*

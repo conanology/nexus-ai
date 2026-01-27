@@ -10,6 +10,24 @@ import { SceneMapper } from './scene-mapper.js';
 import { generateTimeline } from './timeline.js';
 
 /**
+ * Resolve segment start time from a direction document segment's timing.
+ * Prefers actualStartSec (from timestamp-extraction), falls back to estimatedStartSec.
+ * Currently used for V2 timing logging; will drive scene timing in stories 6.16+.
+ */
+export function resolveSegmentStartSec(timing: { actualStartSec?: number; estimatedStartSec?: number }): number | undefined {
+  return timing.actualStartSec ?? timing.estimatedStartSec;
+}
+
+/**
+ * Resolve segment duration from a direction document segment's timing.
+ * Prefers actualDurationSec (from timestamp-extraction), falls back to estimatedDurationSec.
+ * Currently used for V2 timing logging; will drive scene duration in stories 6.16+.
+ */
+export function resolveSegmentDurationSec(timing: { actualDurationSec?: number; estimatedDurationSec?: number }): number | undefined {
+  return timing.actualDurationSec ?? timing.estimatedDurationSec;
+}
+
+/**
  * Execute visual generation stage
  * Converts script with visual cues to scene timeline
  */
@@ -19,15 +37,44 @@ export async function executeVisualGen(
   return executeStage(input, 'visual-gen', async (data, config) => {
     const { pipelineId } = input;
 
+    // Detect V2 path (directionDocument present from timestamp-extraction)
+    const hasDirectionDocument = !!data.directionDocument;
+
     logger.info({
       msg: 'Visual generation stage started',
       pipelineId,
       stage: 'visual-gen',
       scriptLength: data.script.length,
       audioDuration: data.audioDurationSec,
+      v2Path: hasDirectionDocument,
+      segmentCount: hasDirectionDocument ? data.directionDocument!.segments.length : undefined,
+      hasWordTimings: !!data.wordTimings,
     });
 
-    // Step 1: Parse visual cues from script
+    // V2 path: directionDocument is available with segment timings.
+    // For now, still use existing script-based flow (full V2 rendering is later stories 6.16+).
+    // The directionDocument timing data is logged and available for future use.
+    if (hasDirectionDocument) {
+      const segments = data.directionDocument!.segments;
+      const timingSummary = segments.map((seg) => ({
+        id: seg.id,
+        type: seg.type,
+        startSec: resolveSegmentStartSec(seg.timing),
+        durationSec: resolveSegmentDurationSec(seg.timing),
+        timingSource: seg.timing.timingSource,
+      }));
+
+      logger.info({
+        msg: 'V2 direction document available - timing data resolved',
+        pipelineId,
+        stage: 'visual-gen',
+        segmentCount: segments.length,
+        timingSource: segments[0]?.timing.timingSource,
+        timingSummary,
+      });
+    }
+
+    // Step 1: Parse visual cues from script (V1 and V2 both use script-based flow for now)
     const visualCues = parseVisualCues(data.script);
 
     logger.info({

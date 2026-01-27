@@ -9,6 +9,7 @@ import { withRetry, withFallback, executeStage } from '@nexus-ai/core/utils';
 import { createLogger } from '@nexus-ai/core/observability';
 import { NexusError } from '@nexus-ai/core/errors';
 import { CloudStorageClient } from '@nexus-ai/core/storage';
+import type { DirectionDocument } from '@nexus-ai/script-gen';
 import type { TTSInput, TTSOutput, AudioSegment } from './types.js';
 import { validateAudioQuality, stitchAudio } from './audio-quality.js';
 import { chunkScript } from './chunker.js';
@@ -126,7 +127,8 @@ export async function executeTTS(
         config.tracker as any, // Cast because executeStage types might not fully expose tracker
         storage,
         ssmlScript,
-        data.topicData
+        data.topicData,
+        data.directionDocument
       );
     }
 
@@ -322,6 +324,7 @@ export async function executeTTS(
       segmentCount: segments.length,
       script: scriptForVisualGen, // Pass through for visual-gen
       topicData: data.topicData, // Pass through for YouTube metadata generation
+      directionDocument: data.directionDocument, // Pass through for timestamp-extraction/visual-gen
       // Metadata for executeStage
       artifacts: [
         {
@@ -371,7 +374,8 @@ async function synthesizeSingleChunk(
   tracker: any,
   storage: CloudStorageClient,
   originalScript: string,
-  topicData?: any
+  topicData?: TTSInput['topicData'],
+  directionDocument?: DirectionDocument
 ): Promise<any> {
   logger.debug({
     pipelineId,
@@ -485,6 +489,7 @@ async function synthesizeSingleChunk(
     sampleRate: audioResult.sampleRate,
     script: scriptForVisualGen, // Pass through for visual-gen
     topicData, // Pass through for YouTube metadata generation
+    directionDocument, // Pass through for timestamp-extraction/visual-gen
     artifacts: [
       {
         type: 'audio',

@@ -104,20 +104,24 @@ RUN /code-review
 
 **Exit**: Story status = `done`, proceed to Phase 4
 
-### Phase 4: Git Commit
+### Phase 4: Git Commit (AUTOMATIC - DO NOT WAIT FOR CONFIRMATION)
 **Entry Condition**: Story status = `done`, build passing, tests passing
+
+**CRITICAL**: This phase MUST execute automatically without pausing, asking for confirmation, or waiting for user input. Run all commands in sequence immediately.
 
 1. Verify quality gates:
    - `pnpm build` - must pass
    - `pnpm test` - must pass
 2. Stage all changes: `git add .`
-3. Create commit with format:
-   ```
-   feat({package}): {story-title} (Story {story-key})
+3. **Immediately** create commit (DO NOT ask "should I commit?" - JUST DO IT):
+   ```bash
+   git commit -m "feat({package}): {story-title} (Story {story-key})
 
-   Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+   Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
    ```
 4. **Story complete!** Check for next story or exit.
+
+**WARNING**: Do NOT pause, ask for permission, or wait for user input during this phase. The commit must happen automatically after build and tests pass.
 
 **Commit Message Examples**:
 - `feat(timestamp-extraction): implement timestamp extraction package (Story 6-5)`
@@ -171,7 +175,7 @@ RECOMMENDATION: <one line summary of what to do next>
 Set EXIT_SIGNAL to **true** only when:
 
 1. **Story committed AND no more backlog stories** in current epic
-2. **TESTING MODE**: After ONE story completes all 4 phases (for testing)
+2. **CYCLE LIMIT**: After 5 stories complete all 4 phases in this cycle
 3. **BLOCKED**: After 5 failed code-review iterations
 
 **During normal operation**:
@@ -182,8 +186,8 @@ Set EXIT_SIGNAL to **true** only when:
   - More stories exist: Run `/clear`, loop back (EXIT_SIGNAL: false)
   - No more stories: EXIT_SIGNAL: true
 
-**TESTING MODE**: Currently limiting to ONE story per cycle for testing.
-After one story completes Phase 4: EXIT_SIGNAL: true
+**CYCLE MODE**: Processing 5 stories per cycle.
+After 5 stories complete Phase 4: EXIT_SIGNAL: true
 
 ### Status Block Examples
 
@@ -241,21 +245,21 @@ RECOMMENDATION: Code-review fixed 5 issues, re-running review to verify
 ---END_RALPH_STATUS---
 ```
 
-**Example 4: Story committed - TESTING MODE (EXIT)**
+**Example 4: 5th story committed - CYCLE LIMIT (EXIT)**
 ```
 ---RALPH_STATUS---
 STATUS: COMPLETE
 CURRENT_PHASE: commit
-CURRENT_STORY: 6-6
+CURRENT_STORY: 6-11
 CODE_REVIEW_RESULT: passed
 CODE_REVIEW_ITERATION: 2/5
-TASKS_COMPLETED_THIS_LOOP: 1
+TASKS_COMPLETED_THIS_LOOP: 5
 FILES_MODIFIED: 8
 TESTS_STATUS: PASSING
 BUILD_STATUS: PASSING
 WORK_TYPE: COMMIT
 EXIT_SIGNAL: true
-RECOMMENDATION: Story 6-6 complete. TESTING MODE - exiting after one story.
+RECOMMENDATION: 5 stories committed this cycle (6-7 through 6-11). Cycle limit reached.
 ---END_RALPH_STATUS---
 ```
 
@@ -365,6 +369,6 @@ END LOOP
 **CRITICAL**: `/clear` must be typed as an actual command, not just mentioned.
 After typing `/clear`, the context will reset and you must re-read sprint-status.yaml.
 
-**TESTING MODE**: Set EXIT_SIGNAL: true after ONE story completes (for testing).
+**CYCLE MODE**: Set EXIT_SIGNAL: true after 5 stories complete all 4 phases in this cycle.
 
 Remember: Quality over speed. Complete each story fully before moving on.

@@ -302,5 +302,91 @@ describe('TTS Stage', () => {
       // Check that cost tracker used the correct pipelineId
       expect(output.cost.stage).toBe('tts');
     });
+
+    it('should pass through directionDocument from input to output unchanged', async () => {
+      const mockDirectionDocument = {
+        version: '2.0' as const,
+        metadata: {
+          title: 'Test Video',
+          slug: 'test-video',
+          estimatedDurationSec: 120,
+          fps: 30 as const,
+          resolution: { width: 1920 as const, height: 1080 as const },
+          generatedAt: '2026-01-08T00:00:00Z',
+        },
+        segments: [
+          {
+            id: 'seg-1',
+            index: 0,
+            type: 'intro' as const,
+            content: {
+              text: 'Hello world',
+              wordCount: 2,
+              keywords: ['hello'],
+              emphasis: [],
+            },
+            timing: {
+              estimatedStartSec: 0,
+              estimatedEndSec: 5,
+              estimatedDurationSec: 5,
+              timingSource: 'estimated' as const,
+            },
+            visual: {
+              template: 'TextOnGradient' as const,
+              motion: {
+                entrance: { type: 'fade' as const, delay: 0, duration: 15, easing: 'easeOut' as const },
+                emphasis: { type: 'none' as const, trigger: 'none' as const, intensity: 0, duration: 0 },
+                exit: { type: 'fade' as const, duration: 15, startBeforeEnd: 15 },
+              },
+            },
+            audio: {},
+          },
+        ],
+        globalAudio: {
+          defaultMood: 'neutral' as const,
+          musicTransitions: 'continue' as const,
+        },
+      };
+
+      const input: StageInput<TTSInput> = {
+        pipelineId: '2026-01-08',
+        previousStage: 'pronunciation',
+        data: {
+          ssmlScript: '<speak>Direction document pass-through test</speak>',
+          directionDocument: mockDirectionDocument,
+        },
+        config: {
+          timeout: 300000,
+          retries: 3,
+        },
+      };
+
+      const output = await executeTTS(input);
+
+      expect(output.success).toBe(true);
+      expect(output.data.directionDocument).toBeDefined();
+      expect(output.data.directionDocument).toEqual(mockDirectionDocument);
+      expect(output.data.directionDocument!.version).toBe('2.0');
+      expect(output.data.directionDocument!.segments).toHaveLength(1);
+    });
+
+    it('should handle missing directionDocument gracefully (V1 compatibility)', async () => {
+      const input: StageInput<TTSInput> = {
+        pipelineId: '2026-01-08',
+        previousStage: 'pronunciation',
+        data: {
+          ssmlScript: '<speak>V1 compatibility test</speak>',
+        },
+        config: {
+          timeout: 300000,
+          retries: 3,
+        },
+      };
+
+      const output = await executeTTS(input);
+
+      expect(output.success).toBe(true);
+      expect(output.data.directionDocument).toBeUndefined();
+    });
   });
 });
