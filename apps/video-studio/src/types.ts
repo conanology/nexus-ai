@@ -1,5 +1,5 @@
 /**
- * Re-export motion types from script-gen for video-studio consumers
+ * Re-export motion and direction types from script-gen for video-studio consumers
  */
 import type { MotionConfig, WordTiming, EmphasisWord, EmphasisEffect } from '@nexus-ai/script-gen';
 
@@ -19,9 +19,17 @@ export type {
   WordTiming,
   EmphasisWord,
   EmphasisEffect,
+  DirectionDocument,
+  DirectionSegment,
+  SegmentTiming,
+  SegmentVisual,
+  SegmentContent,
+  SegmentAudio,
+  DocumentMetadata,
+  GlobalAudio,
 } from '@nexus-ai/script-gen';
 
-export { MOTION_PRESETS } from '@nexus-ai/script-gen';
+export { MOTION_PRESETS, DirectionDocumentSchema } from '@nexus-ai/script-gen';
 
 /**
  * Component prop interfaces for visual components

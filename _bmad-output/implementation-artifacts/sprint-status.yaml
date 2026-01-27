@@ -127,7 +127,7 @@ development_status:
   6-15-update-component-prop-interfaces: done
   6-16-refactor-components-motion-support: done
   6-17-create-kinetictext-component: done
-  6-18-update-techexplainer-motion-timing: backlog
+  6-18-update-techexplainer-motion-timing: done
   6-19-create-audio-mixer-package: backlog
   6-20-implement-voice-activity-detection: backlog
   6-21-implement-music-selection: backlog
