@@ -188,6 +188,9 @@ importers:
       '@nexus-ai/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@nexus-ai/script-gen':
+        specifier: workspace:*
+        version: link:../../packages/script-gen
       '@nexus-ai/visual-gen':
         specifier: workspace:*
         version: link:../../packages/visual-gen

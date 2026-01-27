@@ -1,4 +1,24 @@
 /**
+ * Re-export motion types from script-gen for video-studio consumers
+ */
+export type {
+  MotionConfig,
+  EntranceConfig,
+  EmphasisConfig,
+  ExitConfig,
+  SpringConfig,
+  EntranceType,
+  EmphasisType,
+  ExitType,
+  AnimationDirection,
+  EasingType,
+  EmphasisTrigger,
+  MotionPreset,
+} from '@nexus-ai/script-gen';
+
+export { MOTION_PRESETS } from '@nexus-ai/script-gen';
+
+/**
  * Component prop interfaces for visual components
  */
 
