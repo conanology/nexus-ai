@@ -369,4 +369,55 @@ describe('validateTimestampExtraction', () => {
       expect(result.flags).toHaveLength(0);
     });
   });
+
+  describe('fallback scenario (Story 6.7)', () => {
+    it('should return PASS or DEGRADED for estimated timing (not FAIL)', () => {
+      // Estimated timing produces sequential, non-overlapping timings
+      // so monotonicTiming (CRITICAL) should always pass
+      const wordCount = 10;
+      const document = createMockDocument(wordCount);
+      const timings = createValidTimings(wordCount);
+
+      const result = validateTimestampExtraction(timings, document, 500);
+
+      // Estimated fallback should never produce FAIL (overlapping timings)
+      expect(result.status).not.toBe('FAIL');
+      expect(['PASS', 'DEGRADED']).toContain(result.status);
+    });
+
+    it('should return DEGRADED when word count is below threshold from fallback', () => {
+      const wordCount = 10;
+      const document = createMockDocument(wordCount);
+      // Simulate fallback producing fewer words than expected
+      const timings = createValidTimings(5);
+
+      const result = validateTimestampExtraction(timings, document, 500);
+
+      expect(result.status).toBe('DEGRADED');
+      expect(result.checks.wordCountMatch.passed).toBe(false);
+      expect(result.checks.wordCountMatch.severity).toBe('DEGRADED');
+    });
+
+    it('should include error code flags when checks fail', () => {
+      const wordCount = 10;
+      const document = createMockDocument(wordCount);
+      const timings = createValidTimings(5); // Below threshold
+
+      const result = validateTimestampExtraction(timings, document, 500);
+
+      expect(result.flags.length).toBeGreaterThan(0);
+      expect(result.flags).toContain(TIMESTAMP_ERROR_CODES.WORD_COUNT_MISMATCH);
+    });
+
+    it('should return PASS when estimated timing covers all words', () => {
+      const wordCount = 10;
+      const document = createMockDocument(wordCount);
+      const timings = createValidTimings(wordCount);
+
+      const result = validateTimestampExtraction(timings, document, 500);
+
+      expect(result.status).toBe('PASS');
+      expect(result.flags).toHaveLength(0);
+    });
+  });
 });

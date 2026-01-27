@@ -224,6 +224,67 @@ describe('estimateWordTimings', () => {
       expect(timing.duration).toBeGreaterThanOrEqual(0.5);
     }
   });
+
+  it('should use uniform distribution for all-punctuation words', () => {
+    const segment = createMockSegment('seg-1', '... !!! ???');
+
+    const timings = estimateWordTimings(segment, 0);
+
+    // All-punctuation words should get uniform timing
+    expect(timings).toHaveLength(3);
+    // Uniform distribution means all words should have the same duration
+    const durations = timings.map((t) => t.duration);
+    expect(durations[0]).toBeCloseTo(durations[1], 5);
+    expect(durations[1]).toBeCloseTo(durations[2], 5);
+  });
+
+  it('should add exactly 300ms pause after sentence-ending punctuation (.!?)', () => {
+    const segment = createMockSegment('seg-1', 'Hello! World');
+
+    const timings = estimateWordTimings(segment, 0);
+
+    const pauseAfterHello = timings[1].startTime - timings[0].endTime;
+    expect(pauseAfterHello).toBeCloseTo(0.3, 2);
+  });
+
+  it('should add exactly 150ms pause after comma/semicolon/colon', () => {
+    const segment = createMockSegment('seg-1', 'Hello; World');
+
+    const timings = estimateWordTimings(segment, 0);
+
+    const pauseAfterHello = timings[1].startTime - timings[0].endTime;
+    expect(pauseAfterHello).toBeCloseTo(0.15, 2);
+  });
+
+  it('should add 150ms pause after colon', () => {
+    const segment = createMockSegment('seg-1', 'Note: details');
+
+    const timings = estimateWordTimings(segment, 0);
+
+    const pause = timings[1].startTime - timings[0].endTime;
+    expect(pause).toBeCloseTo(0.15, 2);
+  });
+
+  it('should set correct index for each word', () => {
+    const segment = createMockSegment('seg-1', 'alpha beta gamma');
+
+    const timings = estimateWordTimings(segment, 0);
+
+    expect(timings[0].index).toBe(0);
+    expect(timings[1].index).toBe(1);
+    expect(timings[2].index).toBe(2);
+  });
+
+  it('should produce positive durations for all words', () => {
+    const segment = createMockSegment('seg-1', 'This is a test sentence with several words');
+
+    const timings = estimateWordTimings(segment, 0);
+
+    for (const timing of timings) {
+      expect(timing.duration).toBeGreaterThan(0);
+      expect(timing.endTime).toBeGreaterThan(timing.startTime);
+    }
+  });
 });
 
 // -----------------------------------------------------------------------------
@@ -365,5 +426,67 @@ describe('applyEstimatedTimings', () => {
     // Should still scale and produce valid timings
     expect(result.wordTimings.length).toBe(2);
     expect(result.wordTimings[result.wordTimings.length - 1].endTime).toBeLessThanOrEqual(100);
+  });
+
+  it('should deep clone document so original is not mutated', () => {
+    const doc = createMockDocument([
+      createMockSegment('seg-1', 'Hello world'),
+    ]);
+    const originalStart = doc.segments[0].timing.estimatedStartSec;
+    const originalEnd = doc.segments[0].timing.estimatedEndSec;
+    const originalDuration = doc.segments[0].timing.estimatedDurationSec;
+
+    const result = applyEstimatedTimings(doc, 20);
+
+    // Original document should be unchanged
+    expect(doc.segments[0].timing.estimatedStartSec).toBe(originalStart);
+    expect(doc.segments[0].timing.estimatedEndSec).toBe(originalEnd);
+    expect(doc.segments[0].timing.estimatedDurationSec).toBe(originalDuration);
+
+    // Returned document is different object
+    expect(result.document).not.toBe(doc);
+    expect(result.document.segments[0]).not.toBe(doc.segments[0]);
+  });
+
+  it('should scale word durations proportionally when scaling', () => {
+    const doc = createMockDocument([
+      createMockSegment('seg-1', 'alpha beta gamma'),
+    ]);
+
+    const result = applyEstimatedTimings(doc, 30);
+
+    // All timings should be scaled to fit within audio duration
+    const lastTiming = result.wordTimings[result.wordTimings.length - 1];
+    expect(lastTiming.endTime).toBeLessThanOrEqual(30 + 0.1);
+
+    // Each word should still have startTime < endTime
+    for (const timing of result.wordTimings) {
+      expect(timing.endTime).toBeGreaterThan(timing.startTime);
+      expect(timing.duration).toBeGreaterThan(0);
+    }
+  });
+
+  it('should handle multi-segment document with correct ordering', () => {
+    const doc = createMockDocument([
+      createMockSegment('seg-1', 'First segment text'),
+      createMockSegment('seg-2', 'Second segment text'),
+      createMockSegment('seg-3', 'Third segment text'),
+    ]);
+
+    const result = applyEstimatedTimings(doc, 30);
+
+    // Words should be in order across segments
+    for (let i = 1; i < result.wordTimings.length; i++) {
+      expect(result.wordTimings[i].startTime).toBeGreaterThanOrEqual(
+        result.wordTimings[i - 1].startTime
+      );
+    }
+
+    // Segment timings should be set
+    for (const segment of result.document.segments) {
+      expect(segment.timing.timingSource).toBe('estimated');
+      expect(segment.timing.estimatedStartSec).toBeDefined();
+      expect(segment.timing.estimatedEndSec).toBeDefined();
+    }
   });
 });

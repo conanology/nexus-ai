@@ -146,7 +146,7 @@ export async function executeTimestampExtraction(
         source: 'estimated',
         estimationMethod: 'character-weighted',
         fallbackReason: fallbackDecision.reason,
-        warningFlags: ['estimated-timing-used', `fallback-reason:${fallbackDecision.reason}`],
+        warningFlags: ['timing-estimated', `fallback-reason:${fallbackDecision.reason}`],
       };
 
       providerName = 'estimated';
@@ -222,7 +222,7 @@ export async function executeTimestampExtraction(
           estimationMethod: 'character-weighted',
           fallbackReason: `word-mapping-ratio-${(mappingResult.stats.matchRatio * 100).toFixed(0)}%`,
           warningFlags: [
-            'estimated-timing-used',
+            'timing-estimated',
             'stt-mapping-failed',
           ],
         };

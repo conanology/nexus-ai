@@ -243,7 +243,7 @@ describe('executeTimestampExtraction', () => {
 
       expect(result.data.timingMetadata.source).toBe('estimated');
       expect(result.data.timingMetadata.estimationMethod).toBe('character-weighted');
-      expect(result.data.timingMetadata.warningFlags).toContain('estimated-timing-used');
+      expect(result.data.timingMetadata.warningFlags).toContain('timing-estimated');
     });
 
     it('should indicate fallback provider', async () => {
@@ -407,7 +407,7 @@ describe('executeTimestampExtraction', () => {
       const result = await executeTimestampExtraction(input);
 
       expect(result.warnings).toBeDefined();
-      expect(result.warnings).toContain('estimated-timing-used');
+      expect(result.warnings).toContain('timing-estimated');
     });
 
     it('should warn about empty word extraction', async () => {
@@ -458,6 +458,104 @@ describe('executeTimestampExtraction', () => {
       expect(result.data.timingMetadata.source).toBe('extracted');
       expect(result.provider.name).toBe('google-stt');
       expect(result.provider.tier).toBe('primary');
+    });
+  });
+
+  describe('fallback integration (Story 6.7)', () => {
+    it('should trigger fallback on STT API error', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.data.timingMetadata.estimationMethod).toBe('character-weighted');
+      expect(result.data.timingMetadata.fallbackReason).toBe('stt-api-error');
+    });
+
+    it('should trigger fallback on low confidence', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'low-confidence: 65.0%' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.data.timingMetadata.fallbackReason).toBe('low-confidence: 65.0%');
+    });
+
+    it('should trigger fallback on word count mismatch', async () => {
+      mockedShouldUseFallback.mockReturnValue({
+        useFallback: true,
+        reason: 'word-count-mismatch: 5/10 (50.0% diff)',
+      });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.data.timingMetadata.fallbackReason).toContain('word-count-mismatch');
+    });
+
+    it('should set timingMetadata.source to estimated on fallback', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+    });
+
+    it('should include timing-estimated in warningFlags on fallback', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.warningFlags).toContain('timing-estimated');
+    });
+
+    it('should include fallback-reason in warningFlags', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.warningFlags).toContain('fallback-reason:stt-api-error');
+    });
+
+    it('should record zero-cost API call for estimated timing', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+      const { CostTracker } = await import('@nexus-ai/core');
+
+      const input = createMockInput();
+      await executeTimestampExtraction(input);
+
+      const trackerInstance = vi.mocked(CostTracker).mock.results[0].value;
+      expect(trackerInstance.recordApiCall).toHaveBeenCalledWith('estimated-timing', {}, 0);
+    });
+
+    it('should produce valid word timings from fallback', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.wordTimings.length).toBeGreaterThan(0);
+      for (const timing of result.data.wordTimings) {
+        expect(timing.endTime).toBeGreaterThan(timing.startTime);
+        expect(timing.duration).toBeGreaterThan(0);
+      }
+    });
+
+    it('should set quality gate status for fallback results', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      // Fallback-generated timings should pass or degrade quality gate, not fail
+      expect(result.quality.measurements.status).toBeDefined();
+      expect(['PASS', 'DEGRADED']).toContain(result.quality.measurements.status);
     });
   });
 });

@@ -116,7 +116,7 @@ development_status:
   6-4-update-tts-to-read-script-only: done
   6-5-create-timestamp-extraction-package: done
   6-6-implement-google-cloud-stt-integration: done
-  6-7-implement-estimated-timing-fallback: backlog
+  6-7-implement-estimated-timing-fallback: done
   6-8-create-reference-test-audio-files: backlog
   6-9-implement-timestamp-quality-gate: backlog
   6-10-register-timestamp-stage-orchestrator: backlog

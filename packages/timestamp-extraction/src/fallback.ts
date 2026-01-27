@@ -122,9 +122,7 @@ export function applyEstimatedTimings(
   let segmentStartSec = 0;
 
   // Deep clone the document to avoid mutating the original
-  const enrichedDocument: DirectionDocument = JSON.parse(
-    JSON.stringify(document)
-  );
+  const enrichedDocument: DirectionDocument = structuredClone(document);
 
   for (let i = 0; i < enrichedDocument.segments.length; i++) {
     const segment = enrichedDocument.segments[i];
