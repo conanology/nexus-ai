@@ -1,0 +1,760 @@
+{
+  "words": [
+    {
+      "word": "the",
+      "startMs": 100,
+      "endMs": 380
+    },
+    {
+      "word": "TypeScript",
+      "startMs": 500,
+      "endMs": 780
+    },
+    {
+      "word": "5.0",
+      "startMs": 900,
+      "endMs": 1180
+    },
+    {
+      "word": "release",
+      "startMs": 1300,
+      "endMs": 1580
+    },
+    {
+      "word": "introduced",
+      "startMs": 1700,
+      "endMs": 1980
+    },
+    {
+      "word": "new",
+      "startMs": 2100,
+      "endMs": 2380
+    },
+    {
+      "word": "features",
+      "startMs": 2500,
+      "endMs": 2780
+    },
+    {
+      "word": "for",
+      "startMs": 2900,
+      "endMs": 3180
+    },
+    {
+      "word": "API",
+      "startMs": 3300,
+      "endMs": 3580
+    },
+    {
+      "word": "development",
+      "startMs": 3700,
+      "endMs": 3980
+    },
+    {
+      "word": "including",
+      "startMs": 4100,
+      "endMs": 4380
+    },
+    {
+      "word": "OAuth",
+      "startMs": 4500,
+      "endMs": 4780
+    },
+    {
+      "word": "2.0",
+      "startMs": 4900,
+      "endMs": 5180
+    },
+    {
+      "word": "integration",
+      "startMs": 5300,
+      "endMs": 5580
+    },
+    {
+      "word": "with",
+      "startMs": 5700,
+      "endMs": 5980
+    },
+    {
+      "word": "HTTPS",
+      "startMs": 6100,
+      "endMs": 6380
+    },
+    {
+      "word": "endpoints",
+      "startMs": 6500,
+      "endMs": 6780
+    },
+    {
+      "word": "developers",
+      "startMs": 6900,
+      "endMs": 7180
+    },
+    {
+      "word": "can",
+      "startMs": 7300,
+      "endMs": 7580
+    },
+    {
+      "word": "now",
+      "startMs": 7700,
+      "endMs": 7980
+    },
+    {
+      "word": "use",
+      "startMs": 8100,
+      "endMs": 8380
+    },
+    {
+      "word": "REST",
+      "startMs": 8500,
+      "endMs": 8780
+    },
+    {
+      "word": "APIs",
+      "startMs": 8900,
+      "endMs": 9180
+    },
+    {
+      "word": "more",
+      "startMs": 9300,
+      "endMs": 9580
+    },
+    {
+      "word": "efficiently",
+      "startMs": 9700,
+      "endMs": 9980
+    },
+    {
+      "word": "the",
+      "startMs": 10100,
+      "endMs": 10380
+    },
+    {
+      "word": "Node.js",
+      "startMs": 10500,
+      "endMs": 10780
+    },
+    {
+      "word": "runtime",
+      "startMs": 10900,
+      "endMs": 11180
+    },
+    {
+      "word": "version",
+      "startMs": 11300,
+      "endMs": 11580
+    },
+    {
+      "word": "20",
+      "startMs": 11700,
+      "endMs": 11980
+    },
+    {
+      "word": "supports",
+      "startMs": 12100,
+      "endMs": 12380
+    },
+    {
+      "word": "ESM",
+      "startMs": 12500,
+      "endMs": 12780
+    },
+    {
+      "word": "modules",
+      "startMs": 12900,
+      "endMs": 13180
+    },
+    {
+      "word": "natively",
+      "startMs": 13300,
+      "endMs": 13580
+    },
+    {
+      "word": "JSON",
+      "startMs": 13700,
+      "endMs": 13980
+    },
+    {
+      "word": "parsing",
+      "startMs": 14100,
+      "endMs": 14380
+    },
+    {
+      "word": "is",
+      "startMs": 14500,
+      "endMs": 14780
+    },
+    {
+      "word": "15",
+      "startMs": 14900,
+      "endMs": 15180
+    },
+    {
+      "word": "percent",
+      "startMs": 15300,
+      "endMs": 15580
+    },
+    {
+      "word": "faster",
+      "startMs": 15700,
+      "endMs": 15980
+    },
+    {
+      "word": "WebSocket",
+      "startMs": 16100,
+      "endMs": 16380
+    },
+    {
+      "word": "connections",
+      "startMs": 16500,
+      "endMs": 16780
+    },
+    {
+      "word": "handle",
+      "startMs": 16900,
+      "endMs": 17180
+    },
+    {
+      "word": "10000",
+      "startMs": 17300,
+      "endMs": 17580
+    },
+    {
+      "word": "concurrent",
+      "startMs": 17700,
+      "endMs": 17980
+    },
+    {
+      "word": "users",
+      "startMs": 18100,
+      "endMs": 18380
+    },
+    {
+      "word": "the",
+      "startMs": 18500,
+      "endMs": 18780
+    },
+    {
+      "word": "CI",
+      "startMs": 18900,
+      "endMs": 19180
+    },
+    {
+      "word": "CD",
+      "startMs": 19300,
+      "endMs": 19580
+    },
+    {
+      "word": "pipeline",
+      "startMs": 19700,
+      "endMs": 19980
+    },
+    {
+      "word": "runs",
+      "startMs": 20100,
+      "endMs": 20380
+    },
+    {
+      "word": "3",
+      "startMs": 20500,
+      "endMs": 20780
+    },
+    {
+      "word": "stages",
+      "startMs": 20900,
+      "endMs": 21180
+    },
+    {
+      "word": "build",
+      "startMs": 21300,
+      "endMs": 21580
+    },
+    {
+      "word": "test",
+      "startMs": 21700,
+      "endMs": 21980
+    },
+    {
+      "word": "and",
+      "startMs": 22100,
+      "endMs": 22380
+    },
+    {
+      "word": "deploy",
+      "startMs": 22500,
+      "endMs": 22780
+    },
+    {
+      "word": "Docker",
+      "startMs": 22900,
+      "endMs": 23180
+    },
+    {
+      "word": "containers",
+      "startMs": 23300,
+      "endMs": 23580
+    },
+    {
+      "word": "use",
+      "startMs": 23700,
+      "endMs": 23980
+    },
+    {
+      "word": "Alpine",
+      "startMs": 24100,
+      "endMs": 24380
+    },
+    {
+      "word": "Linux",
+      "startMs": 24500,
+      "endMs": 24780
+    },
+    {
+      "word": "with",
+      "startMs": 24900,
+      "endMs": 25180
+    },
+    {
+      "word": "256",
+      "startMs": 25300,
+      "endMs": 25580
+    },
+    {
+      "word": "megabytes",
+      "startMs": 25700,
+      "endMs": 25980
+    },
+    {
+      "word": "of",
+      "startMs": 26100,
+      "endMs": 26380
+    },
+    {
+      "word": "RAM",
+      "startMs": 26500,
+      "endMs": 26780
+    },
+    {
+      "word": "the",
+      "startMs": 26900,
+      "endMs": 27180
+    },
+    {
+      "word": "GraphQL",
+      "startMs": 27300,
+      "endMs": 27580
+    },
+    {
+      "word": "schema",
+      "startMs": 27700,
+      "endMs": 27980
+    },
+    {
+      "word": "defines",
+      "startMs": 28100,
+      "endMs": 28380
+    },
+    {
+      "word": "42",
+      "startMs": 28500,
+      "endMs": 28780
+    },
+    {
+      "word": "types",
+      "startMs": 28900,
+      "endMs": 29180
+    },
+    {
+      "word": "MongoDB",
+      "startMs": 29300,
+      "endMs": 29580
+    },
+    {
+      "word": "stores",
+      "startMs": 29700,
+      "endMs": 29980
+    },
+    {
+      "word": "1.5",
+      "startMs": 30100,
+      "endMs": 30380
+    },
+    {
+      "word": "million",
+      "startMs": 30500,
+      "endMs": 30780
+    },
+    {
+      "word": "documents",
+      "startMs": 30900,
+      "endMs": 31180
+    },
+    {
+      "word": "Redis",
+      "startMs": 31300,
+      "endMs": 31580
+    },
+    {
+      "word": "cache",
+      "startMs": 31700,
+      "endMs": 31980
+    },
+    {
+      "word": "achieves",
+      "startMs": 32100,
+      "endMs": 32380
+    },
+    {
+      "word": "99.9",
+      "startMs": 32500,
+      "endMs": 32780
+    },
+    {
+      "word": "percent",
+      "startMs": 32900,
+      "endMs": 33180
+    },
+    {
+      "word": "hit",
+      "startMs": 33300,
+      "endMs": 33580
+    },
+    {
+      "word": "rate",
+      "startMs": 33700,
+      "endMs": 33980
+    },
+    {
+      "word": "Kubernetes",
+      "startMs": 34100,
+      "endMs": 34380
+    },
+    {
+      "word": "clusters",
+      "startMs": 34500,
+      "endMs": 34780
+    },
+    {
+      "word": "scale",
+      "startMs": 34900,
+      "endMs": 35180
+    },
+    {
+      "word": "to",
+      "startMs": 35300,
+      "endMs": 35580
+    },
+    {
+      "word": "100",
+      "startMs": 35700,
+      "endMs": 35980
+    },
+    {
+      "word": "pods",
+      "startMs": 36100,
+      "endMs": 36380
+    },
+    {
+      "word": "automatically",
+      "startMs": 36500,
+      "endMs": 36780
+    },
+    {
+      "word": "the",
+      "startMs": 36900,
+      "endMs": 37180
+    },
+    {
+      "word": "TCP",
+      "startMs": 37300,
+      "endMs": 37580
+    },
+    {
+      "word": "handshake",
+      "startMs": 37700,
+      "endMs": 37980
+    },
+    {
+      "word": "completes",
+      "startMs": 38100,
+      "endMs": 38380
+    },
+    {
+      "word": "in",
+      "startMs": 38500,
+      "endMs": 38780
+    },
+    {
+      "word": "50",
+      "startMs": 38900,
+      "endMs": 39180
+    },
+    {
+      "word": "milliseconds",
+      "startMs": 39300,
+      "endMs": 39580
+    },
+    {
+      "word": "SSH",
+      "startMs": 39700,
+      "endMs": 39980
+    },
+    {
+      "word": "tunnels",
+      "startMs": 40100,
+      "endMs": 40380
+    },
+    {
+      "word": "encrypt",
+      "startMs": 40500,
+      "endMs": 40780
+    },
+    {
+      "word": "all",
+      "startMs": 40900,
+      "endMs": 41180
+    },
+    {
+      "word": "traffic",
+      "startMs": 41300,
+      "endMs": 41580
+    },
+    {
+      "word": "between",
+      "startMs": 41700,
+      "endMs": 41980
+    },
+    {
+      "word": "services",
+      "startMs": 42100,
+      "endMs": 42380
+    },
+    {
+      "word": "PostgreSQL",
+      "startMs": 42500,
+      "endMs": 42780
+    },
+    {
+      "word": "handles",
+      "startMs": 42900,
+      "endMs": 43180
+    },
+    {
+      "word": "5000",
+      "startMs": 43300,
+      "endMs": 43580
+    },
+    {
+      "word": "transactions",
+      "startMs": 43700,
+      "endMs": 43980
+    },
+    {
+      "word": "per",
+      "startMs": 44100,
+      "endMs": 44380
+    },
+    {
+      "word": "second",
+      "startMs": 44500,
+      "endMs": 44780
+    },
+    {
+      "word": "the",
+      "startMs": 44900,
+      "endMs": 45180
+    },
+    {
+      "word": "TypeScript",
+      "startMs": 45300,
+      "endMs": 45580
+    },
+    {
+      "word": "5.0",
+      "startMs": 45700,
+      "endMs": 45980
+    },
+    {
+      "word": "release",
+      "startMs": 46100,
+      "endMs": 46380
+    },
+    {
+      "word": "introduced",
+      "startMs": 46500,
+      "endMs": 46780
+    },
+    {
+      "word": "new",
+      "startMs": 46900,
+      "endMs": 47180
+    },
+    {
+      "word": "features",
+      "startMs": 47300,
+      "endMs": 47580
+    },
+    {
+      "word": "for",
+      "startMs": 47700,
+      "endMs": 47980
+    },
+    {
+      "word": "API",
+      "startMs": 48100,
+      "endMs": 48380
+    },
+    {
+      "word": "development",
+      "startMs": 48500,
+      "endMs": 48780
+    },
+    {
+      "word": "including",
+      "startMs": 48900,
+      "endMs": 49180
+    },
+    {
+      "word": "OAuth",
+      "startMs": 49300,
+      "endMs": 49580
+    },
+    {
+      "word": "2.0",
+      "startMs": 49700,
+      "endMs": 49980
+    },
+    {
+      "word": "integration",
+      "startMs": 50100,
+      "endMs": 50380
+    },
+    {
+      "word": "with",
+      "startMs": 50500,
+      "endMs": 50780
+    },
+    {
+      "word": "HTTPS",
+      "startMs": 50900,
+      "endMs": 51180
+    },
+    {
+      "word": "endpoints",
+      "startMs": 51300,
+      "endMs": 51580
+    },
+    {
+      "word": "developers",
+      "startMs": 51700,
+      "endMs": 51980
+    },
+    {
+      "word": "can",
+      "startMs": 52100,
+      "endMs": 52380
+    },
+    {
+      "word": "now",
+      "startMs": 52500,
+      "endMs": 52780
+    },
+    {
+      "word": "use",
+      "startMs": 52900,
+      "endMs": 53180
+    },
+    {
+      "word": "REST",
+      "startMs": 53300,
+      "endMs": 53580
+    },
+    {
+      "word": "APIs",
+      "startMs": 53700,
+      "endMs": 53980
+    },
+    {
+      "word": "more",
+      "startMs": 54100,
+      "endMs": 54380
+    },
+    {
+      "word": "efficiently",
+      "startMs": 54500,
+      "endMs": 54780
+    },
+    {
+      "word": "the",
+      "startMs": 54900,
+      "endMs": 55180
+    },
+    {
+      "word": "Node.js",
+      "startMs": 55300,
+      "endMs": 55580
+    },
+    {
+      "word": "runtime",
+      "startMs": 55700,
+      "endMs": 55980
+    },
+    {
+      "word": "version",
+      "startMs": 56100,
+      "endMs": 56380
+    },
+    {
+      "word": "20",
+      "startMs": 56500,
+      "endMs": 56780
+    },
+    {
+      "word": "supports",
+      "startMs": 56900,
+      "endMs": 57180
+    },
+    {
+      "word": "ESM",
+      "startMs": 57300,
+      "endMs": 57580
+    },
+    {
+      "word": "modules",
+      "startMs": 57700,
+      "endMs": 57980
+    },
+    {
+      "word": "natively",
+      "startMs": 58100,
+      "endMs": 58380
+    },
+    {
+      "word": "JSON",
+      "startMs": 58500,
+      "endMs": 58780
+    },
+    {
+      "word": "parsing",
+      "startMs": 58900,
+      "endMs": 59180
+    },
+    {
+      "word": "is",
+      "startMs": 59300,
+      "endMs": 59580
+    },
+    {
+      "word": "15",
+      "startMs": 59700,
+      "endMs": 59980
+    }
+  ],
+  "metadata": {
+    "duration": 60,
+    "pace": "normal",
+    "wpm": 150,
+    "description": "60s technical terms and numbers"
+  }
+}

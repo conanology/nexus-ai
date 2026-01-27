@@ -1,0 +1,580 @@
+{
+  "words": [
+    {
+      "word": "the",
+      "startMs": 100,
+      "endMs": 320
+    },
+    {
+      "word": "latest",
+      "startMs": 400,
+      "endMs": 620
+    },
+    {
+      "word": "advancements",
+      "startMs": 700,
+      "endMs": 920
+    },
+    {
+      "word": "in",
+      "startMs": 1000,
+      "endMs": 1220
+    },
+    {
+      "word": "artificial",
+      "startMs": 1300,
+      "endMs": 1520
+    },
+    {
+      "word": "intelligence",
+      "startMs": 1600,
+      "endMs": 1820
+    },
+    {
+      "word": "have",
+      "startMs": 1900,
+      "endMs": 2120
+    },
+    {
+      "word": "transformed",
+      "startMs": 2200,
+      "endMs": 2420
+    },
+    {
+      "word": "how",
+      "startMs": 2500,
+      "endMs": 2860
+    },
+    {
+      "word": "we",
+      "startMs": 3020,
+      "endMs": 3380
+    },
+    {
+      "word": "interact",
+      "startMs": 3540,
+      "endMs": 3900
+    },
+    {
+      "word": "with",
+      "startMs": 4060,
+      "endMs": 4420
+    },
+    {
+      "word": "technology",
+      "startMs": 4580,
+      "endMs": 4940
+    },
+    {
+      "word": "every",
+      "startMs": 5100,
+      "endMs": 5460
+    },
+    {
+      "word": "day",
+      "startMs": 5620,
+      "endMs": 5980
+    },
+    {
+      "word": "from",
+      "startMs": 6140,
+      "endMs": 6500
+    },
+    {
+      "word": "voice",
+      "startMs": 6660,
+      "endMs": 6960
+    },
+    {
+      "word": "assistants",
+      "startMs": 7460,
+      "endMs": 7760
+    },
+    {
+      "word": "to",
+      "startMs": 8260,
+      "endMs": 8560
+    },
+    {
+      "word": "autonomous",
+      "startMs": 9060,
+      "endMs": 9360
+    },
+    {
+      "word": "vehicles",
+      "startMs": 9860,
+      "endMs": 10160
+    },
+    {
+      "word": "these",
+      "startMs": 10660,
+      "endMs": 10960
+    },
+    {
+      "word": "systems",
+      "startMs": 11460,
+      "endMs": 11760
+    },
+    {
+      "word": "are",
+      "startMs": 12260,
+      "endMs": 12560
+    },
+    {
+      "word": "becoming",
+      "startMs": 13060,
+      "endMs": 13280
+    },
+    {
+      "word": "more",
+      "startMs": 13360,
+      "endMs": 13580
+    },
+    {
+      "word": "capable",
+      "startMs": 13660,
+      "endMs": 13880
+    },
+    {
+      "word": "and",
+      "startMs": 13960,
+      "endMs": 14180
+    },
+    {
+      "word": "reliable",
+      "startMs": 14260,
+      "endMs": 14480
+    },
+    {
+      "word": "researchers",
+      "startMs": 14560,
+      "endMs": 14780
+    },
+    {
+      "word": "continue",
+      "startMs": 14860,
+      "endMs": 15080
+    },
+    {
+      "word": "to",
+      "startMs": 15160,
+      "endMs": 15380
+    },
+    {
+      "word": "push",
+      "startMs": 15460,
+      "endMs": 15820
+    },
+    {
+      "word": "the",
+      "startMs": 15980,
+      "endMs": 16340
+    },
+    {
+      "word": "boundaries",
+      "startMs": 16500,
+      "endMs": 16860
+    },
+    {
+      "word": "of",
+      "startMs": 17020,
+      "endMs": 17380
+    },
+    {
+      "word": "what",
+      "startMs": 17540,
+      "endMs": 17900
+    },
+    {
+      "word": "machines",
+      "startMs": 18060,
+      "endMs": 18420
+    },
+    {
+      "word": "can",
+      "startMs": 18580,
+      "endMs": 18940
+    },
+    {
+      "word": "accomplish",
+      "startMs": 19100,
+      "endMs": 19460
+    },
+    {
+      "word": "in",
+      "startMs": 19620,
+      "endMs": 19920
+    },
+    {
+      "word": "fields",
+      "startMs": 20420,
+      "endMs": 20720
+    },
+    {
+      "word": "like",
+      "startMs": 21220,
+      "endMs": 21520
+    },
+    {
+      "word": "natural",
+      "startMs": 22020,
+      "endMs": 22320
+    },
+    {
+      "word": "language",
+      "startMs": 22820,
+      "endMs": 23120
+    },
+    {
+      "word": "processing",
+      "startMs": 23620,
+      "endMs": 23920
+    },
+    {
+      "word": "computer",
+      "startMs": 24420,
+      "endMs": 24720
+    },
+    {
+      "word": "vision",
+      "startMs": 25220,
+      "endMs": 25520
+    },
+    {
+      "word": "and",
+      "startMs": 26020,
+      "endMs": 26240
+    },
+    {
+      "word": "robotics",
+      "startMs": 26320,
+      "endMs": 26540
+    },
+    {
+      "word": "the",
+      "startMs": 26620,
+      "endMs": 26840
+    },
+    {
+      "word": "impact",
+      "startMs": 26920,
+      "endMs": 27140
+    },
+    {
+      "word": "on",
+      "startMs": 27220,
+      "endMs": 27440
+    },
+    {
+      "word": "society",
+      "startMs": 27520,
+      "endMs": 27740
+    },
+    {
+      "word": "is",
+      "startMs": 27820,
+      "endMs": 28040
+    },
+    {
+      "word": "profound",
+      "startMs": 28120,
+      "endMs": 28340
+    },
+    {
+      "word": "creating",
+      "startMs": 28420,
+      "endMs": 28780
+    },
+    {
+      "word": "new",
+      "startMs": 28940,
+      "endMs": 29300
+    },
+    {
+      "word": "opportunities",
+      "startMs": 29460,
+      "endMs": 29820
+    },
+    {
+      "word": "and",
+      "startMs": 29980,
+      "endMs": 30340
+    },
+    {
+      "word": "challenges",
+      "startMs": 30500,
+      "endMs": 30860
+    },
+    {
+      "word": "for",
+      "startMs": 31020,
+      "endMs": 31380
+    },
+    {
+      "word": "everyone",
+      "startMs": 31540,
+      "endMs": 31900
+    },
+    {
+      "word": "involved",
+      "startMs": 32060,
+      "endMs": 32420
+    },
+    {
+      "word": "in",
+      "startMs": 32580,
+      "endMs": 32880
+    },
+    {
+      "word": "this",
+      "startMs": 33380,
+      "endMs": 33680
+    },
+    {
+      "word": "rapidly",
+      "startMs": 34180,
+      "endMs": 34480
+    },
+    {
+      "word": "evolving",
+      "startMs": 34980,
+      "endMs": 35280
+    },
+    {
+      "word": "landscape",
+      "startMs": 35780,
+      "endMs": 36080
+    },
+    {
+      "word": "we",
+      "startMs": 36580,
+      "endMs": 36880
+    },
+    {
+      "word": "must",
+      "startMs": 37380,
+      "endMs": 37680
+    },
+    {
+      "word": "carefully",
+      "startMs": 38180,
+      "endMs": 38480
+    },
+    {
+      "word": "consider",
+      "startMs": 38980,
+      "endMs": 39200
+    },
+    {
+      "word": "the",
+      "startMs": 39280,
+      "endMs": 39500
+    },
+    {
+      "word": "ethical",
+      "startMs": 39580,
+      "endMs": 39800
+    },
+    {
+      "word": "implications",
+      "startMs": 39880,
+      "endMs": 40100
+    },
+    {
+      "word": "the",
+      "startMs": 40180,
+      "endMs": 40400
+    },
+    {
+      "word": "latest",
+      "startMs": 40480,
+      "endMs": 40700
+    },
+    {
+      "word": "advancements",
+      "startMs": 40780,
+      "endMs": 41000
+    },
+    {
+      "word": "in",
+      "startMs": 41080,
+      "endMs": 41300
+    },
+    {
+      "word": "artificial",
+      "startMs": 41380,
+      "endMs": 41740
+    },
+    {
+      "word": "intelligence",
+      "startMs": 41900,
+      "endMs": 42260
+    },
+    {
+      "word": "have",
+      "startMs": 42420,
+      "endMs": 42780
+    },
+    {
+      "word": "transformed",
+      "startMs": 42940,
+      "endMs": 43300
+    },
+    {
+      "word": "how",
+      "startMs": 43460,
+      "endMs": 43820
+    },
+    {
+      "word": "we",
+      "startMs": 43980,
+      "endMs": 44340
+    },
+    {
+      "word": "interact",
+      "startMs": 44500,
+      "endMs": 44860
+    },
+    {
+      "word": "with",
+      "startMs": 45020,
+      "endMs": 45380
+    },
+    {
+      "word": "technology",
+      "startMs": 45540,
+      "endMs": 45840
+    },
+    {
+      "word": "every",
+      "startMs": 46340,
+      "endMs": 46640
+    },
+    {
+      "word": "day",
+      "startMs": 47140,
+      "endMs": 47440
+    },
+    {
+      "word": "from",
+      "startMs": 47940,
+      "endMs": 48240
+    },
+    {
+      "word": "voice",
+      "startMs": 48740,
+      "endMs": 49040
+    },
+    {
+      "word": "assistants",
+      "startMs": 49540,
+      "endMs": 49840
+    },
+    {
+      "word": "to",
+      "startMs": 50340,
+      "endMs": 50640
+    },
+    {
+      "word": "autonomous",
+      "startMs": 51140,
+      "endMs": 51440
+    },
+    {
+      "word": "vehicles",
+      "startMs": 51940,
+      "endMs": 52160
+    },
+    {
+      "word": "these",
+      "startMs": 52240,
+      "endMs": 52460
+    },
+    {
+      "word": "systems",
+      "startMs": 52540,
+      "endMs": 52760
+    },
+    {
+      "word": "are",
+      "startMs": 52840,
+      "endMs": 53060
+    },
+    {
+      "word": "becoming",
+      "startMs": 53140,
+      "endMs": 53360
+    },
+    {
+      "word": "more",
+      "startMs": 53440,
+      "endMs": 53660
+    },
+    {
+      "word": "capable",
+      "startMs": 53740,
+      "endMs": 53960
+    },
+    {
+      "word": "and",
+      "startMs": 54040,
+      "endMs": 54260
+    },
+    {
+      "word": "reliable",
+      "startMs": 54340,
+      "endMs": 54700
+    },
+    {
+      "word": "researchers",
+      "startMs": 54860,
+      "endMs": 55220
+    },
+    {
+      "word": "continue",
+      "startMs": 55380,
+      "endMs": 55740
+    },
+    {
+      "word": "to",
+      "startMs": 55900,
+      "endMs": 56260
+    },
+    {
+      "word": "push",
+      "startMs": 56420,
+      "endMs": 56780
+    },
+    {
+      "word": "the",
+      "startMs": 56940,
+      "endMs": 57300
+    },
+    {
+      "word": "boundaries",
+      "startMs": 57460,
+      "endMs": 57820
+    },
+    {
+      "word": "of",
+      "startMs": 57980,
+      "endMs": 58340
+    },
+    {
+      "word": "what",
+      "startMs": 58500,
+      "endMs": 58800
+    },
+    {
+      "word": "machines",
+      "startMs": 59300,
+      "endMs": 59600
+    }
+  ],
+  "metadata": {
+    "duration": 60,
+    "pace": "mixed",
+    "wpm": 114,
+    "description": "60s mixed pace with deliberate pauses"
+  }
+}
