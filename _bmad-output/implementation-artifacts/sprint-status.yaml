@@ -107,3 +107,41 @@ development_status:
   5-11-implement-pre-publish-quality-gate: done
   5-12-configure-cloud-scheduler: done
   epic-5-retrospective: optional
+
+  # Epic 6: Broadcast Quality Video Enhancement
+  epic-6: in-progress
+  6-1-define-direction-document-schema: done
+  6-2-implement-backward-compatibility-layer: backlog
+  6-3-update-script-generation-dual-output: backlog
+  6-4-update-tts-to-read-script-only: backlog
+  6-5-create-timestamp-extraction-package: backlog
+  6-6-implement-google-cloud-stt-integration: backlog
+  6-7-implement-estimated-timing-fallback: backlog
+  6-8-create-reference-test-audio-files: backlog
+  6-9-implement-timestamp-quality-gate: backlog
+  6-10-register-timestamp-stage-orchestrator: backlog
+  6-11-update-pipeline-data-flow-timestamps: backlog
+  6-12-add-timestamp-extraction-tests: backlog
+  6-13-define-motionconfig-interface: backlog
+  6-14-create-usemotion-hook: backlog
+  6-15-update-component-prop-interfaces: backlog
+  6-16-refactor-components-motion-support: backlog
+  6-17-create-kinetictext-component: backlog
+  6-18-update-techexplainer-motion-timing: backlog
+  6-19-create-audio-mixer-package: backlog
+  6-20-implement-voice-activity-detection: backlog
+  6-21-implement-music-selection: backlog
+  6-22-initialize-music-library: backlog
+  6-23-initialize-sfx-library: backlog
+  6-24-implement-audio-mix-pipeline: backlog
+  6-25-implement-audio-mixer-quality-gate: backlog
+  6-26-integrate-audio-mixer-visual-gen: backlog
+  6-27-create-broll-engine-package: backlog
+  6-28-implement-code-snippet-renderer: backlog
+  6-29-update-codehighlight-typing-effect: backlog
+  6-30-implement-browser-demo-templates: backlog
+  6-31-create-browserframe-component: backlog
+  6-32-update-timelinejson-dynamic-duration: backlog
+  6-33-update-scene-duration-calculation: backlog
+  6-34-update-remotion-composition-dynamic-duration: backlog
+  epic-6-retrospective: optional

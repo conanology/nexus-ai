@@ -22,7 +22,8 @@
   "author": "Cryptology",
   "license": "MIT",
   "dependencies": {
-    "@nexus-ai/core": "workspace:*"
+    "@nexus-ai/core": "workspace:*",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "typescript": "^5.3.0",
