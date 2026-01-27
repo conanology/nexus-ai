@@ -2,15 +2,18 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { LowerThirdProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const LowerThird: React.FC<LowerThirdProps> = ({
   text = 'Source Citation',
   subtitle = '',
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   const citation = data?.citation ?? text;
   const source = data?.source ?? subtitle;
@@ -36,6 +39,14 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
 
   return (
     <AbsoluteFill>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Lower third bar */}
       <div
         style={{
@@ -86,6 +97,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
               lineHeight: 1.3,
               position: 'relative',
               zIndex: 1,
+              ...motionStyles.emphasisStyle,
             }}
           >
             {citation}
@@ -139,6 +151,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           animation: 'pulse 2s infinite',
         }}
       />
+      </div>
     </AbsoluteFill>
   );
 };

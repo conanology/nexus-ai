@@ -2,15 +2,18 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { BrandedTransitionProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const BrandedTransition: React.FC<BrandedTransitionProps> = ({
   type = 'wipe',
   direction = 'right',
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   const transitionType = data?.transitionType ?? type;
   const color = style?.color ?? THEME.colors.primary;
@@ -22,15 +25,33 @@ export const BrandedTransition: React.FC<BrandedTransitionProps> = ({
 
   return (
     <AbsoluteFill>
-      {transitionType === 'wipe' && (
-        <WipeTransition progress={progress} direction={direction} color={color} />
-      )}
-      {transitionType === 'fade' && (
-        <FadeTransition progress={progress} color={color} />
-      )}
-      {transitionType === 'slide' && (
-        <SlideTransition progress={progress} direction={direction} color={color} />
-      )}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            ...motionStyles.emphasisStyle,
+          }}
+        >
+          {transitionType === 'wipe' && (
+            <WipeTransition progress={progress} direction={direction} color={color} />
+          )}
+          {transitionType === 'fade' && (
+            <FadeTransition progress={progress} color={color} />
+          )}
+          {transitionType === 'slide' && (
+            <SlideTransition progress={progress} direction={direction} color={color} />
+          )}
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };

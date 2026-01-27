@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { TextOnGradientProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 /**
  * TextOnGradient - Fallback component for unmapped visual cues
@@ -11,9 +12,11 @@ export const TextOnGradient: React.FC<TextOnGradientProps> = ({
   text = 'Visual Scene',
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   // Use text from data if provided, otherwise use text prop
   const displayText = data?.text ?? text;
@@ -69,6 +72,14 @@ export const TextOnGradient: React.FC<TextOnGradientProps> = ({
 
   return (
     <AbsoluteFill>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Branded gradient background */}
       <div
         data-testid="gradient-background"
@@ -128,6 +139,7 @@ export const TextOnGradient: React.FC<TextOnGradientProps> = ({
             lineHeight: 1.2,
             textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
             padding: THEME.spacing.xl,
+            ...motionStyles.emphasisStyle,
           }}
         >
           {displayText}
@@ -159,6 +171,7 @@ export const TextOnGradient: React.FC<TextOnGradientProps> = ({
           transform: `scaleX(${entranceProgress})`,
         }}
       />
+      </div>
     </AbsoluteFill>
   );
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { MetricsCounterProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const MetricsCounter: React.FC<MetricsCounterProps> = ({
   title = 'Metric',
@@ -9,9 +10,11 @@ export const MetricsCounter: React.FC<MetricsCounterProps> = ({
   unit = '',
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   const startValue = data?.start ?? 0;
   const endValue = data?.end ?? value;
@@ -47,6 +50,18 @@ export const MetricsCounter: React.FC<MetricsCounterProps> = ({
         alignItems: 'center',
       }}
     >
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Label */}
       <div
         style={{
@@ -69,7 +84,8 @@ export const MetricsCounter: React.FC<MetricsCounterProps> = ({
           position: 'relative',
           display: 'flex',
           alignItems: 'baseline',
-          transform: `scale(${pulseScale})`,
+          ...motionStyles.emphasisStyle,
+          transform: `scale(${pulseScale}) ${motionStyles.emphasisStyle.transform === 'none' ? '' : motionStyles.emphasisStyle.transform}`.trim(),
         }}
       >
         {/* Glow effect */}
@@ -173,6 +189,7 @@ export const MetricsCounter: React.FC<MetricsCounterProps> = ({
           />
         );
       })}
+      </div>
     </AbsoluteFill>
   );
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { CodeHighlightProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const CodeHighlight: React.FC<CodeHighlightProps> = ({
   title = 'Code',
@@ -9,9 +10,11 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
   language = 'javascript',
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   const codeContent = data?.code ?? code;
   const codeLang = data?.language ?? language;
@@ -44,6 +47,14 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.colors.background }}>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Title */}
       <div
         style={{
@@ -97,9 +108,10 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
           border: `2px solid ${THEME.colors.primary}40`,
           padding: THEME.spacing.xl,
           overflow: 'hidden',
-          transform: `scale(${progress})`,
           opacity: progress,
           boxShadow: THEME.shadows.xl,
+          ...motionStyles.emphasisStyle,
+          transform: `scale(${progress}) ${motionStyles.emphasisStyle.transform === 'none' ? '' : motionStyles.emphasisStyle.transform}`.trim(),
         }}
       >
         {/* Code content */}
@@ -182,6 +194,7 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
             ),
           }}
         />
+      </div>
       </div>
     </AbsoluteFill>
   );

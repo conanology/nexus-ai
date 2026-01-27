@@ -2,15 +2,18 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig, random } from 'remotion';
 import { THEME } from '../theme';
 import type { NeuralNetworkAnimationProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const NeuralNetworkAnimation: React.FC<NeuralNetworkAnimationProps> = ({
   title = 'Neural Network',
   nodeCount = 12,
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   // Generate nodes in a layered structure if not provided
   const nodes = (data?.nodes as Array<{ id: string; label: string; x: number; y: number }> | undefined) ?? generateNodes(nodeCount);
@@ -30,6 +33,14 @@ export const NeuralNetworkAnimation: React.FC<NeuralNetworkAnimationProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.colors.background }}>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Title */}
       <div
         style={{
@@ -50,7 +61,7 @@ export const NeuralNetworkAnimation: React.FC<NeuralNetworkAnimationProps> = ({
         width="100%"
         height="100%"
         viewBox="0 0 1920 1080"
-        style={{ position: 'absolute' }}
+        style={{ position: 'absolute', ...motionStyles.emphasisStyle }}
       >
         {/* Edges/Connections */}
         {edges.map((edge, index) => {
@@ -147,6 +158,7 @@ export const NeuralNetworkAnimation: React.FC<NeuralNetworkAnimationProps> = ({
           />
         );
       })}
+      </div>
     </AbsoluteFill>
   );
 };

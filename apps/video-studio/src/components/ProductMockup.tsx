@@ -2,15 +2,18 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { ProductMockupProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const ProductMockup: React.FC<ProductMockupProps> = ({
   title = 'Product',
   content = 'Product Interface',
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   const imageUrl = data?.imageUrl;
   const caption = data?.caption ?? title;
@@ -38,6 +41,14 @@ export const ProductMockup: React.FC<ProductMockupProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.colors.background }}>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Caption/Title */}
       <div
         style={{
@@ -64,8 +75,9 @@ export const ProductMockup: React.FC<ProductMockupProps> = ({
           top: mockupY,
           width: mockupWidth,
           height: mockupHeight,
-          transform: `translateY(${slideY}px) scale(${progress})`,
           opacity: progress,
+          ...motionStyles.emphasisStyle,
+          transform: `translateY(${slideY}px) scale(${progress}) ${motionStyles.emphasisStyle.transform === 'none' ? '' : motionStyles.emphasisStyle.transform}`.trim(),
         }}
       >
         {/* Outer glow */}
@@ -242,6 +254,7 @@ export const ProductMockup: React.FC<ProductMockupProps> = ({
             opacity: interpolate(frame, [30, 60, 90], [0, 1, 0]),
           }}
         />
+      </div>
       </div>
     </AbsoluteFill>
   );

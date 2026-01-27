@@ -2,15 +2,18 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { DataFlowDiagramProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const DataFlowDiagram: React.FC<DataFlowDiagramProps> = ({
   title = 'Data Flow',
   steps = ['Input', 'Process', 'Output'],
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   const nodes = data?.nodes ?? steps.map((step, i) => ({
     id: `step-${i}`,
@@ -35,6 +38,14 @@ export const DataFlowDiagram: React.FC<DataFlowDiagramProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.colors.background }}>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Title */}
       <div
         style={{
@@ -55,7 +66,7 @@ export const DataFlowDiagram: React.FC<DataFlowDiagramProps> = ({
         width="100%"
         height="100%"
         viewBox="0 0 1920 1080"
-        style={{ position: 'absolute' }}
+        style={{ position: 'absolute', ...motionStyles.emphasisStyle }}
       >
         <defs>
           {/* Arrow marker */}
@@ -182,6 +193,7 @@ export const DataFlowDiagram: React.FC<DataFlowDiagramProps> = ({
           );
         })}
       </svg>
+      </div>
     </AbsoluteFill>
   );
 };

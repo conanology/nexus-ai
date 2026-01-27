@@ -125,7 +125,7 @@ development_status:
   6-13-define-motionconfig-interface: done
   6-14-create-usemotion-hook: done
   6-15-update-component-prop-interfaces: done
-  6-16-refactor-components-motion-support: backlog
+  6-16-refactor-components-motion-support: done
   6-17-create-kinetictext-component: backlog
   6-18-update-techexplainer-motion-timing: backlog
   6-19-create-audio-mixer-package: backlog

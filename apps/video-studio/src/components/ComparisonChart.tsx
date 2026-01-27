@@ -2,14 +2,17 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { THEME } from '../theme';
 import type { ComparisonChartProps } from '../types';
+import { useMotion } from '../hooks/useMotion.js';
 
 export const ComparisonChart: React.FC<ComparisonChartProps> = ({
   title = 'Comparison',
   data,
   style,
+  motion,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
 
   // Default comparison data
   const comparison = data?.comparison ?? [
@@ -33,6 +36,14 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.colors.background }}>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...motionStyles.entranceStyle,
+          ...motionStyles.exitStyle,
+        }}
+      >
       {/* Title */}
       <div
         style={{
@@ -53,7 +64,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({
         width="100%"
         height="100%"
         viewBox="0 0 1920 1080"
-        style={{ position: 'absolute' }}
+        style={{ position: 'absolute', ...motionStyles.emphasisStyle }}
       >
         {/* Grid lines */}
         {[0, 25, 50, 75, 100].map((value) => {
@@ -176,6 +187,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({
           +{Math.round(((comparison[1].value - comparison[0].value) / comparison[0].value) * 100)}%
         </div>
       )}
+      </div>
     </AbsoluteFill>
   );
 };
