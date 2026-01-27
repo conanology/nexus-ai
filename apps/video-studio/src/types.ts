@@ -1,6 +1,8 @@
 /**
  * Re-export motion types from script-gen for video-studio consumers
  */
+import type { MotionConfig } from '@nexus-ai/script-gen';
+
 export type {
   MotionConfig,
   EntranceConfig,
@@ -34,6 +36,7 @@ export interface NeuralNetworkAnimationProps {
     nodeColor?: string;
     edgeColor?: string;
   };
+  motion?: MotionConfig;
 }
 
 export interface DataFlowDiagramProps {
@@ -47,6 +50,7 @@ export interface DataFlowDiagramProps {
     primaryColor?: string;
     arrowColor?: string;
   };
+  motion?: MotionConfig;
 }
 
 export interface ComparisonChartProps {
@@ -60,6 +64,7 @@ export interface ComparisonChartProps {
     barColor?: string;
     comparisonColor?: string;
   };
+  motion?: MotionConfig;
 }
 
 export interface MetricsCounterProps {
@@ -75,6 +80,7 @@ export interface MetricsCounterProps {
     fontSize?: number;
     color?: string;
   };
+  motion?: MotionConfig;
 }
 
 export interface ProductMockupProps {
@@ -88,6 +94,7 @@ export interface ProductMockupProps {
     backgroundColor?: string;
     borderColor?: string;
   };
+  motion?: MotionConfig;
 }
 
 export interface CodeHighlightProps {
@@ -103,6 +110,7 @@ export interface CodeHighlightProps {
     theme?: 'dark' | 'light';
     fontSize?: number;
   };
+  motion?: MotionConfig;
 }
 
 export interface BrandedTransitionProps {
@@ -114,6 +122,7 @@ export interface BrandedTransitionProps {
   style?: {
     color?: string;
   };
+  motion?: MotionConfig;
 }
 
 export interface LowerThirdProps {
@@ -127,6 +136,7 @@ export interface LowerThirdProps {
     position?: 'bottom' | 'top';
     backgroundColor?: string;
   };
+  motion?: MotionConfig;
 }
 
 export interface TextOnGradientProps {
@@ -137,4 +147,5 @@ export interface TextOnGradientProps {
   style?: {
     fontSize?: number;
   };
+  motion?: MotionConfig;
 }
