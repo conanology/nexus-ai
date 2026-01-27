@@ -8,7 +8,8 @@ import { executeTimestampExtraction } from '../timestamp-extraction.js';
 import type { StageInput } from '@nexus-ai/core';
 import type { TimestampExtractionInput } from '../types.js';
 import type { DirectionDocument } from '@nexus-ai/script-gen';
-import { shouldUseFallback } from '../stt-client.js';
+import { shouldUseFallback, recognizeLongRunning } from '../stt-client.js';
+import { isValidGcsUrl, downloadAndConvert } from '../audio-utils.js';
 
 // Mock functions need to be defined with vi.fn() inline in the mock
 // because vi.mock is hoisted before variable declarations
@@ -101,8 +102,11 @@ vi.mock('../stt-client.js', () => ({
   },
 }));
 
-// Get mocked version for test control
+// Get mocked versions for test control
 const mockedShouldUseFallback = vi.mocked(shouldUseFallback);
+const mockedRecognizeLongRunning = vi.mocked(recognizeLongRunning);
+const mockedIsValidGcsUrl = vi.mocked(isValidGcsUrl);
+const mockedDownloadAndConvert = vi.mocked(downloadAndConvert);
 
 // -----------------------------------------------------------------------------
 // Test Fixtures
@@ -124,7 +128,7 @@ function createMockDocument(wordCount = 10): DirectionDocument {
       {
         id: 'seg-1',
         index: 0,
-        type: 'explanation',
+        type: 'narration',
         content: {
           text,
           wordCount,
@@ -191,10 +195,40 @@ function createMockInput(
 // -----------------------------------------------------------------------------
 
 describe('executeTimestampExtraction', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Reset shouldUseFallback to default (fallback mode)
     mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+    // Re-establish default mock implementations (in case mockRejectedValueOnce was used)
+    mockedRecognizeLongRunning.mockResolvedValue({
+      words: [
+        { word: 'word', startTime: 0, endTime: 0.4, confidence: 0.95 },
+      ],
+      transcript: 'word',
+      confidence: 0.95,
+      audioDurationSec: 10,
+      processingTimeMs: 500,
+    });
+    mockedIsValidGcsUrl.mockReturnValue(true);
+    mockedDownloadAndConvert.mockResolvedValue({
+      buffer: Buffer.from('mock-audio'),
+      originalFormat: {
+        encoding: 'LINEAR16',
+        sampleRate: 24000,
+        channels: 1,
+        bitDepth: 16,
+        durationSec: 10,
+        fileSizeBytes: 480000,
+      },
+      conversionPerformed: false,
+    });
+
+    const { withRetry } = await import('@nexus-ai/core');
+    vi.mocked(withRetry).mockImplementation(async (fn: () => Promise<unknown>) => {
+      const result = await fn();
+      return { result, attempts: 1, totalDelayMs: 0 };
+    });
   });
 
   describe('successful execution', () => {
@@ -582,6 +616,165 @@ describe('executeTimestampExtraction', () => {
       // Fallback-generated timings should pass or degrade quality gate, not fail
       expect(result.quality.measurements.status).toBeDefined();
       expect(['PASS', 'DEGRADED']).toContain(result.quality.measurements.status);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // STT Path Tests (Task 4: Subtasks 4.1–4.5)
+  // ---------------------------------------------------------------------------
+
+  describe('STT extraction path (Story 6.12)', () => {
+    // 4.1: Test full STT success path
+    it('should use STT results and map words to segments on success', async () => {
+      // Create a 3-word document
+      const doc = createMockDocument(3);
+      doc.segments[0].content.text = 'Hello brave world';
+
+      // Mock STT to return 3 matching words
+      mockedRecognizeLongRunning.mockResolvedValue({
+        words: [
+          { word: 'Hello', startTime: 0, endTime: 0.4, confidence: 0.95 },
+          { word: 'brave', startTime: 0.4, endTime: 0.8, confidence: 0.93 },
+          { word: 'world', startTime: 0.8, endTime: 1.2, confidence: 0.97 },
+        ],
+        transcript: 'Hello brave world',
+        confidence: 0.95,
+        audioDurationSec: 1.2,
+        processingTimeMs: 500,
+      });
+
+      mockedShouldUseFallback.mockReturnValue({ useFallback: false, reason: '' });
+
+      const input = createMockInput({ directionDocument: doc });
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('extracted');
+      expect(result.provider.name).toBe('google-stt');
+      expect(result.provider.tier).toBe('primary');
+      expect(result.data.timingMetadata.mappingStats).toBeDefined();
+      expect(result.data.timingMetadata.mappingStats!.matchRatio).toBeGreaterThan(0);
+    });
+
+    // 4.2: Test STT path with word mapping below 80% threshold triggering fallback
+    it('should fall back to estimated when word mapping ratio is below 80%', async () => {
+      // Create a 10-word document
+      const doc = createMockDocument(10);
+
+      // Mock STT to return only 1 word (will give ~10% match ratio)
+      mockedRecognizeLongRunning.mockResolvedValue({
+        words: [
+          { word: 'word', startTime: 0, endTime: 0.4, confidence: 0.95 },
+        ],
+        transcript: 'word',
+        confidence: 0.95,
+        audioDurationSec: 10,
+        processingTimeMs: 500,
+      });
+
+      // shouldUseFallback says don't fallback (STT technically succeeded)
+      mockedShouldUseFallback.mockReturnValue({ useFallback: false, reason: '' });
+
+      const input = createMockInput({ directionDocument: doc });
+      const result = await executeTimestampExtraction(input);
+
+      // The mapping ratio will be ~10%, which is below 80% threshold,
+      // so it should switch to fallback
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.provider.name).toBe('estimated');
+      expect(result.provider.tier).toBe('fallback');
+      expect(result.data.timingMetadata.fallbackReason).toContain('word-mapping-ratio');
+      expect(result.data.timingMetadata.warningFlags).toContain('stt-mapping-failed');
+    });
+
+    // 4.3: Test STT path with retry failures (all retries fail → fallback)
+    it('should fall back when STT extraction throws error', async () => {
+      const { withRetry } = await import('@nexus-ai/core');
+
+      // Make withRetry throw to simulate all retries failing
+      vi.mocked(withRetry).mockRejectedValueOnce(new Error('All retries exhausted'));
+
+      // shouldUseFallback will be called with null result and the error
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.provider.tier).toBe('fallback');
+    });
+
+    // 4.4: Test STT path with low confidence score triggering fallback
+    it('should fall back when STT returns low confidence', async () => {
+      mockedRecognizeLongRunning.mockResolvedValue({
+        words: [
+          { word: 'word', startTime: 0, endTime: 0.4, confidence: 0.3 },
+        ],
+        transcript: 'word',
+        confidence: 0.3,
+        audioDurationSec: 10,
+        processingTimeMs: 500,
+      });
+
+      mockedShouldUseFallback.mockReturnValue({
+        useFallback: true,
+        reason: 'low-confidence: 30.0%',
+      });
+
+      const input = createMockInput();
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.data.timingMetadata.fallbackReason).toContain('low-confidence');
+    });
+
+    // 4.5: Test invalid GCS URL handling in attemptSTTExtraction
+    it('should fall back when audio URL is not a valid GCS URL', async () => {
+      mockedIsValidGcsUrl.mockReturnValue(false);
+      mockedShouldUseFallback.mockReturnValue({
+        useFallback: true,
+        reason: 'stt-api-error',
+      });
+
+      const input = createMockInput({ audioUrl: 'https://not-gcs.com/audio.wav' });
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('estimated');
+      expect(result.provider.tier).toBe('fallback');
+    });
+
+    it('should include extraction confidence in metadata on STT success', async () => {
+      const doc = createMockDocument(1);
+
+      mockedRecognizeLongRunning.mockResolvedValue({
+        words: [
+          { word: 'word', startTime: 0, endTime: 0.4, confidence: 0.92 },
+        ],
+        transcript: 'word',
+        confidence: 0.92,
+        audioDurationSec: 0.4,
+        processingTimeMs: 300,
+      });
+
+      mockedShouldUseFallback.mockReturnValue({ useFallback: false, reason: '' });
+
+      const input = createMockInput({ directionDocument: doc });
+      const result = await executeTimestampExtraction(input);
+
+      expect(result.data.timingMetadata.source).toBe('extracted');
+      expect(result.data.timingMetadata.extractionConfidence).toBe(0.92);
+    });
+
+    it('should call downloadAndConvert when GCS URL is valid', async () => {
+      mockedShouldUseFallback.mockReturnValue({ useFallback: true, reason: 'stt-api-error' });
+      mockedIsValidGcsUrl.mockReturnValue(true);
+
+      const input = createMockInput();
+      await executeTimestampExtraction(input);
+
+      expect(mockedDownloadAndConvert).toHaveBeenCalledWith(
+        'gs://bucket/audio.wav',
+        '2026-01-27'
+      );
     });
   });
 });

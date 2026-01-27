@@ -121,7 +121,7 @@ development_status:
   6-9-implement-timestamp-quality-gate: done
   6-10-register-timestamp-stage-orchestrator: done
   6-11-update-pipeline-data-flow-timestamps: done
-  6-12-add-timestamp-extraction-tests: backlog
+  6-12-add-timestamp-extraction-tests: done
   6-13-define-motionconfig-interface: backlog
   6-14-create-usemotion-hook: backlog
   6-15-update-component-prop-interfaces: backlog

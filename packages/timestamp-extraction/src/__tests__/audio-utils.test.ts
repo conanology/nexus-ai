@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { isValidGcsUrl, validateAudioFormat, convertToLinear16 } from '../audio-utils.js';
+import { isValidGcsUrl, validateAudioFormat, convertToLinear16, downloadFromGCS, downloadAndConvert } from '../audio-utils.js';
 
 // Track mock calls for conversion functions
 const toBitDepthMock = vi.fn();
@@ -32,15 +32,29 @@ function createWaveFileMock(fmtOverrides: Record<string, unknown> = {}) {
   };
 }
 
+// Configurable Storage mock behavior
+let mockFileExists = vi.fn().mockResolvedValue([true]);
+let mockFileDownload = vi.fn().mockResolvedValue([Buffer.from('mock audio data')]);
+
+// Track bucket/file calls for verification
+const mockBucketFn = vi.fn();
+const mockFileFn = vi.fn();
+
 // Mock the Google Cloud Storage client
 vi.mock('@google-cloud/storage', () => ({
   Storage: vi.fn().mockImplementation(() => ({
-    bucket: vi.fn().mockImplementation(() => ({
-      file: vi.fn().mockImplementation(() => ({
-        exists: vi.fn().mockResolvedValue([true]),
-        download: vi.fn().mockResolvedValue([Buffer.from('mock audio data')]),
-      })),
-    })),
+    bucket: (...args: unknown[]) => {
+      mockBucketFn(...args);
+      return {
+        file: (...fileArgs: unknown[]) => {
+          mockFileFn(...fileArgs);
+          return {
+            get exists() { return mockFileExists; },
+            get download() { return mockFileDownload; },
+          };
+        },
+      };
+    },
   })),
 }));
 
@@ -53,6 +67,20 @@ vi.mock('wavefile', () => ({
     return createWaveFileMock();
   }),
 }));
+
+// Mock @nexus-ai/core
+vi.mock('@nexus-ai/core', () => {
+  const loggerMock = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  };
+  return {
+    createPipelineLogger: vi.fn().mockReturnValue(loggerMock),
+  };
+});
 
 describe('isValidGcsUrl', () => {
   it('should return true for valid GCS URLs', () => {
@@ -155,5 +183,136 @@ describe('convertToLinear16', () => {
 
     expect(result.converted).toBe(true);
     expect(toSampleRateMock).toHaveBeenCalledWith(16000);
+  });
+
+  // 2.5: Test convertToLinear16 with non-LINEAR16 encoding (e.g., FLOAT)
+  it('should convert FLOAT encoding to 16-bit', () => {
+    waveFileMockOverride = () => createWaveFileMock({ audioFormat: 3, bitsPerSample: 32 });
+
+    const result = convertToLinear16(Buffer.from('mock'));
+
+    expect(result.converted).toBe(true);
+    expect(toBitDepthMock).toHaveBeenCalledWith('16');
+  });
+
+  // 2.6: Test convertToLinear16 with sample rate requiring resampling
+  it('should convert both bit depth and sample rate when both differ', () => {
+    waveFileMockOverride = () => createWaveFileMock({ bitsPerSample: 24, sampleRate: 44100 });
+
+    const result = convertToLinear16(Buffer.from('mock'));
+
+    expect(result.converted).toBe(true);
+    expect(toBitDepthMock).toHaveBeenCalledWith('16');
+    expect(toSampleRateMock).toHaveBeenCalledWith(24000);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// downloadFromGCS Tests (Task 2: Subtasks 2.1–2.3)
+// -----------------------------------------------------------------------------
+
+describe('downloadFromGCS', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFileExists = vi.fn().mockResolvedValue([true]);
+    mockFileDownload = vi.fn().mockResolvedValue([Buffer.from('mock audio data')]);
+    mockBucketFn.mockClear();
+    mockFileFn.mockClear();
+  });
+
+  // 2.1: Test success path with mocked Storage client
+  it('should download audio from valid GCS URL', async () => {
+    const result = await downloadFromGCS('gs://my-bucket/path/to/audio.wav', 'test-pipeline');
+
+    expect(result).toBeInstanceOf(Buffer);
+    expect(result.toString()).toBe('mock audio data');
+    // Verify correct bucket and file path were used
+    expect(mockBucketFn).toHaveBeenCalledWith('my-bucket');
+    expect(mockFileFn).toHaveBeenCalledWith('path/to/audio.wav');
+  });
+
+  it('should handle nested GCS paths', async () => {
+    const result = await downloadFromGCS('gs://test-bucket/nested/path/file.wav', 'test-pipeline');
+
+    expect(result).toBeInstanceOf(Buffer);
+    // Verify correct bucket and nested path
+    expect(mockBucketFn).toHaveBeenCalledWith('test-bucket');
+    expect(mockFileFn).toHaveBeenCalledWith('nested/path/file.wav');
+  });
+
+  // 2.2: Test missing file (error handling)
+  it('should throw when file does not exist', async () => {
+    mockFileExists = vi.fn().mockResolvedValue([false]);
+
+    await expect(
+      downloadFromGCS('gs://my-bucket/missing-file.wav', 'test-pipeline')
+    ).rejects.toThrow('Audio file not found');
+  });
+
+  // 2.3: Test invalid GCS URL
+  it('should throw for invalid GCS URL format', async () => {
+    await expect(
+      downloadFromGCS('https://not-gcs/file.wav', 'test-pipeline')
+    ).rejects.toThrow('Invalid GCS URL format');
+  });
+
+  it('should throw for empty GCS URL', async () => {
+    await expect(
+      downloadFromGCS('', 'test-pipeline')
+    ).rejects.toThrow('Invalid GCS URL format');
+  });
+
+  it('should throw for malformed GCS URL without path', async () => {
+    await expect(
+      downloadFromGCS('gs://bucket-only', 'test-pipeline')
+    ).rejects.toThrow('Invalid GCS URL format');
+  });
+});
+
+// -----------------------------------------------------------------------------
+// downloadAndConvert Tests (Task 2: Subtask 2.4)
+// -----------------------------------------------------------------------------
+
+describe('downloadAndConvert', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    waveFileMockOverride = null;
+    mockFileExists = vi.fn().mockResolvedValue([true]);
+    mockFileDownload = vi.fn().mockResolvedValue([Buffer.from('mock audio data')]);
+    mockBucketFn.mockClear();
+    mockFileFn.mockClear();
+  });
+
+  // 2.4: Test full pipeline (download + validate + convert)
+  it('should download, validate, and return audio result', async () => {
+    const result = await downloadAndConvert('gs://my-bucket/audio.wav', 'test-pipeline');
+
+    expect(result.buffer).toBeInstanceOf(Buffer);
+    expect(result.originalFormat).toBeDefined();
+    expect(result.originalFormat.encoding).toBe('LINEAR16');
+    expect(result.originalFormat.sampleRate).toBe(24000);
+    expect(typeof result.conversionPerformed).toBe('boolean');
+  });
+
+  it('should report no conversion for already-correct format', async () => {
+    const result = await downloadAndConvert('gs://my-bucket/audio.wav', 'test-pipeline');
+
+    expect(result.conversionPerformed).toBe(false);
+  });
+
+  it('should report conversion when format differs', async () => {
+    waveFileMockOverride = () => createWaveFileMock({ bitsPerSample: 24 });
+
+    const result = await downloadAndConvert('gs://my-bucket/audio.wav', 'test-pipeline');
+
+    expect(result.conversionPerformed).toBe(true);
+  });
+
+  it('should propagate download errors', async () => {
+    mockFileExists = vi.fn().mockResolvedValue([false]);
+
+    await expect(
+      downloadAndConvert('gs://my-bucket/missing.wav', 'test-pipeline')
+    ).rejects.toThrow('Audio file not found');
   });
 });
