@@ -6,8 +6,8 @@ storiesGenerated: true
 validationComplete: true
 workflowComplete: true
 completedAt: "2026-01-07"
-totalStories: 48
-totalEpics: 5
+totalStories: 82
+totalEpics: 6
 frCoverage: "46/46 (100%)"
 nfrCoverage: "25/25 (100%)"
 inputDocuments:
@@ -1979,4 +1979,987 @@ So that videos are produced without manual intervention.
 - **FRs Covered:** FR30-46 (100%)
 - **NFRs Addressed:** NFR1-5 (Reliability), NFR6-9 (Performance), NFR10-13 (Cost)
 - **Outcome:** Complete autonomous operation with monitoring, alerting, recovery, and operator control
+
+---
+
+## Epic 6: Broadcast Quality Video Enhancement
+
+**Goal:** Transform the NEXUS-AI pipeline from static 30-second text slides into cinematic 5-8 minute broadcast-quality videos with kinetic typography, professional audio mixing, and dynamic B-Roll - comparable to Fireship, Vox, and Two Minute Papers.
+
+**User Outcome:** After this epic, videos will have:
+- Word-level animation sync (kinetic typography)
+- Background music with VAD-based auto-ducking
+- Sound effects triggered by content cues
+- Code snippets with typing animations
+- Browser demo simulations
+- Dynamic video duration (5-8 minutes vs fixed 30 seconds)
+
+**Source Document:** `_bmad-output/implementation-artifacts/tech-spec-nexus-video-enhancement-system.md`
+
+**FRs Covered:** FR-E6-1 through FR-E6-19 (Video Enhancement Requirements)
+
+### FR Coverage Map (Epic 6)
+
+| FR | Phase | Description |
+|----|-------|-------------|
+| FR-E6-1 | Phase 1 | Dual file output (script.md + direction.json) |
+| FR-E6-2 | Phase 1 | DirectionDocument schema validation |
+| FR-E6-3 | Phase 1 | TTS reads narration only (no stage directions) |
+| FR-E6-4 | Phase 2 | Word-level timestamp extraction via Google Cloud STT |
+| FR-E6-5 | Phase 2 | Timestamp accuracy <150ms (target 100ms) |
+| FR-E6-6 | Phase 2 | Estimated timing fallback on STT failure |
+| FR-E6-7 | Phase 2 | Processing time <60s for 5-minute audio |
+| FR-E6-8 | Phase 3 | Motion props on all 8 Remotion components |
+| FR-E6-9 | Phase 3 | Backward compatibility without motion props |
+| FR-E6-10 | Phase 3 | KineticText word-sync animation |
+| FR-E6-11 | Phase 3 | Motion presets (subtle/standard/dramatic) |
+| FR-E6-12 | Phase 4 | Music ducking (-20dB speech, -12dB silence) |
+| FR-E6-13 | Phase 4 | SFX triggers from direction.json cues |
+| FR-E6-14 | Phase 4 | Audio levels (voice -6dB peak, no clipping) |
+| FR-E6-15 | Phase 5 | Code snippet typing animation + syntax highlighting |
+| FR-E6-16 | Phase 5 | Browser demo templates (API, form, dashboard) |
+| FR-E6-17 | Phase 5 | B-Roll overlay/fullscreen/PIP modes |
+| FR-E6-18 | Phase 6 | Dynamic video duration (5-8 min target) |
+| FR-E6-19 | Phase 6 | Scene duration calculated from word timings |
+
+**Coverage: 19/19 FRs (100%)**
+
+### NFRs Addressed (Epic 6)
+
+| NFR | Description |
+|-----|-------------|
+| NFR-E6-1 | 95% of extracted word times within 100ms of actual |
+| NFR-E6-2 | Components render correctly without motion props |
+| NFR-E6-3 | Audio mix matches input duration within 1% |
+| NFR-E6-4 | Timestamp extraction <60s processing time |
+
+---
+
+### Story 6.1: Define Direction Document Schema
+
+As a developer,
+I want a complete DirectionDocument schema separating content from visual direction,
+So that TTS receives only narration text and visual layers receive rendering instructions.
+
+**Acceptance Criteria:**
+
+**Given** the existing ScriptGenOutput type
+**When** I define the DirectionDocument schema in `packages/script-gen/src/types.ts`
+**Then** the following types are exported:
+- `DirectionDocument` with version, metadata, segments, globalAudio
+- `DirectionSegment` with id, index, type, content, timing, visual, audio
+- `SegmentType`: 'intro' | 'hook' | 'explanation' | 'code_demo' | 'comparison' | 'example' | 'transition' | 'recap' | 'outro'
+- `MotionConfig` with entrance, emphasis, exit configurations
+- `BRollSpec` with code, browser, diagram, animation, static types
+- `WordTiming` with word, index, startTime, endTime, duration, segmentId, isEmphasis
+- `SFXCue` with trigger, triggerValue, sound, volume
+- `EmphasisWord` with word, effect, intensity
+**And** `MOTION_PRESETS` constant defines subtle, standard, dramatic presets
+**And** timing fields include both estimated (pre-TTS) and actual (post-extraction) values
+**And** all types compile with TypeScript strict mode
+**And** Zod schemas are created for runtime validation
+
+---
+
+### Story 6.2: Implement Backward Compatibility Layer
+
+As a developer,
+I want compatibility utilities for V1 → V2 script output migration,
+So that existing pipeline stages continue working during transition.
+
+**Acceptance Criteria:**
+
+**Given** the DirectionDocument schema from Story 6.1
+**When** I create `packages/script-gen/src/compatibility.ts`
+**Then** the following utilities are exported:
+- `isV2Output(output)` type guard returns true if output has version '2.0'
+- `getScriptText(output)` returns plain narration text (strips brackets for V1)
+- `getDirectionDocument(output, audioDurationSec)` returns DirectionDocument
+- `parseLegacyVisualCues(script, audioDurationSec)` converts V1 brackets to DirectionDocument
+**And** V1 output format continues working with automatic conversion
+**And** downstream stages (pronunciation, tts) use `getScriptText()` for narration
+**And** visual-gen stage uses `getDirectionDocument()` for rendering
+**And** unit tests verify both V1 and V2 paths work correctly
+
+---
+
+### Story 6.3: Update Script Generation for Dual Output
+
+As a developer,
+I want script-gen to produce separate script.md and direction.json files,
+So that content and visual direction are cleanly separated.
+
+**Acceptance Criteria:**
+
+**Given** the compatibility layer from Story 6.2
+**When** I update `packages/script-gen/src/script-gen.ts`
+**Then** multi-agent pipeline produces two outputs:
+- `script.md`: Plain narration text (no brackets, no stage directions)
+- `direction.json`: Visual/audio blueprint with segment timing
+**And** `ScriptGenOutput` includes:
+- `version: '2.0'`
+- `scriptText`: string (plain narration)
+- `scriptUrl`: GCS URL to script.md
+- `directionDocument`: DirectionDocument object
+- `directionUrl`: GCS URL to direction.json
+**And** estimated timing is calculated: `estimatedDurationSec = wordCount / 2.5` (150 WPM)
+**And** segment boundaries align with natural paragraph breaks
+**And** visual cue extraction moves from inline brackets to direction.json
+**And** both artifacts stored to Cloud Storage at `{date}/script-gen/`
+
+---
+
+### Story 6.4: Update TTS to Read Script Only
+
+As a developer,
+I want TTS to read only from script.md content,
+So that no stage directions or visual cues are spoken aloud.
+
+**Acceptance Criteria:**
+
+**Given** dual output from Story 6.3
+**When** I update `packages/tts/src/tts.ts` and `packages/pronunciation/src/pronunciation.ts`
+**Then** both stages use `getScriptText(scriptGenOutput)` for input
+**And** no bracket patterns `[VISUAL:...]` or `[PRONOUNCE:...]` appear in TTS input
+**And** pronunciation stage processes only narration text
+**And** SSML tagging applies to narration text only
+**And** TTS output includes `audioDurationSec` for downstream timing
+**And** existing tests updated to verify clean narration input
+**And** integration test confirms no stage directions in synthesized audio
+
+---
+
+### Story 6.5: Create Timestamp Extraction Package
+
+As a developer,
+I want a new timestamp-extraction package structure,
+So that word-level timing can be extracted from TTS audio.
+
+**Acceptance Criteria:**
+
+**Given** TTS audio output from Epic 3
+**When** I create `packages/timestamp-extraction/`
+**Then** package structure includes:
+- `package.json` with `@nexus-ai/timestamp-extraction` name
+- `tsconfig.json` extending base config
+- `src/index.ts` exporting public API
+- `src/types.ts` with input/output types
+- `src/timestamp-extraction.ts` for main stage logic
+- `src/fallback.ts` for estimated timing
+- `src/quality-gate.ts` for validation
+- `src/__tests__/` for unit tests
+**And** `TimestampExtractionInput` includes:
+- `audioUrl`: GCS URL to TTS audio
+- `audioDurationSec`: total audio duration
+- `directionDocument`: DirectionDocument with segments
+**And** `TimestampExtractionOutput` includes:
+- `directionDocument`: enriched with word timings
+- `wordTimings`: flat array of all WordTiming objects
+- `timingMetadata`: source, confidence, warnings
+**And** package compiles and exports correctly
+
+---
+
+### Story 6.6: Implement Google Cloud STT Integration
+
+As a developer,
+I want to extract word-level timestamps via Google Cloud Speech-to-Text,
+So that animations can sync precisely with spoken words.
+
+**Acceptance Criteria:**
+
+**Given** timestamp-extraction package from Story 6.5
+**When** I implement STT integration in `packages/timestamp-extraction/src/timestamp-extraction.ts`
+**Then** `executeTimestampExtraction()` stage function:
+1. Downloads audio from GCS URL
+2. Converts to LINEAR16 format if needed (via wavefile)
+3. Calls Google Cloud STT with `enableWordTimeOffsets: true`
+4. Parses response into `WordTiming[]` array
+5. Maps words to segments by matching text
+6. Populates `timing.wordTimings` in each segment
+7. Sets `timing.actualStartSec/actualEndSec/actualDurationSec`
+8. Sets `timing.timingSource = 'extracted'`
+**And** STT configuration uses:
+- `encoding: 'LINEAR16'`
+- `sampleRateHertz: 24000` (match Gemini TTS)
+- `languageCode: 'en-US'`
+- `enableWordTimeOffsets: true`
+**And** credentials retrieved via `getSecret('nexus-gcp-speech-credentials')`
+**And** stage uses `withRetry` for API calls
+**And** stage tracks costs via `CostTracker` (batch mode: $0.004/min)
+
+---
+
+### Story 6.7: Implement Estimated Timing Fallback
+
+As a developer,
+I want character-weighted timing estimation when STT fails,
+So that the pipeline continues with degraded but functional timing.
+
+**Acceptance Criteria:**
+
+**Given** STT integration from Story 6.6
+**When** I implement fallback in `packages/timestamp-extraction/src/fallback.ts`
+**Then** `estimateWordTimings(segment, segmentStartSec, config)` function:
+- Splits segment text into words
+- Calculates duration per word proportional to character count
+- Adds pauses after punctuation (300ms for `.!?`, 150ms for `,;:`)
+- Clamps word duration to min 0.1s, max 1.0s
+- Returns `WordTiming[]` with `timingSource: 'estimated'`
+**And** fallback triggers when:
+- Google Cloud STT API error (timeout, quota, auth)
+- STT confidence < 80%
+- Word count mismatch > 20%
+**And** `applyEstimatedTimings(document, audioDurationSec)` applies to all segments
+**And** `timingMetadata.source` set to `'estimated'`
+**And** `timingMetadata.warningFlags` includes `['timing-estimated']`
+**And** quality gate returns DEGRADED status with fallback flag
+
+---
+
+### Story 6.8: Create Reference Test Audio Files
+
+As a developer,
+I want reference audio files with manual word annotations,
+So that STT accuracy can be validated against ground truth.
+
+**Acceptance Criteria:**
+
+**Given** timestamp-extraction package
+**When** I create test fixtures in `packages/timestamp-extraction/src/__tests__/fixtures/`
+**Then** 5 reference audio files are created:
+- `test-audio-01.wav` - 30s, normal pace (150 WPM)
+- `test-audio-02.wav` - 30s, fast pace (180 WPM)
+- `test-audio-03.wav` - 30s, slow pace (120 WPM)
+- `test-audio-04.wav` - 60s, mixed pace with pauses
+- `test-audio-05.wav` - 60s, technical terms and numbers
+**And** each file has corresponding `.annotations.json`:
+```json
+{
+  "words": [
+    { "word": "hello", "startMs": 0, "endMs": 450 },
+    { "word": "world", "startMs": 500, "endMs": 920 }
+  ]
+}
+```
+**And** annotations manually verified for accuracy
+**And** test validates 95% of STT extractions within 100ms of annotations
+
+---
+
+### Story 6.9: Implement Timestamp Quality Gate
+
+As a developer,
+I want quality validation for extracted timestamps,
+So that timing issues are caught before visual rendering.
+
+**Acceptance Criteria:**
+
+**Given** timestamp extraction from Story 6.6
+**When** I implement `packages/timestamp-extraction/src/quality-gate.ts`
+**Then** quality gate validates:
+- `wordCountMatch`: extracted words within 10% of expected (90% threshold)
+- `noGaps`: no timing gaps > 500ms between words
+- `monotonicTiming`: no overlapping word times (CRITICAL)
+- `processingTime`: completes in < 60 seconds
+**And** `validateTimestampExtraction(output)` returns:
+- `status: 'PASS'` - all checks pass
+- `status: 'DEGRADED'` - word count or gap issues
+- `status: 'FAIL'` - monotonic timing violation
+**And** quality metrics logged with structured logger
+**And** DEGRADED status includes specific warning flags
+
+---
+
+### Story 6.10: Register Timestamp Stage in Orchestrator
+
+As a developer,
+I want timestamp-extraction registered in the pipeline,
+So that it executes between TTS and visual-gen stages.
+
+**Acceptance Criteria:**
+
+**Given** timestamp-extraction package complete
+**When** I update `apps/orchestrator/src/stages.ts`
+**Then** `stageRegistry` includes `'timestamp-extraction': executeTimestampExtraction`
+**And** `stageOrder` array places it after 'tts' and before 'visual-gen':
+```typescript
+['news-sourcing', 'research', 'script-gen', 'pronunciation', 'tts',
+ 'timestamp-extraction',  // NEW
+ 'visual-gen', 'thumbnail', 'youtube', 'twitter', 'notifications']
+```
+**And** `STAGE_RETRY_CONFIG` includes: `'timestamp-extraction': { maxRetries: 3, baseDelay: 2000 }`
+**And** `STAGE_CRITICALITY` includes: `'timestamp-extraction': 'DEGRADED'`
+**And** pipeline data flow passes:
+- Input: `audioUrl`, `audioDurationSec`, `directionDocument` from TTS
+- Output: enriched `directionDocument` with word timings to visual-gen
+
+---
+
+### Story 6.11: Update Pipeline Data Flow for Timestamps
+
+As a developer,
+I want the orchestrator to pass timing data through the pipeline,
+So that visual-gen receives word-level timestamps.
+
+**Acceptance Criteria:**
+
+**Given** stage registration from Story 6.10
+**When** I update `apps/orchestrator/src/pipeline.ts`
+**Then** `buildStageInput()` for timestamp-extraction receives:
+- `audioUrl` from TTS output
+- `audioDurationSec` from TTS output
+- `directionDocument` from script-gen output
+**And** `buildStageInput()` for visual-gen receives:
+- `audioUrl` (pass through)
+- `audioDurationSec` (pass through)
+- `directionDocument` with enriched word timings
+**And** visual-gen uses `timing.actualStartSec` if available, falls back to `timing.estimatedStartSec`
+**And** integration test verifies end-to-end data flow
+
+---
+
+### Story 6.12: Add Timestamp Extraction Tests
+
+As a developer,
+I want comprehensive tests for timestamp extraction,
+So that the stage is reliable and edge cases are handled.
+
+**Acceptance Criteria:**
+
+**Given** timestamp-extraction implementation
+**When** I create tests in `packages/timestamp-extraction/src/__tests__/`
+**Then** unit tests cover:
+- STT response parsing (mock responses)
+- Word-to-segment mapping logic
+- Estimated timing calculation
+- Quality gate validation
+- Error handling and fallback triggers
+**And** integration tests cover (can be skipped without GCP credentials):
+- Real STT API call with test audio
+- Accuracy validation against annotations
+- Processing time measurement
+**And** test coverage > 80% for package
+**And** tests run in CI pipeline
+
+---
+
+### Story 6.13: Define MotionConfig Interface
+
+As a developer,
+I want a standardized motion configuration interface,
+So that all components animate consistently.
+
+**Acceptance Criteria:**
+
+**Given** DirectionDocument schema from Story 6.1
+**When** I add motion types to `apps/video-studio/src/types.ts`
+**Then** `MotionConfig` interface includes:
+- `preset?`: 'subtle' | 'standard' | 'dramatic'
+- `entrance`: type, direction, delay, duration, easing, springConfig
+- `emphasis`: type, trigger, intensity, duration
+- `exit`: type, direction, duration, startBeforeEnd
+**And** entrance types: 'fade' | 'slide' | 'pop' | 'scale' | 'blur' | 'none'
+**And** emphasis types: 'pulse' | 'shake' | 'glow' | 'underline' | 'scale' | 'none'
+**And** exit types: 'fade' | 'slide' | 'shrink' | 'blur' | 'none'
+**And** `MOTION_PRESETS` constant provides default configs:
+- `subtle`: gentle fade entrance, no emphasis, fade exit
+- `standard`: slide-up with spring, pulse on word, fade exit
+- `dramatic`: pop with bounce, glow on word, shrink exit
+**And** types exported from video-studio package
+
+---
+
+### Story 6.14: Create useMotion Hook
+
+As a developer,
+I want a shared hook for motion calculations,
+So that animation logic is consistent across components.
+
+**Acceptance Criteria:**
+
+**Given** MotionConfig interface from Story 6.13
+**When** I create `apps/video-studio/src/hooks/useMotion.ts`
+**Then** hook signature is:
+```typescript
+function useMotion(
+  config: MotionConfig | undefined,
+  segmentDurationFrames: number
+): MotionStyles
+```
+**And** hook returns:
+- `entranceStyle`: { opacity, transform } for entrance animation
+- `emphasisStyle`: { filter, transform } for emphasis effect
+- `exitStyle`: { opacity, transform } for exit animation
+- `isEntering`: boolean (in entrance phase)
+- `isExiting`: boolean (in exit phase)
+**And** hook uses `useCurrentFrame()` and `useVideoConfig()` internally
+**And** hook applies `MOTION_PRESETS` when `config.preset` is set
+**And** hook returns neutral styles (opacity: 1, transform: 'none') when config is undefined
+**And** entrance uses `spring()` or `interpolate()` based on easing config
+**And** exit starts at `segmentDurationFrames - config.exit.startBeforeEnd`
+
+---
+
+### Story 6.15: Update Component Prop Interfaces
+
+As a developer,
+I want motion prop added to all component interfaces,
+So that components can receive animation configuration.
+
+**Acceptance Criteria:**
+
+**Given** useMotion hook from Story 6.14
+**When** I update `apps/video-studio/src/types.ts`
+**Then** all 8 component interfaces include `motion?: MotionConfig`:
+- `NeuralNetworkAnimationProps`
+- `DataFlowDiagramProps`
+- `ComparisonChartProps`
+- `MetricsCounterProps`
+- `ProductMockupProps`
+- `CodeHighlightProps`
+- `BrandedTransitionProps`
+- `LowerThirdProps`
+**And** motion prop is optional (backward compatible)
+**And** `TextOnGradientProps` (fallback component) also includes motion
+**And** types compile with strict mode
+
+---
+
+### Story 6.16: Refactor Components for Motion Support
+
+As a developer,
+I want all 8 Remotion components to support motion props,
+So that components animate on entrance/exit with backward compatibility.
+
+**Acceptance Criteria:**
+
+**Given** updated interfaces from Story 6.15
+**When** I refactor `apps/video-studio/src/components/*.tsx` (8 files)
+**Then** each component:
+1. Imports `useMotion` hook
+2. Calls `useMotion(props.motion, durationInFrames)`
+3. Applies `entranceStyle` to container element
+4. Applies `emphasisStyle` to key content elements
+5. Applies `exitStyle` at segment end
+**And** backward compatibility requirements met:
+- Component renders correctly when `motion` is undefined
+- `useMotion(undefined, ...)` returns neutral styles
+- No console warnings when motion prop omitted
+- Visual output identical to current behavior without motion
+**And** each component has snapshot tests:
+- Without motion prop (baseline)
+- With `motion: { preset: 'subtle' }`
+- With `motion: { preset: 'dramatic' }`
+
+---
+
+### Story 6.17: Create KineticText Component
+
+As a developer,
+I want a word-by-word animated text component,
+So that narration text animates in sync with speech.
+
+**Acceptance Criteria:**
+
+**Given** word timings from timestamp extraction
+**When** I create `apps/video-studio/src/components/KineticText.tsx`
+**Then** component props include:
+- `text`: string (full text to display)
+- `wordTimings`: WordTiming[] (timing for each word)
+- `emphasis?`: EmphasisWord[] (words to highlight)
+- `emphasisEffect?`: 'scale' | 'glow' | 'underline' | 'color'
+- `style?`: TextStyle (font, color, size)
+**And** each word:
+- Appears at its `wordTiming.startTime` frame
+- Uses spring animation for entrance
+- Emphasized words get additional animation effect
+- Remains visible until segment end
+**And** component handles:
+- Word wrapping and line breaks
+- Variable word counts
+- Missing word timings (graceful fallback)
+**And** component registered in `COMPONENT_MAP` in TechExplainer
+**And** visual tests verify word appearance timing
+
+---
+
+### Story 6.18: Update TechExplainer for Motion and Timing
+
+As a developer,
+I want TechExplainer to pass motion config and word timings to components,
+So that the composition drives all animations from direction.json.
+
+**Acceptance Criteria:**
+
+**Given** motion-enabled components from Story 6.16
+**When** I update `apps/video-studio/src/compositions/TechExplainer.tsx`
+**Then** TechExplainerSchema accepts enhanced props:
+- `directionDocument`: DirectionDocument (full direction)
+- `audioUrl`: string (TTS audio)
+**And** scene mapping extracts from direction document:
+- `segment.visual.template` → component name
+- `segment.visual.motion` → motion config
+- `segment.visual.templateProps` → component-specific props
+- `segment.timing.wordTimings` → word timing array
+- `segment.content.emphasis` → emphasis words
+**And** each `<Sequence>` receives:
+- `from`: calculated from `timing.actualStartSec` or `timing.estimatedStartSec`
+- `durationInFrames`: calculated from timing
+**And** component receives all props:
+```tsx
+<SceneComponent
+  {...segment.visual.templateProps}
+  motion={segment.visual.motion}
+  wordTimings={segment.timing.wordTimings}
+  emphasis={segment.content.emphasis}
+/>
+```
+**And** audio track synced via `<Audio src={audioUrl} />`
+
+---
+
+### Story 6.19: Create Audio Mixer Package
+
+As a developer,
+I want an audio-mixer package structure,
+So that professional audio mixing can be applied to videos.
+
+**Acceptance Criteria:**
+
+**Given** TTS audio from Epic 3
+**When** I create `packages/audio-mixer/`
+**Then** package structure includes:
+- `package.json` with `@nexus-ai/audio-mixer` name
+- `tsconfig.json` extending base config
+- `src/index.ts` exporting public API
+- `src/types.ts` with input/output types
+- `src/ducking.ts` for VAD and gain curves
+- `src/music-selector.ts` for mood-based selection
+- `src/sfx.ts` for sound effect triggers
+- `src/quality-gate.ts` for audio validation
+- `src/__tests__/` for unit tests
+**And** types defined:
+- `AudioMixerInput`: voiceTrackUrl, directionDocument, targetDurationSec
+- `AudioMixerOutput`: mixedAudioUrl, originalAudioUrl, duckingApplied, metrics
+- `MusicTrack`: id, mood, tempo, duration, gcsPath, license
+- `SFXTrigger`: segmentId, frame, soundId, volume
+**And** package dependencies: `avr-vad`, `ffmpeg-static`
+
+---
+
+### Story 6.20: Implement Voice Activity Detection
+
+As a developer,
+I want VAD-based speech detection,
+So that music ducking triggers precisely during voice.
+
+**Acceptance Criteria:**
+
+**Given** audio-mixer package from Story 6.19
+**When** I implement `packages/audio-mixer/src/ducking.ts`
+**Then** `detectSpeechSegments(audioPath)` function:
+- Uses `avr-vad` with Silero VAD v5 model
+- Analyzes voice track for speech presence
+- Returns array of `{ startSec, endSec }` segments
+- Handles various audio formats via conversion
+**And** `generateDuckingCurve(speechSegments, config)` function:
+- Creates time-indexed gain values
+- Music level: -20dB during speech, -12dB during silence
+- Attack time: 50ms (quick duck)
+- Release time: 300ms (gradual return)
+- Curve shape: exponential attack, linear release
+**And** `DuckingConfig` allows customization:
+- `speechLevel`: dB for music during speech (default: -20)
+- `silenceLevel`: dB for music during silence (default: -12)
+- `attackMs`: attack time in ms (default: 50)
+- `releaseMs`: release time in ms (default: 300)
+
+---
+
+### Story 6.21: Implement Music Selection
+
+As a developer,
+I want mood-based music track selection,
+So that background music matches video tone.
+
+**Acceptance Criteria:**
+
+**Given** audio-mixer package from Story 6.19
+**When** I implement `packages/audio-mixer/src/music-selector.ts`
+**Then** `loadMusicLibrary()` function:
+- Loads library index from `gs://nexus-ai-assets/music/library.json`
+- Caches library in memory
+- Returns `MusicLibrary` with track array
+**And** `selectMusic(criteria, library)` function:
+- Filters by mood (required match)
+- Filters by duration (>= target or loopable)
+- Excludes recently used track (variety)
+- Scores candidates by duration fit, energy match, tag match
+- Returns highest-scored track or null
+**And** `prepareLoopedTrack(track, targetDurationSec)` function:
+- Creates seamless loop if track shorter than target
+- Uses track's `loopPoints` for clean loop
+- Returns path to prepared audio file
+**And** mood types: 'energetic' | 'contemplative' | 'urgent' | 'neutral'
+
+---
+
+### Story 6.22: Initialize Music Library
+
+As a developer,
+I want a seed music library with tracks per mood,
+So that music selection has options from day one.
+
+**Acceptance Criteria:**
+
+**Given** music-selector implementation from Story 6.21
+**When** I create music library at `gs://nexus-ai-assets/music/`
+**Then** library structure includes:
+- `library.json` index file
+- `energetic/` folder with 3+ tracks
+- `contemplative/` folder with 3+ tracks
+- `urgent/` folder with 3+ tracks
+- `neutral/` folder with 3+ tracks
+**And** each track has metadata in library.json:
+- id, filename, mood, energy, tempo (bpm, time signature)
+- durationSec, hasLoop, loopPoints
+- format, sampleRate, channels, peakDb
+- license (type, attribution, restrictions)
+- gcsPath, tags, usageCount
+**And** all tracks are royalty-free or properly licensed
+**And** tracks normalized to consistent levels
+**And** upload script in `scripts/upload-music-library.ts`
+
+---
+
+### Story 6.23: Initialize SFX Library
+
+As a developer,
+I want a sound effects library organized by category,
+So that SFX triggers have audio assets available.
+
+**Acceptance Criteria:**
+
+**Given** audio-mixer package from Story 6.19
+**When** I create SFX library at `gs://nexus-ai-assets/sfx/`
+**Then** library structure includes:
+- `library.json` index file
+- `transitions/` folder (whoosh, swoosh, slide)
+- `ui/` folder (click, beep, notification)
+- `emphasis/` folder (pop, ding, reveal)
+- `ambient/` folder (subtle backgrounds)
+**And** each SFX has metadata:
+- id, filename, category, durationSec
+- gcsPath, tags
+**And** `loadSFXLibrary()` function loads index
+**And** `getSFX(soundId)` returns SFX track path
+**And** all SFX are royalty-free or properly licensed
+**And** SFX normalized to consistent levels
+
+---
+
+### Story 6.24: Implement Audio Mix Pipeline
+
+As a developer,
+I want FFmpeg-based audio mixing with ducking,
+So that voice, music, and SFX combine professionally.
+
+**Acceptance Criteria:**
+
+**Given** ducking and music selection from Stories 6.20-6.21
+**When** I implement `packages/audio-mixer/src/index.ts`
+**Then** `mixAudio(input)` function:
+1. Downloads voice track from GCS
+2. Selects music based on `directionDocument.globalAudio.defaultMood`
+3. Prepares music track (loop if needed)
+4. Detects speech segments via VAD
+5. Generates ducking curve
+6. Extracts SFX triggers from direction document
+7. Calls FFmpeg to mix:
+   - Voice track at original level
+   - Music with ducking curve applied
+   - SFX at trigger points
+8. Normalizes output (voice peaks at -6dB)
+9. Uploads mixed audio to GCS
+10. Returns `AudioMixerOutput` with URLs and metrics
+**And** FFmpeg called via `ffmpeg-static` with filter complex
+**And** output format: WAV 44.1kHz stereo
+**And** stage uses `executeStage` wrapper
+**And** stage tracks costs via `CostTracker`
+
+---
+
+### Story 6.25: Implement Audio Mixer Quality Gate
+
+As a developer,
+I want quality validation for mixed audio,
+So that audio issues are caught before rendering.
+
+**Acceptance Criteria:**
+
+**Given** audio mix pipeline from Story 6.24
+**When** I implement `packages/audio-mixer/src/quality-gate.ts`
+**Then** quality gate validates:
+- `durationMatch`: output within 1% of input duration (CRITICAL)
+- `noClipping`: peak < -0.5dB (headroom check)
+- `voiceLevels`: voice peaks between -9dB and -3dB
+- `musicDucking`: music < -18dB during speech
+**And** `validateAudioMix(output, input)` returns:
+- `status: 'PASS'` - all checks pass
+- `status: 'DEGRADED'` - clipping or level issues
+- `status: 'FAIL'` - duration mismatch
+**And** metrics include:
+- `peakDb`: overall peak level
+- `voicePeakDb`: voice track peak
+- `musicDuckLevel`: average music level during speech
+- `durationDiffPercent`: duration difference percentage
+
+---
+
+### Story 6.26: Integrate Audio Mixer into Visual-Gen
+
+As a developer,
+I want audio mixing called before rendering,
+So that videos use professionally mixed audio.
+
+**Acceptance Criteria:**
+
+**Given** audio-mixer package complete
+**When** I update `packages/visual-gen/src/visual-gen.ts`
+**Then** `executeVisualGen()` integrates audio mixing:
+1. Check if mixing enabled (config flag)
+2. If enabled, call `mixAudio()` with voice track and direction
+3. Store `mixedAudioUrl` in output
+4. Pass `finalAudioUrl` (mixed or original) to render service
+**And** `VisualGenOutput` includes:
+- `originalAudioUrl`: pass-through TTS audio
+- `mixedAudioUrl`: mixed audio (if enabled)
+- `finalAudioUrl`: the one used for render
+**And** fallback logic: if mixing fails, use original TTS audio
+**And** quality status reflects mixing outcome
+**And** costs include audio mixing costs
+
+---
+
+### Story 6.27: Create B-Roll Engine Package
+
+As a developer,
+I want a broll-engine package structure,
+So that synthetic B-Roll can be generated from direction.
+
+**Acceptance Criteria:**
+
+**Given** direction document with B-Roll specs
+**When** I create `packages/broll-engine/`
+**Then** package structure includes:
+- `package.json` with `@nexus-ai/broll-engine` name
+- `tsconfig.json` extending base config
+- `src/index.ts` exporting public API
+- `src/types.ts` with B-Roll types
+- `src/code-renderer.ts` for code snippets
+- `src/browser-demo.ts` for browser simulations
+- `src/__tests__/` for unit tests
+**And** types from DirectionDocument `BRollSpec` are used:
+- `type`: 'code' | 'browser' | 'diagram' | 'animation' | 'static'
+- Type-specific configs (code, browser, diagram, etc.)
+- Common props: overlay, position, startOffset, duration
+
+---
+
+### Story 6.28: Implement Code Snippet Renderer
+
+As a developer,
+I want code snippets with typing animation,
+So that code demos show character-by-character reveal.
+
+**Acceptance Criteria:**
+
+**Given** broll-engine package from Story 6.27
+**When** I implement `packages/broll-engine/src/code-renderer.ts`
+**Then** `generateCodeSnippetProps(config, durationFrames)` function:
+- Takes `BRollSpec.code` configuration
+- Calculates typing progress based on frame and speed
+- Returns props for CodeHighlight component:
+  - `code`: full code string
+  - `language`: syntax highlighting language
+  - `visibleChars`: characters to show at current frame
+  - `highlightLines`: lines to emphasize
+  - `showCursor`: boolean (blinking cursor)
+  - `theme`: 'dark' | 'light'
+**And** typing speed configurable (default: 30 chars/sec)
+**And** line highlighting animates in sequence
+**And** cursor blinks at end of visible text
+
+---
+
+### Story 6.29: Update CodeHighlight for Typing Effect
+
+As a developer,
+I want CodeHighlight component to support typing animation,
+So that code appears progressively during narration.
+
+**Acceptance Criteria:**
+
+**Given** code renderer from Story 6.28
+**When** I update `apps/video-studio/src/components/CodeHighlight.tsx`
+**Then** component props include:
+- `typingEffect?: boolean` (enable typing mode)
+- `typingSpeed?: number` (chars per second)
+- `visibleChars?: number` (override for manual control)
+**And** when `typingEffect: true`:
+- Component calculates visible chars from frame and speed
+- Only visible portion of code is rendered
+- Blinking cursor appears at end
+- Syntax highlighting applies to visible code only
+**And** when `typingEffect: false` (default):
+- Full code displayed immediately (backward compatible)
+**And** component tests verify both modes
+
+---
+
+### Story 6.30: Implement Browser Demo Templates
+
+As a developer,
+I want simulated browser interaction sequences,
+So that UI demonstrations can be shown without real recordings.
+
+**Acceptance Criteria:**
+
+**Given** broll-engine package from Story 6.27
+**When** I implement `packages/broll-engine/src/browser-demo.ts`
+**Then** `generateBrowserDemoProps(config, durationFrames)` function:
+- Takes `BRollSpec.browser` configuration
+- Processes action sequence with timing
+- Returns props for BrowserFrame component
+**And** pre-defined templates available:
+- `'api-request'`: Shows request/response cycle
+- `'form-submit'`: Form fill and submit animation
+- `'dashboard'`: Dashboard with updating metrics
+- `'custom'`: User-defined actions
+**And** `BrowserAction` types supported:
+- `click`: cursor moves, click ripple
+- `type`: text appears character by character
+- `scroll`: content scrolls smoothly
+- `highlight`: element gets highlight box
+- `wait`: pause between actions
+
+---
+
+### Story 6.31: Create BrowserFrame Component
+
+As a developer,
+I want a browser simulation component,
+So that B-Roll can show realistic browser interactions.
+
+**Acceptance Criteria:**
+
+**Given** browser demo templates from Story 6.30
+**When** I create `apps/video-studio/src/components/BrowserFrame.tsx`
+**Then** component props include:
+- `url`: string (displayed in address bar)
+- `content`: React.ReactNode (page content)
+- `actions?: BrowserAction[]` (interaction sequence)
+- `viewport?: { width, height }` (browser size)
+- `style?`: BrowserStyle (chrome appearance)
+**And** component renders:
+- Chrome-style browser chrome (tabs, address bar, buttons)
+- Content area with page content
+- Animated cursor following actions
+- Click ripples on click actions
+- Scroll animation for scroll actions
+**And** component registered in `COMPONENT_MAP`
+**And** visual tests verify browser chrome appearance
+
+---
+
+### Story 6.32: Update TimelineJSON for Dynamic Duration
+
+As a developer,
+I want timeline to support variable video duration,
+So that videos scale from 30 seconds to 5-8 minutes.
+
+**Acceptance Criteria:**
+
+**Given** visual-gen package from Epic 3
+**When** I update `packages/visual-gen/src/types.ts`
+**Then** `TimelineJSON` includes:
+- `audioDurationSec`: actual TTS duration (drives total length)
+- `totalDurationFrames`: calculated from audio at FPS
+- `targetDuration?`: hint ('30s' | '1min' | '5min' | '8min' | 'auto')
+**And** scene duration calculation updated:
+- If word timings available: use `actualEndSec - actualStartSec`
+- If estimated only: use `estimatedEndSec - estimatedStartSec`
+- Add padding for entrance/exit animations
+**And** total video duration = `audioDurationSec` (audio drives length)
+
+---
+
+### Story 6.33: Update Scene Duration Calculation
+
+As a developer,
+I want scene durations calculated from word timings,
+So that visuals align precisely with narration.
+
+**Acceptance Criteria:**
+
+**Given** updated TimelineJSON from Story 6.32
+**When** I update `packages/visual-gen/src/timeline.ts`
+**Then** `generateTimeline(directionDocument)` function:
+- Iterates through segments
+- For each segment, calculates duration:
+  - If `timing.wordTimings` exists: last word endTime - first word startTime
+  - Else: `timing.actualDurationSec` or `timing.estimatedDurationSec`
+- Adds entrance buffer (15 frames) before first word
+- Adds exit buffer (15 frames) after last word
+- Converts seconds to frames: `Math.round(seconds * fps)`
+**And** scene overlap handling:
+- Exit animation can overlap with next entrance
+- Crossfade transitions between scenes
+**And** timeline validation:
+- Total scene durations ≈ audio duration (within 1 second)
+- No gaps between scenes
+- No excessive overlaps (max 30 frames)
+
+---
+
+### Story 6.34: Update Remotion Composition for Dynamic Duration
+
+As a developer,
+I want Remotion composition duration set from timeline,
+So that video length matches audio content.
+
+**Acceptance Criteria:**
+
+**Given** scene duration calculation from Story 6.33
+**When** I update `apps/video-studio/src/Root.tsx`
+**Then** `TechExplainer` composition:
+- `durationInFrames` calculated from `timeline.totalDurationFrames`
+- Or calculated from `Math.ceil(audioDurationSec * fps)` if not in timeline
+**And** composition registration uses calculated duration:
+```typescript
+<Composition
+  id="TechExplainer"
+  component={TechExplainer}
+  durationInFrames={calculateDuration(props)}
+  fps={30}
+  width={1920}
+  height={1080}
+  defaultProps={defaultProps}
+  calculateMetadata={({ props }) => ({
+    durationInFrames: Math.ceil(props.audioDurationSec * 30)
+  })}
+/>
+```
+**And** `calculateMetadata` enables dynamic duration per render
+**And** local preview uses default 5-minute duration for development
+**And** render service passes actual duration from timeline
+
+---
+
+**Epic 6 Summary:**
+- **Stories:** 34
+- **FRs Covered:** FR-E6-1 through FR-E6-19 (100%)
+- **NFRs Addressed:** NFR-E6-1 through NFR-E6-4
+- **Outcome:** Complete broadcast-quality video enhancement with kinetic typography, professional audio, and dynamic B-Roll
 
