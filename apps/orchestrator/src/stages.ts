@@ -11,6 +11,7 @@ import { executeThumbnail } from '@nexus-ai/thumbnail';
 import { executeYouTubeUpload } from '@nexus-ai/youtube';
 import { executeTwitter } from '@nexus-ai/twitter';
 import { executeNotifications } from '@nexus-ai/notifications';
+import { executeTimestampExtraction } from '@nexus-ai/timestamp-extraction';
 
 export type StageExecutor = (input: any) => Promise<any>;
 
@@ -20,6 +21,7 @@ export const stageRegistry: Record<string, StageExecutor> = {
   'script-gen': executeScriptGen,
   'pronunciation': executePronunciation,
   'tts': executeTTS,
+  'timestamp-extraction': executeTimestampExtraction,
   'visual-gen': executeVisualGen,
   'render': executeVisualGen, // render is called internally by visual-gen
   'thumbnail': executeThumbnail,
@@ -35,6 +37,7 @@ export const stageOrder = [
   'script-gen',
   'pronunciation',
   'tts',
+  'timestamp-extraction',
   'visual-gen',
   // 'render' is not a separate stage - visual-gen calls render-service internally
   'thumbnail',

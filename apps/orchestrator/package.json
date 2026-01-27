@@ -20,6 +20,7 @@
     "@nexus-ai/script-gen": "workspace:*",
     "@nexus-ai/pronunciation": "workspace:*",
     "@nexus-ai/tts": "workspace:*",
+    "@nexus-ai/timestamp-extraction": "workspace:*",
     "@nexus-ai/visual-gen": "workspace:*",
     "@nexus-ai/thumbnail": "workspace:*",
     "@nexus-ai/youtube": "workspace:*",

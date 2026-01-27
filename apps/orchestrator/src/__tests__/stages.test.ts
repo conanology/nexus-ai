@@ -14,7 +14,9 @@ describe('Stage Registry', () => {
       'script-gen',
       'pronunciation',
       'tts',
+      'timestamp-extraction',
       'visual-gen',
+      'render',
       'thumbnail',
       'youtube',
       'twitter',
@@ -46,6 +48,7 @@ describe('Stage Registry', () => {
       'script-gen',
       'pronunciation',
       'tts',
+      'timestamp-extraction',
       'visual-gen',
       'thumbnail',
       'youtube',
@@ -54,5 +57,19 @@ describe('Stage Registry', () => {
     ];
 
     expect(stageOrder).toEqual(expectedOrder);
+  });
+
+  it('should place timestamp-extraction after tts and before visual-gen', () => {
+    const ttsIndex = stageOrder.indexOf('tts');
+    const timestampIndex = stageOrder.indexOf('timestamp-extraction');
+    const visualGenIndex = stageOrder.indexOf('visual-gen');
+
+    expect(timestampIndex).toBe(ttsIndex + 1);
+    expect(timestampIndex).toBe(visualGenIndex - 1);
+  });
+
+  it('should register timestamp-extraction as a function', () => {
+    expect(stageRegistry['timestamp-extraction']).toBeDefined();
+    expect(typeof stageRegistry['timestamp-extraction']).toBe('function');
   });
 });
