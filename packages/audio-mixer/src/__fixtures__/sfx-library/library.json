@@ -1,0 +1,100 @@
+{
+  "tracks": [
+    {
+      "id": "transition-whoosh-001",
+      "filename": "whoosh-fast.wav",
+      "category": "transitions",
+      "durationSec": 0.8,
+      "gcsPath": "gs://nexus-ai-assets/sfx/transitions/whoosh-fast.wav",
+      "tags": ["whoosh", "fast", "scene-change"]
+    },
+    {
+      "id": "transition-swoosh-001",
+      "filename": "swoosh-smooth.wav",
+      "category": "transitions",
+      "durationSec": 1.0,
+      "gcsPath": "gs://nexus-ai-assets/sfx/transitions/swoosh-smooth.wav",
+      "tags": ["swoosh", "smooth", "slide"]
+    },
+    {
+      "id": "transition-slide-001",
+      "filename": "slide-in.wav",
+      "category": "transitions",
+      "durationSec": 0.6,
+      "gcsPath": "gs://nexus-ai-assets/sfx/transitions/slide-in.wav",
+      "tags": ["slide", "transition", "enter"]
+    },
+    {
+      "id": "ui-click-001",
+      "filename": "click-soft.wav",
+      "category": "ui",
+      "durationSec": 0.5,
+      "gcsPath": "gs://nexus-ai-assets/sfx/ui/click-soft.wav",
+      "tags": ["click", "soft", "button"]
+    },
+    {
+      "id": "ui-beep-001",
+      "filename": "beep-confirm.wav",
+      "category": "ui",
+      "durationSec": 0.6,
+      "gcsPath": "gs://nexus-ai-assets/sfx/ui/beep-confirm.wav",
+      "tags": ["beep", "confirm", "notification"]
+    },
+    {
+      "id": "ui-notification-001",
+      "filename": "notification-chime.wav",
+      "category": "ui",
+      "durationSec": 0.8,
+      "gcsPath": "gs://nexus-ai-assets/sfx/ui/notification-chime.wav",
+      "tags": ["notification", "chime", "alert"]
+    },
+    {
+      "id": "emphasis-pop-001",
+      "filename": "pop-bright.wav",
+      "category": "emphasis",
+      "durationSec": 0.5,
+      "gcsPath": "gs://nexus-ai-assets/sfx/emphasis/pop-bright.wav",
+      "tags": ["pop", "bright", "highlight"]
+    },
+    {
+      "id": "emphasis-ding-001",
+      "filename": "ding-reveal.wav",
+      "category": "emphasis",
+      "durationSec": 1.0,
+      "gcsPath": "gs://nexus-ai-assets/sfx/emphasis/ding-reveal.wav",
+      "tags": ["ding", "reveal", "success"]
+    },
+    {
+      "id": "emphasis-reveal-001",
+      "filename": "reveal-shimmer.wav",
+      "category": "emphasis",
+      "durationSec": 1.2,
+      "gcsPath": "gs://nexus-ai-assets/sfx/emphasis/reveal-shimmer.wav",
+      "tags": ["reveal", "shimmer", "magic"]
+    },
+    {
+      "id": "ambient-hum-001",
+      "filename": "subtle-hum.wav",
+      "category": "ambient",
+      "durationSec": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/sfx/ambient/subtle-hum.wav",
+      "tags": ["hum", "subtle", "background"]
+    },
+    {
+      "id": "ambient-static-001",
+      "filename": "soft-static.wav",
+      "category": "ambient",
+      "durationSec": 1.5,
+      "gcsPath": "gs://nexus-ai-assets/sfx/ambient/soft-static.wav",
+      "tags": ["static", "soft", "noise"]
+    },
+    {
+      "id": "ambient-room-001",
+      "filename": "room-tone.wav",
+      "category": "ambient",
+      "durationSec": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/sfx/ambient/room-tone.wav",
+      "tags": ["room", "tone", "atmosphere"]
+    }
+  ]
+}

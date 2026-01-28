@@ -40,6 +40,21 @@ export interface SFXTrigger {
   volume: number;
 }
 
+export type SfxCategory = 'transitions' | 'ui' | 'emphasis' | 'ambient';
+
+export interface SfxTrack {
+  id: string;
+  filename: string;
+  category: SfxCategory;
+  durationSec: number;
+  gcsPath: string;
+  tags: string[];
+}
+
+export interface SfxLibrary {
+  tracks: SfxTrack[];
+}
+
 export interface DuckingConfig {
   speechLevel: number;
   silenceLevel: number;

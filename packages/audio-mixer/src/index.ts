@@ -12,6 +12,9 @@ export type {
   AudioMixerMetrics,
   AudioMixerInput,
   AudioMixerOutput,
+  SfxCategory,
+  SfxTrack,
+  SfxLibrary,
 } from './types.js';
 
 // Ducking
@@ -20,8 +23,8 @@ export { detectSpeechSegments, generateDuckingCurve, DEFAULT_DUCKING_CONFIG } fr
 // Music selector
 export { loadMusicLibrary, selectMusic, prepareLoopedTrack, clearMusicLibraryCache } from './music-selector.js';
 
-// SFX stubs
-export { loadSFXLibrary, getSFX, extractSFXTriggers } from './sfx.js';
+// SFX
+export { loadSFXLibrary, getSFX, extractSFXTriggers, clearSFXLibraryCache } from './sfx.js';
 
 // Quality gate stub
 export { validateAudioMix } from './quality-gate.js';
