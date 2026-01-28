@@ -1,0 +1,192 @@
+{
+  "tracks": [
+    {
+      "id": "energetic-001",
+      "mood": "energetic",
+      "tempo": 128,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/energetic/upbeat-tech.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "SynthWave Studio",
+        "restrictions": []
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.1, "endSec": 1.9 },
+      "energy": 0.85,
+      "tags": ["electronic", "tech", "upbeat"]
+    },
+    {
+      "id": "energetic-002",
+      "mood": "energetic",
+      "tempo": 140,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/energetic/driving-pulse.wav",
+      "license": {
+        "type": "CC-BY",
+        "attribution": "BeatForge",
+        "restrictions": ["attribution-required"]
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.1, "endSec": 1.9 },
+      "energy": 0.92,
+      "tags": ["electronic", "driving", "intense"]
+    },
+    {
+      "id": "energetic-003",
+      "mood": "energetic",
+      "tempo": 135,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/energetic/neon-rush.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "Digital Horizon",
+        "restrictions": []
+      },
+      "loopable": false,
+      "energy": 0.78,
+      "tags": ["synth", "tech", "fast"]
+    },
+    {
+      "id": "contemplative-001",
+      "mood": "contemplative",
+      "tempo": 72,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/contemplative/soft-reflection.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "Ambient Works",
+        "restrictions": []
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.1, "endSec": 1.9 },
+      "energy": 0.25,
+      "tags": ["piano", "ambient", "calm"]
+    },
+    {
+      "id": "contemplative-002",
+      "mood": "contemplative",
+      "tempo": 65,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/contemplative/deep-thought.wav",
+      "license": {
+        "type": "CC-BY",
+        "attribution": "Mindscape Audio",
+        "restrictions": ["attribution-required"]
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.0, "endSec": 1.9 },
+      "energy": 0.18,
+      "tags": ["ambient", "ethereal", "slow"]
+    },
+    {
+      "id": "contemplative-003",
+      "mood": "contemplative",
+      "tempo": 80,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/contemplative/quiet-dawn.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "Morning Light",
+        "restrictions": []
+      },
+      "loopable": false,
+      "energy": 0.32,
+      "tags": ["piano", "gentle", "warm"]
+    },
+    {
+      "id": "urgent-001",
+      "mood": "urgent",
+      "tempo": 160,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/urgent/breaking-alert.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "Tension Audio",
+        "restrictions": []
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.1, "endSec": 1.9 },
+      "energy": 0.95,
+      "tags": ["electronic", "tense", "fast"]
+    },
+    {
+      "id": "urgent-002",
+      "mood": "urgent",
+      "tempo": 150,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/urgent/critical-update.wav",
+      "license": {
+        "type": "CC-BY",
+        "attribution": "Pulse Productions",
+        "restrictions": ["attribution-required"]
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.1, "endSec": 1.9 },
+      "energy": 0.88,
+      "tags": ["orchestral", "dramatic", "intense"]
+    },
+    {
+      "id": "urgent-003",
+      "mood": "urgent",
+      "tempo": 170,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/urgent/rapid-fire.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "Speed Sound",
+        "restrictions": []
+      },
+      "loopable": false,
+      "energy": 0.98,
+      "tags": ["electronic", "aggressive", "percussive"]
+    },
+    {
+      "id": "neutral-001",
+      "mood": "neutral",
+      "tempo": 100,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/neutral/steady-flow.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "Baseline Audio",
+        "restrictions": []
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.1, "endSec": 1.9 },
+      "energy": 0.50,
+      "tags": ["ambient", "neutral", "background"]
+    },
+    {
+      "id": "neutral-002",
+      "mood": "neutral",
+      "tempo": 95,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/neutral/clean-slate.wav",
+      "license": {
+        "type": "CC-BY",
+        "attribution": "Clear Tone",
+        "restrictions": ["attribution-required"]
+      },
+      "loopable": true,
+      "loopPoints": { "startSec": 0.0, "endSec": 1.9 },
+      "energy": 0.45,
+      "tags": ["corporate", "clean", "moderate"]
+    },
+    {
+      "id": "neutral-003",
+      "mood": "neutral",
+      "tempo": 110,
+      "duration": 2.0,
+      "gcsPath": "gs://nexus-ai-assets/music/neutral/balanced-beat.wav",
+      "license": {
+        "type": "CC0",
+        "attribution": "EvenKeel Music",
+        "restrictions": []
+      },
+      "loopable": false,
+      "energy": 0.55,
+      "tags": ["electronic", "steady", "light"]
+    }
+  ]
+}
