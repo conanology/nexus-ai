@@ -4,6 +4,8 @@
 
 import type { StageInput, StageOutput, ArtifactRef } from '@nexus-ai/core';
 import { logger, CloudStorageClient, executeStage, NexusError } from '@nexus-ai/core';
+import { mixAudio } from '@nexus-ai/audio-mixer';
+import type { AudioMixerInput } from '@nexus-ai/audio-mixer';
 import type { VisualGenInput, VisualGenOutput, SceneMapping } from './types.js';
 import { parseVisualCues } from './visual-cue-parser.js';
 import { SceneMapper } from './scene-mapper.js';
@@ -153,7 +155,75 @@ export async function executeVisualGen(
       size: timelineJson.length,
     });
 
-    // Step 5: Call render service to generate video
+    // Step 5: Audio mixing (if enabled)
+    let finalAudioUrl = data.audioUrl;
+    let mixedAudioUrl: string | undefined;
+    let audioMixingApplied = false;
+    let audioMixingFailed = false;
+
+    const mixingEnabled = !!data.directionDocument && data.audioMixingEnabled !== false;
+
+    if (mixingEnabled) {
+      try {
+        logger.info({
+          msg: 'Audio mixing enabled - calling mixAudio',
+          pipelineId,
+          stage: 'visual-gen',
+          voiceTrackUrl: data.audioUrl,
+          targetDurationSec: data.audioDurationSec,
+        });
+
+        const mixInput: StageInput<AudioMixerInput> = {
+          pipelineId,
+          previousStage: 'visual-gen',
+          data: {
+            voiceTrackUrl: data.audioUrl,
+            directionDocument: data.directionDocument!,
+            targetDurationSec: data.audioDurationSec,
+          },
+          config: input.config,
+        };
+
+        const mixResult = await mixAudio(mixInput);
+        mixedAudioUrl = mixResult.data.mixedAudioUrl;
+        finalAudioUrl = mixedAudioUrl;
+        audioMixingApplied = true;
+
+        // Record audio-mixer costs if available
+        if (mixResult.cost && config.tracker && typeof (config.tracker as any).recordApiCall === 'function') {
+          (config.tracker as any).recordApiCall(
+            'audio-mixer',
+            { input: 0, output: 0 },
+            mixResult.cost.totalCost ?? 0
+          );
+        }
+
+        logger.info({
+          msg: 'Audio mixing succeeded',
+          pipelineId,
+          stage: 'visual-gen',
+          mixedAudioUrl,
+          duckingApplied: mixResult.data.duckingApplied,
+        });
+      } catch (error) {
+        audioMixingFailed = true;
+        logger.warn({
+          msg: 'Audio mixing failed - using original TTS audio',
+          pipelineId,
+          stage: 'visual-gen',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      logger.info({
+        msg: 'Audio mixing skipped',
+        pipelineId,
+        stage: 'visual-gen',
+        reason: !data.directionDocument ? 'no directionDocument' : 'audioMixingEnabled is false',
+      });
+    }
+
+    // Step 6: Call render service to generate video
     const renderServiceUrl = process.env.RENDER_SERVICE_URL || 'http://localhost:8081';
     const renderSecret = process.env.NEXUS_SECRET || '';
 
@@ -163,7 +233,7 @@ export async function executeVisualGen(
       stage: 'visual-gen',
       renderServiceUrl,
       timelineUrl,
-      audioUrl: data.audioUrl,
+      audioUrl: finalAudioUrl,
     });
 
     const renderResponse = await fetch(`${renderServiceUrl}/render`, {
@@ -175,7 +245,7 @@ export async function executeVisualGen(
       body: JSON.stringify({
         pipelineId,
         timelineUrl,
-        audioUrl: data.audioUrl,
+        audioUrl: finalAudioUrl,
         resolution: '1080p',
       }),
     });
@@ -201,7 +271,7 @@ export async function executeVisualGen(
       fileSize: renderResult.fileSize,
     });
 
-    // Step 6: Calculate quality metrics
+    // Step 7: Calculate quality metrics
     const fallbackUsage = mapper.getFallbackUsage();
     const fallbackPercentage = visualCues.length > 0
       ? (fallbackUsage / visualCues.length) * 100
@@ -241,6 +311,11 @@ export async function executeVisualGen(
       });
     }
 
+    // Mark quality as DEGRADED if audio mixing failed
+    if (audioMixingFailed) {
+      qualityStatus = 'DEGRADED';
+    }
+
     // Build quality metrics
     const qualityMeasurements = {
       sceneCount: timeline.scenes.length,
@@ -248,6 +323,8 @@ export async function executeVisualGen(
       fallbackPercentage,
       timelineAlignmentError: alignmentError,
       qualityStatus,
+      audioMixingApplied,
+      audioMixingFailed,
     };
 
     // Build artifacts array
@@ -280,6 +357,10 @@ export async function executeVisualGen(
       topicData: data.topicData,
       script: data.script,
       audioDurationSec: data.audioDurationSec,
+      // Audio URL fields
+      originalAudioUrl: data.audioUrl,
+      mixedAudioUrl,
+      finalAudioUrl,
       // Metadata for executeStage
       artifacts,
       quality: {

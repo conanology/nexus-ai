@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@google-cloud/storage':
+        specifier: ^7.15.0
+        version: 7.18.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.27
@@ -472,6 +475,9 @@ importers:
 
   packages/visual-gen:
     dependencies:
+      '@nexus-ai/audio-mixer':
+        specifier: workspace:*
+        version: link:../audio-mixer
       '@nexus-ai/core':
         specifier: workspace:*
         version: link:../core

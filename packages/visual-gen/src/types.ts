@@ -25,6 +25,8 @@ export interface VisualGenInput {
   directionDocument?: DirectionDocument;
   /** Flat array of word-level timings from timestamp-extraction */
   wordTimings?: WordTiming[];
+  /** Whether audio mixing is enabled (default: true when directionDocument present) */
+  audioMixingEnabled?: boolean;
 }
 
 /**
@@ -48,6 +50,12 @@ export interface VisualGenOutput {
   script?: string;
   /** Pass-through audio duration for YouTube chapter markers */
   audioDurationSec?: number;
+  /** Pass-through TTS audio URL */
+  originalAudioUrl: string;
+  /** Mixed audio URL (if mixing succeeded) */
+  mixedAudioUrl?: string;
+  /** The URL actually passed to render (mixed or original) */
+  finalAudioUrl: string;
 }
 
 /**

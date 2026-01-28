@@ -28,6 +28,7 @@
   "author": "Cryptology",
   "license": "MIT",
   "dependencies": {
+    "@nexus-ai/audio-mixer": "workspace:*",
     "@nexus-ai/core": "workspace:*",
     "@nexus-ai/script-gen": "workspace:*",
     "@nexus-ai/timestamp-extraction": "workspace:*"
