@@ -12,5 +12,6 @@ export type {
   TimelineJSON,
 } from './types.js';
 export { SceneMapper } from './scene-mapper.js';
-export { generateTimeline } from './timeline.js';
+export { generateTimeline, resolveSceneDuration, resolveSceneStartTime, validateTimeline } from './timeline.js';
+export type { TimelineValidationResult } from './timeline.js';
 export { parseVisualCues } from './visual-cue-parser.js';

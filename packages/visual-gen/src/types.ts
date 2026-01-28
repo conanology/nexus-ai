@@ -91,6 +91,8 @@ export interface TimelineJSON {
   audioDurationSec: number;
   totalDurationFrames: number;
   targetDuration?: '30s' | '1min' | '5min' | '8min' | 'auto';
+  /** Validation warnings from segment-based timeline generation */
+  validationWarnings?: string[];
   scenes: Array<{
     component: string;
     props: {

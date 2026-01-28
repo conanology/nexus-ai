@@ -125,7 +125,28 @@ export async function executeVisualGen(
     }
 
     // Step 3: Generate timeline aligned to audio duration
-    const timeline = generateTimeline(sceneMappings, data.audioDurationSec);
+    const timeline = generateTimeline(sceneMappings, data.audioDurationSec, {
+      segments: data.directionDocument?.segments,
+    });
+
+    // Compute timing mode distribution across all segments
+    let timingMode = 'proportional';
+    const timingModeCounts: Record<string, number> = {};
+    if (data.directionDocument?.segments?.length) {
+      for (const seg of data.directionDocument.segments) {
+        const mode = seg.timing.wordTimings?.length
+          ? 'word-timings'
+          : seg.timing.actualDurationSec !== undefined
+            ? 'actual'
+            : seg.timing.estimatedDurationSec !== undefined
+              ? 'estimated'
+              : 'proportional';
+        timingModeCounts[mode] = (timingModeCounts[mode] ?? 0) + 1;
+      }
+      // Primary mode is the most common across segments
+      timingMode = Object.entries(timingModeCounts)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'proportional';
+    }
 
     logger.info({
       msg: 'Timeline generated',
@@ -133,6 +154,9 @@ export async function executeVisualGen(
       stage: 'visual-gen',
       sceneCount: timeline.scenes.length,
       audioDuration: timeline.audioDurationSec,
+      timingMode,
+      timingModeCounts: Object.keys(timingModeCounts).length > 0 ? timingModeCounts : undefined,
+      validationWarnings: timeline.validationWarnings,
     });
 
     // Step 4: Generate Cloud Storage path and URL
