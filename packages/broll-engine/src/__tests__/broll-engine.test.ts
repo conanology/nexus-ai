@@ -355,8 +355,10 @@ describe('broll-engine', () => {
       const result = generateBrowserDemoProps(sampleBrowserConfig, 300);
 
       expect(result.url).toBe('https://example.com');
-      expect(result.content).toBeNull();
-      expect(result.actions).toEqual(sampleBrowserConfig.actions);
+      // Dashboard template now generates structured content (Story 6-30)
+      expect(result.content).not.toBeNull();
+      // Template actions are merged before config actions
+      expect(result.actions.length).toBeGreaterThanOrEqual(sampleBrowserConfig.actions.length);
       expect(result.viewport).toEqual({ width: 1280, height: 720 });
       expect(result.style).toEqual({ theme: 'light' });
     });
@@ -378,7 +380,7 @@ describe('broll-engine', () => {
     it('handles actions with only required fields (no target/value)', () => {
       const config: BrowserBRollConfig = {
         url: 'https://example.com',
-        templateId: 'dashboard',
+        templateId: 'custom',
         actions: [
           { type: 'wait', delay: 0, duration: 30 },
         ],

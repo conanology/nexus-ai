@@ -28,6 +28,27 @@ export type {
 
 import type { BRollSpec, BRollType, BrowserAction } from '@nexus-ai/script-gen';
 
+/** Structured content for browser demo rendering */
+export interface BrowserDemoContent {
+  /** Template-specific elements to render */
+  elements: BrowserDemoElement[];
+  /** Current cursor position (if any action is active) */
+  cursor?: { x: number; y: number; visible: boolean; clicking: boolean };
+  /** Current scroll offset */
+  scrollY: number;
+  /** Active highlight target (CSS selector) */
+  activeHighlight?: { target: string; opacity: number };
+}
+
+export interface BrowserDemoElement {
+  id: string;
+  type: 'text' | 'input' | 'button' | 'code-block' | 'metric' | 'chart';
+  content: string;
+  /** For type actions: how many chars are visible */
+  visibleChars?: number;
+  position: { x: number; y: number };
+}
+
 /** Props for code snippet Remotion component */
 export interface CodeSnippetProps {
   code: string;
@@ -47,7 +68,7 @@ export interface BrowserStyle {
 /** Props for browser demo Remotion component */
 export interface BrowserDemoProps {
   url: string;
-  content: unknown;
+  content: BrowserDemoContent | null;
   actions: BrowserAction[];
   viewport: { width: number; height: number };
   style?: BrowserStyle;

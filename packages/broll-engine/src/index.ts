@@ -26,6 +26,8 @@ export type {
   BrowserTemplateId,
   CodeSnippetProps,
   BrowserDemoProps,
+  BrowserDemoContent,
+  BrowserDemoElement,
   BrowserStyle,
   BRollEngineInput,
   BRollEngineOutput,
@@ -33,4 +35,12 @@ export type {
 
 // Functions
 export { generateCodeSnippetProps } from './code-renderer.js';
-export { generateBrowserDemoProps } from './browser-demo.js';
+export {
+  generateBrowserDemoProps,
+  computeActionTimeline,
+  getActiveAction,
+  interpolateActionState,
+  type TimelineEntry,
+  type ActiveActionState,
+  type InterpolatedState,
+} from './browser-demo.js';
