@@ -16,6 +16,14 @@ export type {
   SfxCategory,
   SfxTrack,
   SfxLibrary,
+  AudioMixerQualityResult,
+  AudioQualityCheckResult,
+  AudioMixerQualityMetrics,
+} from './types.js';
+
+export {
+  AUDIO_MIXER_ERROR_CODES,
+  AUDIO_MIXER_QUALITY_THRESHOLDS,
 } from './types.js';
 
 // Ducking
@@ -30,5 +38,5 @@ export { loadSFXLibrary, getSFX, extractSFXTriggers, clearSFXLibraryCache } from
 // Mix pipeline
 export { mixAudio, buildFilterComplex } from './mix-pipeline.js';
 
-// Quality gate stub
+// Quality gate
 export { validateAudioMix } from './quality-gate.js';

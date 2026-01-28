@@ -102,3 +102,45 @@ export interface AudioMixerOutput {
   duckingApplied: boolean;
   metrics: AudioMixerMetrics;
 }
+
+// Quality Gate Types
+
+export interface AudioMixerQualityMetrics {
+  peakDb: number;
+  voicePeakDb: number;
+  musicDuckLevel: number;
+  durationDiffPercent: number;
+}
+
+export interface AudioQualityCheckResult {
+  passed: boolean;
+  severity?: 'CRITICAL' | 'DEGRADED';
+  code?: string;
+  message: string;
+  actualValue: number;
+  threshold: number;
+}
+
+export interface AudioMixerQualityResult {
+  status: 'PASS' | 'DEGRADED' | 'FAIL';
+  checks: Record<string, AudioQualityCheckResult>;
+  flags: string[];
+  metrics: AudioMixerQualityMetrics;
+}
+
+// Quality Gate Constants
+
+export const AUDIO_MIXER_ERROR_CODES = {
+  DURATION_MISMATCH: 'DURATION_MISMATCH',
+  CLIPPING_DETECTED: 'CLIPPING_DETECTED',
+  VOICE_LEVEL_OUT_OF_RANGE: 'VOICE_LEVEL_OUT_OF_RANGE',
+  MUSIC_DUCK_INSUFFICIENT: 'MUSIC_DUCK_INSUFFICIENT',
+} as const;
+
+export const AUDIO_MIXER_QUALITY_THRESHOLDS = {
+  DURATION_MATCH_PERCENT: 1,
+  MAX_PEAK_DB: -0.5,
+  VOICE_MIN_DB: -9,
+  VOICE_MAX_DB: -3,
+  MUSIC_DUCK_MAX_DB: -18,
+} as const;
