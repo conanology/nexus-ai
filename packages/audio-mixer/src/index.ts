@@ -6,6 +6,7 @@ export type {
   MusicLibrary,
   MusicSelectionCriteria,
   SFXTrigger,
+  SFXTriggerResolved,
   DuckingConfig,
   SpeechSegment,
   GainPoint,
@@ -25,6 +26,9 @@ export { loadMusicLibrary, selectMusic, prepareLoopedTrack, clearMusicLibraryCac
 
 // SFX
 export { loadSFXLibrary, getSFX, extractSFXTriggers, clearSFXLibraryCache } from './sfx.js';
+
+// Mix pipeline
+export { mixAudio, buildFilterComplex } from './mix-pipeline.js';
 
 // Quality gate stub
 export { validateAudioMix } from './quality-gate.js';

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { NexusError } from '@nexus-ai/core';
-import { extractSFXTriggers } from '../sfx.js';
 import { validateAudioMix } from '../quality-gate.js';
 
 function expectNotImplementedError(fn: () => never): void {
@@ -15,12 +14,6 @@ function expectNotImplementedError(fn: () => never): void {
 }
 
 describe('Audio Mixer Stub Implementations', () => {
-  describe('sfx.ts stubs', () => {
-    it('extractSFXTriggers throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
-      expectNotImplementedError(extractSFXTriggers);
-    });
-  });
-
   describe('quality-gate.ts stubs', () => {
     it('validateAudioMix throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
       expectNotImplementedError(validateAudioMix);

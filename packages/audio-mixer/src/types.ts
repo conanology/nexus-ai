@@ -72,6 +72,15 @@ export interface GainPoint {
   gainDb: number;
 }
 
+export interface SFXTriggerResolved {
+  segmentId: string;
+  timeSec: number;
+  soundId: string;
+  gcsPath: string;
+  volume: number;
+  durationSec: number;
+}
+
 export interface AudioMixerMetrics {
   voicePeakDb: number;
   musicPeakDb: number;
