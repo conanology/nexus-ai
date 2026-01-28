@@ -229,6 +229,143 @@ describe('generateTimeline', () => {
     });
   });
 
+  describe('dynamic duration fields', () => {
+    it('should calculate totalDurationFrames as audioDurationSec * default fps (30)', () => {
+      const sceneMappings: SceneMapping[] = [
+        {
+          component: 'NeuralNetworkAnimation',
+          props: { title: 'Scene 1' },
+          duration: 30,
+          startTime: 0,
+          endTime: 30,
+        },
+      ];
+
+      const timeline = generateTimeline(sceneMappings, 60);
+
+      expect(timeline.totalDurationFrames).toBe(Math.ceil(60 * 30));
+    });
+
+    it('should calculate totalDurationFrames with custom fps', () => {
+      const sceneMappings: SceneMapping[] = [
+        {
+          component: 'NeuralNetworkAnimation',
+          props: { title: 'Scene 1' },
+          duration: 30,
+          startTime: 0,
+          endTime: 30,
+        },
+      ];
+
+      const timeline = generateTimeline(sceneMappings, 60, { fps: 60 });
+
+      expect(timeline.totalDurationFrames).toBe(Math.ceil(60 * 60));
+    });
+
+    it('should have targetDuration undefined when not provided', () => {
+      const sceneMappings: SceneMapping[] = [
+        {
+          component: 'NeuralNetworkAnimation',
+          props: { title: 'Scene 1' },
+          duration: 30,
+          startTime: 0,
+          endTime: 30,
+        },
+      ];
+
+      const timeline = generateTimeline(sceneMappings, 60);
+
+      expect(timeline.targetDuration).toBeUndefined();
+    });
+
+    it('should pass through targetDuration when provided', () => {
+      const sceneMappings: SceneMapping[] = [
+        {
+          component: 'NeuralNetworkAnimation',
+          props: { title: 'Scene 1' },
+          duration: 30,
+          startTime: 0,
+          endTime: 30,
+        },
+      ];
+
+      const timeline = generateTimeline(sceneMappings, 300, { targetDuration: '5min' });
+
+      expect(timeline.targetDuration).toBe('5min');
+    });
+
+    it('should include totalDurationFrames in empty scene timeline', () => {
+      const timeline = generateTimeline([], 120);
+
+      expect(timeline.totalDurationFrames).toBe(Math.ceil(120 * 30));
+      expect(timeline.targetDuration).toBeUndefined();
+      expect(timeline.scenes).toHaveLength(0);
+    });
+
+    it('should ceil totalDurationFrames for fractional results', () => {
+      const sceneMappings: SceneMapping[] = [
+        {
+          component: 'NeuralNetworkAnimation',
+          props: { title: 'Scene 1' },
+          duration: 10,
+          startTime: 0,
+          endTime: 10,
+        },
+      ];
+
+      // 10.5 * 30 = 315 (exact), but 10.3 * 30 = 309 (exact)
+      const timeline = generateTimeline(sceneMappings, 10.3);
+
+      expect(timeline.totalDurationFrames).toBe(Math.ceil(10.3 * 30));
+    });
+
+    it('should serialize new fields correctly in JSON output', () => {
+      const sceneMappings: SceneMapping[] = [
+        {
+          component: 'NeuralNetworkAnimation',
+          props: { title: 'Scene 1' },
+          duration: 30,
+          startTime: 0,
+          endTime: 30,
+        },
+      ];
+
+      const timeline = generateTimeline(sceneMappings, 60, { targetDuration: '1min' });
+      const json = JSON.parse(JSON.stringify(timeline));
+
+      expect(json.totalDurationFrames).toBe(1800);
+      expect(json.targetDuration).toBe('1min');
+      expect(json.audioDurationSec).toBe(60);
+      expect(json.scenes).toHaveLength(1);
+    });
+
+    it('should omit targetDuration from serialized JSON when undefined', () => {
+      const timeline = generateTimeline([], 60);
+      const json = JSON.parse(JSON.stringify(timeline));
+
+      expect(json).not.toHaveProperty('targetDuration');
+      expect(json.totalDurationFrames).toBe(1800);
+    });
+
+    it('should guard against zero or negative fps', () => {
+      const sceneMappings: SceneMapping[] = [
+        {
+          component: 'NeuralNetworkAnimation',
+          props: { title: 'Scene 1' },
+          duration: 30,
+          startTime: 0,
+          endTime: 30,
+        },
+      ];
+
+      const timelineZeroFps = generateTimeline(sceneMappings, 60, { fps: 0 });
+      expect(timelineZeroFps.totalDurationFrames).toBe(Math.ceil(60 * 30)); // falls back to 30
+
+      const timelineNegativeFps = generateTimeline(sceneMappings, 60, { fps: -10 });
+      expect(timelineNegativeFps.totalDurationFrames).toBe(Math.ceil(60 * 30)); // falls back to 30
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle single scene', () => {
       const sceneMappings: SceneMapping[] = [

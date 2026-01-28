@@ -89,6 +89,8 @@ export interface SceneMapping {
  */
 export interface TimelineJSON {
   audioDurationSec: number;
+  totalDurationFrames: number;
+  targetDuration?: '30s' | '1min' | '5min' | '8min' | 'auto';
   scenes: Array<{
     component: string;
     props: {

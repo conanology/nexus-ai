@@ -10,12 +10,18 @@ import type { SceneMapping, TimelineJSON } from './types.js';
  */
 export function generateTimeline(
   sceneMappings: SceneMapping[],
-  audioDurationSec: number
+  audioDurationSec: number,
+  options?: { fps?: number; targetDuration?: '30s' | '1min' | '5min' | '8min' | 'auto' }
 ): TimelineJSON {
+  const fps = options?.fps && options.fps > 0 ? options.fps : 30;
+  const totalDurationFrames = Math.ceil(audioDurationSec * fps);
+
   // Handle empty scenes
   if (sceneMappings.length === 0) {
     return {
       audioDurationSec,
+      totalDurationFrames,
+      targetDuration: options?.targetDuration,
       scenes: [],
     };
   }
@@ -51,6 +57,8 @@ export function generateTimeline(
 
   return {
     audioDurationSec,
+    totalDurationFrames,
+    targetDuration: options?.targetDuration,
     scenes,
   };
 }
