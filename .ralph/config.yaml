@@ -12,9 +12,9 @@ context_clear_command: /clear
 clear_between_phases: [1, 2]  # Run /clear after these phases
 no_clear_between: [3, 4]      # Phase 3 and 4 run together without /clear
 
-# Cycle mode - process 5 stories per cycle
+# Cycle mode - process 10 stories per cycle
 testing_mode: false
-stories_per_cycle: 5  # Set to 0 for unlimited (full epic)
+stories_per_cycle: 10  # Set to 0 for unlimited (full epic)
 
 # Circuit breaker settings
 circuit_breaker:

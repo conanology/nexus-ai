@@ -20,7 +20,7 @@
   - [ ] Git Commit
 - [ ] Story complete! (EXIT in testing mode, or /clear and continue to next story)
 
-**CYCLE MODE**: 5 stories per cycle, auto-commit enabled
+**CYCLE MODE**: 10 stories per cycle, auto-commit enabled
 
 ### Epic 6 Story Progress
 

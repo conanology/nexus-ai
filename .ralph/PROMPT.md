@@ -175,7 +175,7 @@ RECOMMENDATION: <one line summary of what to do next>
 Set EXIT_SIGNAL to **true** only when:
 
 1. **Story committed AND no more backlog stories** in current epic
-2. **CYCLE LIMIT**: After 5 stories complete all 4 phases in this cycle
+2. **CYCLE LIMIT**: After 10 stories complete all 4 phases in this cycle
 3. **BLOCKED**: After 5 failed code-review iterations
 
 **During normal operation**:
@@ -186,8 +186,8 @@ Set EXIT_SIGNAL to **true** only when:
   - More stories exist: Run `/clear`, loop back (EXIT_SIGNAL: false)
   - No more stories: EXIT_SIGNAL: true
 
-**CYCLE MODE**: Processing 5 stories per cycle.
-After 5 stories complete Phase 4: EXIT_SIGNAL: true
+**CYCLE MODE**: Processing 10 stories per cycle.
+After 10 stories complete Phase 4: EXIT_SIGNAL: true
 
 ### Status Block Examples
 
@@ -259,7 +259,7 @@ TESTS_STATUS: PASSING
 BUILD_STATUS: PASSING
 WORK_TYPE: COMMIT
 EXIT_SIGNAL: true
-RECOMMENDATION: 5 stories committed this cycle (6-7 through 6-11). Cycle limit reached.
+RECOMMENDATION: 10 stories committed this cycle. Cycle limit reached.
 ---END_RALPH_STATUS---
 ```
 
@@ -369,6 +369,6 @@ END LOOP
 **CRITICAL**: `/clear` must be typed as an actual command, not just mentioned.
 After typing `/clear`, the context will reset and you must re-read sprint-status.yaml.
 
-**CYCLE MODE**: Set EXIT_SIGNAL: true after 5 stories complete all 4 phases in this cycle.
+**CYCLE MODE**: Set EXIT_SIGNAL: true after 10 stories complete all 4 phases in this cycle.
 
 Remember: Quality over speed. Complete each story fully before moving on.
