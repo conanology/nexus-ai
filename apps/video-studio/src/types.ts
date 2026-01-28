@@ -112,6 +112,9 @@ export interface CodeHighlightProps {
   title?: string;
   code?: string;
   language?: string;
+  typingEffect?: boolean;
+  typingSpeed?: number;
+  visibleChars?: number;
   data?: {
     code?: string;
     language?: string;

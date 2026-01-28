@@ -4,10 +4,16 @@ import { THEME } from '../theme';
 import type { CodeHighlightProps } from '../types';
 import { useMotion } from '../hooks/useMotion.js';
 
+const DEFAULT_TYPING_SPEED = 30;
+const CURSOR_BLINK_FRAMES = 15;
+
 export const CodeHighlight: React.FC<CodeHighlightProps> = ({
   title = 'Code',
   code = 'console.log("Hello World");',
   language = 'javascript',
+  typingEffect,
+  typingSpeed,
+  visibleChars: visibleCharsProp,
   data,
   style,
   motion,
@@ -20,12 +26,29 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
   const codeLang = data?.language ?? language;
   const highlightLines = data?.highlightLines ?? [];
 
-  // Theme setting (not currently used, reserved for future light mode support)
-  // const theme = style?.theme ?? 'dark';
   const fontSize = style?.fontSize ?? THEME.fontSizes.lg;
 
-  // Split code into lines
-  const lines = codeContent.split('\n');
+  // Typing effect calculation (guards match broll-engine/code-renderer.ts)
+  const isTyping = typingEffect === true;
+  const speed = typingSpeed ?? DEFAULT_TYPING_SPEED;
+  const safeFps = fps > 0 ? fps : 30;
+  const safeFrame = Math.max(0, frame);
+  const effectiveVisibleChars = isTyping
+    ? visibleCharsProp ?? Math.min(Math.floor(safeFrame * (speed / safeFps)), codeContent.length)
+    : codeContent.length;
+
+  // The code to display: sliced when typing, full otherwise
+  const displayCode = isTyping ? codeContent.slice(0, effectiveVisibleChars) : codeContent;
+  const typingComplete = effectiveVisibleChars >= codeContent.length;
+
+  // Split display code into lines
+  const lines = displayCode.split('\n');
+
+  // Filter highlightLines to only visible, non-empty lines during typing
+  // Note: data.highlightLines uses 0-based indices (video-studio convention)
+  const activeHighlightLines = isTyping
+    ? highlightLines.filter((lineIdx) => lineIdx < lines.length && lines[lineIdx].length > 0)
+    : highlightLines;
 
   // Animation progress
   const progress = spring({
@@ -44,6 +67,14 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
     comment: THEME.colors.textMuted,
     number: THEME.colors.chart.yellow,
   };
+
+  // Cursor visibility: only in typing mode
+  // Discrete toggle matching broll-engine: on/off every CURSOR_BLINK_FRAMES (~2Hz at 30fps)
+  const cursorOpacity = isTyping
+    ? typingComplete
+      ? (Math.floor(safeFrame / CURSOR_BLINK_FRAMES) % 2 === 0 ? 1 : 0)
+      : 1
+    : 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.colors.background }}>
@@ -124,15 +155,19 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
           }}
         >
           {lines.map((line, index) => {
+            // In typing mode: all visible lines shown at full opacity
+            // In non-typing mode: staggered line-by-line fade-in
             const lineDelay = index * 2;
-            const lineOpacity = interpolate(
-              frame - lineDelay,
-              [0, 15],
-              [0, 1],
-              { extrapolateRight: 'clamp' }
-            );
+            const lineOpacity = isTyping
+              ? 1
+              : interpolate(
+                  frame - lineDelay,
+                  [0, 15],
+                  [0, 1],
+                  { extrapolateRight: 'clamp' }
+                );
 
-            const isHighlighted = highlightLines.includes(index);
+            const isHighlighted = activeHighlightLines.includes(index);
 
             return (
               <div
@@ -178,8 +213,9 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
           })}
         </div>
 
-        {/* Cursor blink */}
+        {/* Cursor - only visible in typing mode */}
         <div
+          data-testid="typing-cursor"
           style={{
             position: 'absolute',
             bottom: THEME.spacing.xl,
@@ -187,11 +223,7 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
             width: 2,
             height: fontSize * 1.4,
             backgroundColor: THEME.colors.primary,
-            opacity: interpolate(
-              Math.sin(frame / 15),
-              [-1, 1],
-              [0, 1]
-            ),
+            opacity: cursorOpacity,
           }}
         />
       </div>
