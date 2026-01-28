@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { NexusError } from '@nexus-ai/core';
-import { loadMusicLibrary, selectMusic, prepareLoopedTrack } from '../music-selector.js';
 import { loadSFXLibrary, getSFX, extractSFXTriggers } from '../sfx.js';
 import { validateAudioMix } from '../quality-gate.js';
 
@@ -16,20 +15,6 @@ function expectNotImplementedError(fn: () => never): void {
 }
 
 describe('Audio Mixer Stub Implementations', () => {
-  describe('music-selector.ts stubs', () => {
-    it('loadMusicLibrary throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
-      expectNotImplementedError(loadMusicLibrary);
-    });
-
-    it('selectMusic throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
-      expectNotImplementedError(selectMusic);
-    });
-
-    it('prepareLoopedTrack throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
-      expectNotImplementedError(prepareLoopedTrack);
-    });
-  });
-
   describe('sfx.ts stubs', () => {
     it('loadSFXLibrary throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
       expectNotImplementedError(loadSFXLibrary);

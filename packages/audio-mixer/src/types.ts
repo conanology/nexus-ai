@@ -15,6 +15,22 @@ export interface MusicTrack {
   duration: number;
   gcsPath: string;
   license: LicenseInfo;
+  loopable: boolean;
+  loopPoints?: { startSec: number; endSec: number };
+  energy: number;
+  tags: string[];
+}
+
+export interface MusicLibrary {
+  tracks: MusicTrack[];
+}
+
+export interface MusicSelectionCriteria {
+  mood: MoodType;
+  minDurationSec: number;
+  excludeTrackIds?: string[];
+  targetEnergy?: number;
+  tags?: string[];
 }
 
 export interface SFXTrigger {

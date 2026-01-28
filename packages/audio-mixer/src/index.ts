@@ -3,6 +3,8 @@ export type {
   MoodType,
   LicenseInfo,
   MusicTrack,
+  MusicLibrary,
+  MusicSelectionCriteria,
   SFXTrigger,
   DuckingConfig,
   SpeechSegment,
@@ -15,8 +17,8 @@ export type {
 // Ducking
 export { detectSpeechSegments, generateDuckingCurve, DEFAULT_DUCKING_CONFIG } from './ducking.js';
 
-// Music selector stubs
-export { loadMusicLibrary, selectMusic, prepareLoopedTrack } from './music-selector.js';
+// Music selector
+export { loadMusicLibrary, selectMusic, prepareLoopedTrack, clearMusicLibraryCache } from './music-selector.js';
 
 // SFX stubs
 export { loadSFXLibrary, getSFX, extractSFXTriggers } from './sfx.js';
