@@ -248,6 +248,25 @@ importers:
         specifier: ^1.1.0
         version: 1.6.1(@types/node@20.19.27)(terser@5.44.1)
 
+  packages/broll-engine:
+    dependencies:
+      '@nexus-ai/core':
+        specifier: workspace:*
+        version: link:../core
+      '@nexus-ai/script-gen':
+        specifier: workspace:*
+        version: link:../script-gen
+    devDependencies:
+      '@nexus-ai/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.1.0
+        version: 1.6.1(@types/node@20.19.27)(terser@5.44.1)
+
   packages/config: {}
 
   packages/core:

@@ -136,7 +136,7 @@ development_status:
   6-24-implement-audio-mix-pipeline: done
   6-25-implement-audio-mixer-quality-gate: done
   6-26-integrate-audio-mixer-visual-gen: done
-  6-27-create-broll-engine-package: backlog
+  6-27-create-broll-engine-package: done
   6-28-implement-code-snippet-renderer: backlog
   6-29-update-codehighlight-typing-effect: backlog
   6-30-implement-browser-demo-templates: backlog
