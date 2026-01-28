@@ -12,3 +12,4 @@ export { BrandedTransition } from './BrandedTransition';
 export { LowerThird } from './LowerThird';
 export { TextOnGradient } from './TextOnGradient';
 export { KineticText } from './KineticText';
+export { BrowserFrame } from './BrowserFrame';

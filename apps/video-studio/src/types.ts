@@ -1,7 +1,9 @@
 /**
  * Re-export motion and direction types from script-gen for video-studio consumers
  */
-import type { MotionConfig, WordTiming, EmphasisWord, EmphasisEffect } from '@nexus-ai/script-gen';
+import type React from 'react';
+import type { MotionConfig, WordTiming, EmphasisWord, EmphasisEffect, BrowserAction } from '@nexus-ai/script-gen';
+import type { BrowserDemoContent, BrowserStyle } from '@nexus-ai/broll-engine';
 
 export type {
   MotionConfig,
@@ -27,7 +29,10 @@ export type {
   SegmentAudio,
   DocumentMetadata,
   GlobalAudio,
+  BrowserAction,
 } from '@nexus-ai/script-gen';
+
+export type { BrowserDemoContent, BrowserStyle } from '@nexus-ai/broll-engine';
 
 export { MOTION_PRESETS, DirectionDocumentSchema } from '@nexus-ai/script-gen';
 
@@ -179,4 +184,22 @@ export interface KineticTextProps {
   };
   motion?: MotionConfig;
   emphasisEffect?: EmphasisEffect;
+}
+
+export interface BrowserFrameData {
+  url?: string;
+  content?: BrowserDemoContent;
+  actions?: BrowserAction[];
+  viewport?: { width: number; height: number };
+  style?: BrowserStyle;
+}
+
+export interface BrowserFrameProps {
+  url?: string;
+  content?: React.ReactNode;
+  actions?: BrowserAction[];
+  viewport?: { width: number; height: number };
+  style?: BrowserStyle;
+  data?: BrowserFrameData;
+  motion?: MotionConfig;
 }

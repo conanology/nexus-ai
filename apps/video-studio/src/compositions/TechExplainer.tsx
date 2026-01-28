@@ -13,6 +13,7 @@ import {
   BrandedTransition,
   LowerThird,
   KineticText,
+  BrowserFrame,
 } from '../components';
 
 /**
@@ -61,6 +62,7 @@ const COMPONENT_MAP: Record<string, React.FC<any>> = {
   BrandedTransition,
   LowerThird,
   KineticText,
+  BrowserFrame,
 };
 
 /**

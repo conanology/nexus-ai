@@ -140,7 +140,7 @@ development_status:
   6-28-implement-code-snippet-renderer: done
   6-29-update-codehighlight-typing-effect: done
   6-30-implement-browser-demo-templates: done
-  6-31-create-browserframe-component: backlog
+  6-31-create-browserframe-component: done
   6-32-update-timelinejson-dynamic-duration: backlog
   6-33-update-scene-duration-calculation: backlog
   6-34-update-remotion-composition-dynamic-duration: backlog

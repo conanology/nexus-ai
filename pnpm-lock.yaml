@@ -188,6 +188,9 @@ importers:
 
   apps/video-studio:
     dependencies:
+      '@nexus-ai/broll-engine':
+        specifier: workspace:*
+        version: link:../../packages/broll-engine
       '@nexus-ai/core':
         specifier: workspace:*
         version: link:../../packages/core
