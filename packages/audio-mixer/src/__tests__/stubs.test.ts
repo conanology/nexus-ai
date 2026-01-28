@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { NexusError } from '@nexus-ai/core';
-import { detectSpeechSegments, generateDuckingCurve } from '../ducking.js';
 import { loadMusicLibrary, selectMusic, prepareLoopedTrack } from '../music-selector.js';
 import { loadSFXLibrary, getSFX, extractSFXTriggers } from '../sfx.js';
 import { validateAudioMix } from '../quality-gate.js';
@@ -17,16 +16,6 @@ function expectNotImplementedError(fn: () => never): void {
 }
 
 describe('Audio Mixer Stub Implementations', () => {
-  describe('ducking.ts stubs', () => {
-    it('detectSpeechSegments throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
-      expectNotImplementedError(detectSpeechSegments);
-    });
-
-    it('generateDuckingCurve throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
-      expectNotImplementedError(generateDuckingCurve);
-    });
-  });
-
   describe('music-selector.ts stubs', () => {
     it('loadMusicLibrary throws NEXUS_AUDIO_MIXER_NOT_IMPLEMENTED', () => {
       expectNotImplementedError(loadMusicLibrary);

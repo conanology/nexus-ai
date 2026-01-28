@@ -129,7 +129,7 @@ development_status:
   6-17-create-kinetictext-component: done
   6-18-update-techexplainer-motion-timing: done
   6-19-create-audio-mixer-package: done
-  6-20-implement-voice-activity-detection: backlog
+  6-20-implement-voice-activity-detection: done
   6-21-implement-music-selection: backlog
   6-22-initialize-music-library: backlog
   6-23-initialize-sfx-library: backlog
