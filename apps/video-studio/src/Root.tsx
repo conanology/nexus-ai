@@ -1,12 +1,44 @@
 import React from 'react';
 import { Composition } from 'remotion';
+import type { CalculateMetadataFunction } from 'remotion';
 import { TechExplainer } from './compositions/TechExplainer';
+import type { TechExplainerProps } from './compositions/TechExplainer';
+
+const FPS = 30;
+const DEFAULT_PREVIEW_DURATION_FRAMES = 9000; // 5 minutes at 30fps for Remotion Studio preview
+
+/**
+ * Resolves composition duration dynamically from props.
+ * Priority: timeline.totalDurationFrames > audioDurationSec * fps > 5-min default
+ */
+export const calculateTechExplainerMetadata: CalculateMetadataFunction<TechExplainerProps> = ({
+  props,
+}) => {
+  // Timeline mode: prefer totalDurationFrames
+  if ('timeline' in props && props.timeline) {
+    const { totalDurationFrames, audioDurationSec } = props.timeline;
+    if (totalDurationFrames && totalDurationFrames > 0) {
+      return { durationInFrames: totalDurationFrames };
+    }
+    return { durationInFrames: Math.ceil(audioDurationSec * FPS) };
+  }
+
+  // Direction document mode: use metadata.estimatedDurationSec
+  if ('directionDocument' in props && props.directionDocument) {
+    const audioDuration = props.directionDocument.metadata.estimatedDurationSec;
+    return { durationInFrames: Math.ceil(audioDuration * FPS) };
+  }
+
+  // Default: 5-minute preview
+  return { durationInFrames: DEFAULT_PREVIEW_DURATION_FRAMES };
+};
 
 /**
  * Sample timeline data for preview/testing
  */
 const sampleTimeline = {
   audioDurationSec: 30,
+  totalDurationFrames: 900, // 30 sec at 30fps
   scenes: [
     {
       component: 'NeuralNetworkAnimation',
@@ -91,17 +123,15 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="TechExplainer"
         component={TechExplainer}
-        // Duration will be calculated from timeline, but we need a default
-        // for the Remotion Studio. This is 30 seconds at 30fps.
-        durationInFrames={900}
-        fps={30}
+        durationInFrames={DEFAULT_PREVIEW_DURATION_FRAMES}
+        fps={FPS}
         width={1920}
         height={1080}
         defaultProps={{
           timeline: sampleTimeline,
-          // Sample audio URL - replace with actual audio in production
-          audioUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', // Reliable sample
+          audioUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
         }}
+        calculateMetadata={calculateTechExplainerMetadata}
       />
     </>
   );

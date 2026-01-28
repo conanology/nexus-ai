@@ -21,6 +21,7 @@ import {
  */
 const TimelineSchema = z.object({
   audioDurationSec: z.number(),
+  totalDurationFrames: z.number().optional(),
   scenes: z.array(
     z.object({
       component: z.string(),
