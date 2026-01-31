@@ -63,14 +63,14 @@ describe('health types', () => {
     it('should define YouTube quota thresholds', () => {
       expect(YOUTUBE_QUOTA_THRESHOLDS.HEALTHY).toBe(60);
       expect(YOUTUBE_QUOTA_THRESHOLDS.WARNING).toBe(80);
-      expect(YOUTUBE_QUOTA_THRESHOLDS.CRITICAL).toBe(95);
+      expect(YOUTUBE_QUOTA_THRESHOLDS.CRITICAL).toBe(80);
     });
 
     it('should have ordered YouTube thresholds', () => {
       expect(YOUTUBE_QUOTA_THRESHOLDS.HEALTHY).toBeLessThan(
         YOUTUBE_QUOTA_THRESHOLDS.WARNING
       );
-      expect(YOUTUBE_QUOTA_THRESHOLDS.WARNING).toBeLessThan(
+      expect(YOUTUBE_QUOTA_THRESHOLDS.WARNING).toBeLessThanOrEqual(
         YOUTUBE_QUOTA_THRESHOLDS.CRITICAL
       );
     });

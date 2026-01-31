@@ -11,6 +11,7 @@ vi.mock('../../observability/logger', () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
     debug: vi.fn(),
   },
   createLogger: vi.fn().mockReturnValue({
@@ -86,9 +87,9 @@ describe('executeStage', () => {
     }), 'Stage failed');
   });
 
-  it('should fail if quality gate fails', async () => {
+  it('should not throw on quality gate failure but add warning', async () => {
     const mockExecute = vi.fn().mockResolvedValue({ processed: true });
-    
+
     vi.mocked(qualityGate.check).mockResolvedValue({
       status: 'FAIL',
       metrics: {},
@@ -97,12 +98,19 @@ describe('executeStage', () => {
       reason: 'Quality check failed'
     } as any);
 
-    await expect(executeStage(
+    const result = await executeStage(
       mockInput,
       'test-stage',
       mockExecute,
       { qualityGate: 'test-gate' }
-    )).rejects.toThrow('Quality check failed');
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.warnings).toContain('Quality gate failed: Quality check failed');
+    expect(result.quality.measurements).toEqual({
+      qualityStatus: 'FAIL',
+      qualityReason: 'Quality check failed',
+    });
   });
 
   it('should include quality metrics when gate passes', async () => {
@@ -124,7 +132,11 @@ describe('executeStage', () => {
     );
 
     expect(qualityGate.check).toHaveBeenCalledWith('test-stage', { processed: true });
-    expect(result.quality.measurements).toEqual(mockMetrics);
+    expect(result.quality.measurements).toEqual({
+      score: 0.98,
+      qualityStatus: 'PASS',
+      qualityReason: undefined,
+    });
     expect(result.warnings).toEqual(['test warning']);
     expect(result.success).toBe(true);
   });

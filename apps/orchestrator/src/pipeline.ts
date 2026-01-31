@@ -119,7 +119,7 @@ const STAGE_CRITICALITY: Record<string, 'CRITICAL' | 'DEGRADED' | 'RECOVERABLE'>
   'visual-gen': 'DEGRADED',
   'render': 'CRITICAL',
   'thumbnail': 'DEGRADED',
-  'youtube': 'CRITICAL',
+  'youtube': 'RECOVERABLE',    // TODO: Revert to CRITICAL after YouTube OAuth setup
   'twitter': 'RECOVERABLE',
   'notifications': 'RECOVERABLE',
 };

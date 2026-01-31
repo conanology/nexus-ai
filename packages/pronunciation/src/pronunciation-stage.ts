@@ -9,7 +9,7 @@ import {
   type PronunciationItemContent,
   type TermLocation,
 } from '@nexus-ai/core';
-import { getScriptText, type ScriptGenOutput } from '@nexus-ai/script-gen';
+import { getScriptText, type ScriptGenOutput, type ScriptGenOutputV2, type DirectionDocument } from '@nexus-ai/script-gen';
 import { NexusError } from '@nexus-ai/core/errors';
 import { PronunciationClient } from './pronunciation-client.js';
 import { extractTerms, extractContext } from './extractor.js';
@@ -32,6 +32,8 @@ export interface PronunciationInput {
     viralityScore: number;
     metadata?: Record<string, unknown>;
   };
+  /** Pass-through direction document for downstream stages (timestamp-extraction, visual-gen) */
+  directionDocument?: DirectionDocument;
 }
 
 /**
@@ -104,6 +106,8 @@ export interface PronunciationOutput {
     viralityScore: number;
     metadata?: Record<string, unknown>;
   };
+  /** Pass-through direction document for downstream stages (timestamp-extraction, visual-gen) */
+  directionDocument?: DirectionDocument;
 }
 
 /**
@@ -212,12 +216,21 @@ export async function executePronunciation(
         ? ((terms.size - flaggedTerms.length) / terms.size) * 100 
         : 100;
 
+      // Extract directionDocument - it may be directly on data (from ScriptGenOutputV2)
+      // or nested if script is a full ScriptGenOutput object
+      const directionDocument = (data as any).directionDocument ??
+        (typeof data.script === 'object' && data.script !== null && 'directionDocument' in data.script
+          ? (data.script as ScriptGenOutputV2).directionDocument
+          : undefined);
+
       const result: PronunciationOutput = {
         ssmlScript,
         flaggedTerms,
         requiresReview,
         // Pass-through topic data for YouTube metadata generation
         topicData: data.topicData,
+        // Pass-through direction document for timestamp-extraction/visual-gen
+        directionDocument,
       };
 
       return {

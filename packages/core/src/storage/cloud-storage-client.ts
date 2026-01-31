@@ -133,6 +133,36 @@ export class CloudStorageClient {
   }
 
   /**
+   * Normalize a path, stripping gs://bucket-name/ prefix if present
+   *
+   * @param path - Path to normalize (gs:// URL or relative path)
+   * @returns Relative path suitable for GCS operations
+   *
+   * @example
+   * ```typescript
+   * normalizePath('gs://nexus-ai-artifacts/2026-01-08/render/video.mp4')
+   * // Returns: '2026-01-08/render/video.mp4'
+   *
+   * normalizePath('2026-01-08/render/video.mp4')
+   * // Returns: '2026-01-08/render/video.mp4'
+   * ```
+   */
+  private normalizePath(path: string): string {
+    // Handle gs:// URLs
+    if (path.startsWith('gs://')) {
+      // Parse gs://bucket-name/path format
+      const withoutProtocol = path.slice(5); // Remove 'gs://'
+      const slashIndex = withoutProtocol.indexOf('/');
+      if (slashIndex > 0) {
+        return withoutProtocol.slice(slashIndex + 1);
+      }
+      // Just gs://bucket-name with no path
+      return '';
+    }
+    return path;
+  }
+
+  /**
    * Upload a file to Cloud Storage
    *
    * @param path - Storage path (e.g., '2026-01-08/research/research.md')
@@ -187,7 +217,8 @@ export class CloudStorageClient {
   async downloadFile(path: string): Promise<Buffer> {
     try {
       const bucket = await this.getBucket();
-      const file = bucket.file(path);
+      const normalizedPath = this.normalizePath(path);
+      const file = bucket.file(normalizedPath);
       const [content] = await file.download();
       return content;
     } catch (error) {
@@ -308,7 +339,8 @@ export class CloudStorageClient {
   async fileExists(path: string): Promise<boolean> {
     try {
       const bucket = await this.getBucket();
-      const file = bucket.file(path);
+      const normalizedPath = this.normalizePath(path);
+      const file = bucket.file(normalizedPath);
       const [exists] = await file.exists();
       return exists;
     } catch (error) {

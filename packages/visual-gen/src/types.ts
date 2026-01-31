@@ -9,7 +9,8 @@ import type { WordTiming } from '@nexus-ai/timestamp-extraction';
  * Input data for visual generation stage
  */
 export interface VisualGenInput {
-  script: string;
+  /** Script text (optional in V2 - can be reconstructed from directionDocument) */
+  script?: string;
   audioUrl: string;
   audioDurationSec: number;
   /** Pass-through topic data for downstream stages (YouTube metadata) */

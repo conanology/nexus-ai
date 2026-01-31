@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -14,11 +15,6 @@ export default defineConfig({
         lines: 80,
         statements: 80,
       },
-    },
-  },
-  resolve: {
-    alias: {
-      '@nexus-ai/core': new URL('../core/src/index.ts', import.meta.url).pathname,
     },
   },
 });

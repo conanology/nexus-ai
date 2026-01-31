@@ -155,13 +155,13 @@ describe('getQuotaAlertLevel', () => {
     expect(getQuotaAlertLevel(79)).toBeNull();
   });
 
-  it('should return WARNING when quota is between 80% and 95%', () => {
+  it('should return CRITICAL when quota is at or above 80%', () => {
     const result = getQuotaAlertLevel(85);
 
     expect(result).not.toBeNull();
-    expect(result?.severity).toBe('WARNING');
+    expect(result?.severity).toBe('CRITICAL');
     expect(result?.message).toContain('85.0%');
-    expect(result?.message).toContain('Approaching limit');
+    expect(result?.message).toContain('will be skipped');
   });
 
   it('should return CRITICAL when quota is at or above 95%', () => {
@@ -173,10 +173,10 @@ describe('getQuotaAlertLevel', () => {
     expect(result?.message).toContain('will be skipped');
   });
 
-  it('should return WARNING at exactly 80%', () => {
+  it('should return CRITICAL at exactly 80%', () => {
     const result = getQuotaAlertLevel(80);
 
-    expect(result?.severity).toBe('WARNING');
+    expect(result?.severity).toBe('CRITICAL');
   });
 
   it('should return CRITICAL at exactly 95%', () => {

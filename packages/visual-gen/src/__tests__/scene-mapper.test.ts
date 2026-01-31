@@ -378,7 +378,7 @@ describe('SceneMapper', () => {
       expect(mapping).toBeNull();
     });
 
-    it('should map to TextOnGradient fallback when no keyword match found', async () => {
+    it('should map to LowerThird fallback when no keyword match found', async () => {
       const cue: VisualCue = {
         index: 0,
         description: 'some unknown visual cue for fallback',
@@ -391,11 +391,11 @@ describe('SceneMapper', () => {
       expect(mapping).not.toBeNull();
       if (!mapping) return;
 
-      expect(mapping.component).toBe('TextOnGradient');
+      expect(mapping.component).toBe('LowerThird');
       expect(mapping.props.text).toBe('some unknown visual cue for fallback');
     });
 
-    it('should pass cue text as text prop to TextOnGradient', async () => {
+    it('should pass cue text as text prop to LowerThird', async () => {
       const cue: VisualCue = {
         index: 0,
         description: 'special message for display',
@@ -407,7 +407,7 @@ describe('SceneMapper', () => {
       expect(mapping).not.toBeNull();
       if (!mapping) return;
 
-      expect(mapping.component).toBe('TextOnGradient');
+      expect(mapping.component).toBe('LowerThird');
       expect(mapping.props.text).toBe('special message for display');
     });
   });

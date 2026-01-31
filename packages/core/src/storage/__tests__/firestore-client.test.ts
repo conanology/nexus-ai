@@ -304,7 +304,7 @@ describe('FirestoreClient', () => {
 
       await client.getPipelineState('2026-01-08');
 
-      expect(mockCollectionRef.doc).toHaveBeenCalledWith('state');
+      expect(mockCollectionRef.doc).toHaveBeenCalledWith('2026-01-08_state');
     });
 
     it('should set pipeline state using path helpers', async () => {
@@ -331,7 +331,7 @@ describe('FirestoreClient', () => {
 
       await client.getPipelineArtifacts('2026-01-08');
 
-      expect(mockCollectionRef.doc).toHaveBeenCalledWith('artifacts');
+      expect(mockCollectionRef.doc).toHaveBeenCalledWith('2026-01-08_artifacts');
     });
 
     it('should get pipeline costs using path helpers', async () => {
@@ -340,7 +340,7 @@ describe('FirestoreClient', () => {
 
       await client.getPipelineCosts('2026-01-08');
 
-      expect(mockCollectionRef.doc).toHaveBeenCalledWith('costs');
+      expect(mockCollectionRef.doc).toHaveBeenCalledWith('2026-01-08_costs');
     });
 
     it('should get pipeline quality using path helpers', async () => {
@@ -349,7 +349,7 @@ describe('FirestoreClient', () => {
 
       await client.getPipelineQuality('2026-01-08');
 
-      expect(mockCollectionRef.doc).toHaveBeenCalledWith('quality');
+      expect(mockCollectionRef.doc).toHaveBeenCalledWith('2026-01-08_quality');
     });
 
     it('should get pipeline youtube using path helpers', async () => {
@@ -358,7 +358,7 @@ describe('FirestoreClient', () => {
 
       await client.getPipelineYouTube('2026-01-08');
 
-      expect(mockCollectionRef.doc).toHaveBeenCalledWith('youtube');
+      expect(mockCollectionRef.doc).toHaveBeenCalledWith('2026-01-08_youtube');
     });
   });
 });

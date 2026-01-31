@@ -19,6 +19,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@nexus-ai/core': new URL('../core/src/index.ts', import.meta.url).pathname,
+      '@nexus-ai/script-gen': new URL('../script-gen/src/index.ts', import.meta.url).pathname,
+      '@nexus-ai/audio-mixer': new URL('../audio-mixer/src/index.ts', import.meta.url).pathname,
+      '@nexus-ai/timestamp-extraction': new URL('../timestamp-extraction/src/index.ts', import.meta.url).pathname,
     },
   },
 });

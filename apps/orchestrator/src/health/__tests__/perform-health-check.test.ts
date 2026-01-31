@@ -16,6 +16,7 @@ vi.mock('../gemini-health.js', () => ({
 
 vi.mock('../youtube-health.js', () => ({
   checkYouTubeHealth: vi.fn(),
+  getQuotaAlertLevel: vi.fn(),
 }));
 
 vi.mock('../twitter-health.js', () => ({

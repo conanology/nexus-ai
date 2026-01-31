@@ -16,9 +16,4 @@ export default defineConfig({
       },
     },
   },
-  resolve: {
-    alias: {
-      '@nexus-ai/core': new URL('../core/src/index.ts', import.meta.url).pathname,
-    },
-  },
 });

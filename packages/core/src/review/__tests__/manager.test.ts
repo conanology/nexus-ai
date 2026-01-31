@@ -202,7 +202,7 @@ describe('Review Queue Manager', () => {
       const result = await getReviewQueue();
 
       expect(result).toHaveLength(2);
-      expect(mockQueryDocuments).toHaveBeenCalledWith(REVIEW_QUEUE_COLLECTION, undefined);
+      expect(mockQueryDocuments).toHaveBeenCalledWith(REVIEW_QUEUE_COLLECTION, []);
     });
 
     it('should filter by status', async () => {

@@ -1,0 +1,44 @@
+# Ignore node_modules to speed up uploads (Docker will reinstall)
+node_modules/
+**/node_modules/
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore test and development files
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/test/
+*.log
+
+# Ignore build artifacts (will be rebuilt in Docker)
+**/dist/
+**/.turbo/
+.turbo/
+
+# Ignore development files
+.env
+.env.*
+*.local
+
+# Ignore documentation
+*.md
+docs/
+
+# Ignore CI/CD
+.github/
+.gitlab-ci.yml
+
+# Ignore IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore coverage and reports
+coverage/
+*.coverage
+.nyc_output/

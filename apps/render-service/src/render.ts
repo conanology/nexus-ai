@@ -95,7 +95,73 @@ export class RenderService {
 
       const bundled = await bundle({
         entryPoint,
-        // In production, we might want to cache this
+        webpackOverride: (config) => ({
+          ...config,
+          resolve: {
+            ...config.resolve,
+            extensionAlias: {
+              '.js': ['.ts', '.tsx', '.js', '.jsx'],
+              '.mjs': ['.mts', '.mjs'],
+            },
+            alias: {
+              ...config.resolve?.alias,
+              // Map server-only packages to false (empty module) to prevent
+              // webpack from bundling their Node.js dependencies
+              '@nexus-ai/core': false,
+              '@nexus-ai/notifications': false,
+              '@nexus-ai/config': false,
+              '@google-cloud/firestore': false,
+              '@google-cloud/storage': false,
+              '@google-cloud/secret-manager': false,
+              'google-gax': false,
+              'gaxios': false,
+              'google-auth-library': false,
+              '@grpc/grpc-js': false,
+              '@grpc/proto-loader': false,
+              'pino': false,
+              'pino-pretty': false,
+            },
+            fallback: {
+              ...config.resolve?.fallback,
+              // Node.js core modules not available in browser context
+              assert: false,
+              buffer: false,
+              child_process: false,
+              cluster: false,
+              constants: false,
+              crypto: false,
+              dgram: false,
+              dns: false,
+              events: false,
+              fs: false,
+              http: false,
+              http2: false,
+              https: false,
+              module: false,
+              net: false,
+              os: false,
+              path: false,
+              perf_hooks: false,
+              process: false,
+              punycode: false,
+              querystring: false,
+              readline: false,
+              repl: false,
+              stream: false,
+              string_decoder: false,
+              sys: false,
+              timers: false,
+              tls: false,
+              tty: false,
+              url: false,
+              util: false,
+              v8: false,
+              vm: false,
+              worker_threads: false,
+              zlib: false,
+            },
+          },
+        }),
       });
 
       // 3. Read Timeline Data

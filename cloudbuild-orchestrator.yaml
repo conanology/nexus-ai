@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/nexus-ai-conan-01/nexus-orchestrator:latest'
+      - '-f'
+      - 'apps/orchestrator/Dockerfile.simple'
+      - '.'
+images:
+  - 'gcr.io/nexus-ai-conan-01/nexus-orchestrator:latest'
+timeout: 1200s

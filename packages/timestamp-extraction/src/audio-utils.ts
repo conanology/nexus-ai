@@ -7,8 +7,10 @@
  */
 
 import { Storage } from '@google-cloud/storage';
-import { WaveFile } from 'wavefile';
+import * as wavefileModule from 'wavefile';
 import { createPipelineLogger } from '@nexus-ai/core';
+
+const WaveFile = (wavefileModule as any).WaveFile || (wavefileModule as any).default;
 
 // -----------------------------------------------------------------------------
 // Types

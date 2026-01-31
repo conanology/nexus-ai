@@ -44,6 +44,8 @@ RUN esbuild dist/index.js \
     --external:fast-xml-parser \
     --external:zod \
     --external:wav \
+    --external:wavefile \
+    --external:ffmpeg-static \
     --external:image-size
 WORKDIR /app
 
@@ -69,6 +71,9 @@ COPY packages/research/package.json ./packages/research/
 COPY packages/script-gen/package.json ./packages/script-gen/
 COPY packages/pronunciation/package.json ./packages/pronunciation/
 COPY packages/tts/package.json ./packages/tts/
+COPY packages/timestamp-extraction/package.json ./packages/timestamp-extraction/
+COPY packages/audio-mixer/package.json ./packages/audio-mixer/
+COPY packages/broll-engine/package.json ./packages/broll-engine/
 COPY packages/visual-gen/package.json ./packages/visual-gen/
 COPY packages/thumbnail/package.json ./packages/thumbnail/
 COPY packages/youtube/package.json ./packages/youtube/

@@ -10,8 +10,15 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --workspace vitest.workspace.ts",
+    "test:watch": "vitest --workspace vitest.workspace.ts",
+    "test:ci": "vitest run --workspace vitest.workspace.ts --reporter=verbose",
+    "test:coverage": "vitest run --workspace vitest.workspace.ts --coverage",
+    "check-types": "turbo check-types",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
   },
   "devDependencies": {
     "@google-cloud/storage": "^7.15.0",
@@ -21,6 +28,7 @@
     "eslint": "^8.57.1",
     "turbo": "^2.3.5",
     "typescript": "^5.3.0",
+    "@playwright/test": "^1.50.0",
     "vitest": "^1.0.0"
   },
   "packageManager": "pnpm@10.27.0",

@@ -66,7 +66,7 @@ interface CollectionReference {
 
 interface DocumentReference {
   get(): Promise<DocumentSnapshot>;
-  set(data: object): Promise<void>;
+  set(data: object, options?: { merge?: boolean }): Promise<void>;
   update(data: object): Promise<void>;
   delete(): Promise<void>;
 }
@@ -282,12 +282,16 @@ export class FirestoreClient {
   }
 
   /**
-   * Update a document (partial update)
+   * Update a document (partial update with upsert behavior)
+   *
+   * Uses Firestore's set with merge option, which:
+   * - Creates the document if it doesn't exist
+   * - Merges updates into existing document if it does
    *
    * @param collection - Collection name or parent document path
    * @param docId - Document ID
    * @param updates - Partial document data to merge
-   * @throws NexusError on Firestore errors (including if document doesn't exist)
+   * @throws NexusError on Firestore errors
    *
    * @example
    * ```typescript
@@ -305,7 +309,8 @@ export class FirestoreClient {
     try {
       const db = await this.getDb();
       const resolved = this.resolveDocPath(collection, docId);
-      await db.collection(resolved.collection).doc(resolved.docId).update(sanitizeForFirestore(updates as object));
+      // Use set with merge: true for upsert behavior (create if not exists, merge if exists)
+      await db.collection(resolved.collection).doc(resolved.docId).set(sanitizeForFirestore(updates as object), { merge: true });
     } catch (error) {
       if (error instanceof NexusError) {
         throw error;

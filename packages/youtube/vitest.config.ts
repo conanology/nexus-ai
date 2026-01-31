@@ -19,6 +19,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@nexus-ai/core': new URL('../core/src/index.ts', import.meta.url).pathname,
+      '@nexus-ai/news-sourcing': new URL('../news-sourcing/src/index.ts', import.meta.url).pathname,
     },
   },
 });

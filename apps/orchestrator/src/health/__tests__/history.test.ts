@@ -92,7 +92,7 @@ describe('getHealthHistory', () => {
 
     const result = await getHealthHistory(2);
 
-    expect(result.totalChecks).toBe(2);
+    expect(result.totalChecks).toBe(3);
     expect(result.services.gemini?.failures).toBeGreaterThan(0);
     expect(result.services.gemini?.uptimePercentage).toBeLessThan(100);
     expect(result.services.youtube?.uptimePercentage).toBe(100);

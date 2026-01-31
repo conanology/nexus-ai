@@ -42,11 +42,34 @@ export async function executeVisualGen(
     // Detect V2 path (directionDocument present from timestamp-extraction)
     const hasDirectionDocument = !!data.directionDocument;
 
+    // Resolve script: use provided script, or reconstruct from directionDocument segments
+    // This handles V2 flow where script is not passed through timestamp-extraction
+    let resolvedScript = data.script;
+    if (!resolvedScript && hasDirectionDocument) {
+      resolvedScript = data.directionDocument!.segments
+        .map(seg => seg.content.text)
+        .join('\n\n');
+      logger.info({
+        msg: 'Script reconstructed from directionDocument segments',
+        pipelineId,
+        stage: 'visual-gen',
+        segmentCount: data.directionDocument!.segments.length,
+      });
+    }
+
+    if (!resolvedScript) {
+      throw NexusError.critical(
+        'NEXUS_VISUAL_GEN_NO_SCRIPT',
+        'No script provided and no directionDocument to reconstruct from',
+        'visual-gen'
+      );
+    }
+
     logger.info({
       msg: 'Visual generation stage started',
       pipelineId,
       stage: 'visual-gen',
-      scriptLength: data.script.length,
+      scriptLength: resolvedScript.length,
       audioDuration: data.audioDurationSec,
       v2Path: hasDirectionDocument,
       segmentCount: hasDirectionDocument ? data.directionDocument!.segments.length : undefined,
@@ -77,7 +100,7 @@ export async function executeVisualGen(
     }
 
     // Step 1: Parse visual cues from script (V1 and V2 both use script-based flow for now)
-    const visualCues = parseVisualCues(data.script);
+    const visualCues = parseVisualCues(resolvedScript);
 
     logger.info({
       msg: 'Visual cues parsed',
@@ -260,6 +283,10 @@ export async function executeVisualGen(
       audioUrl: finalAudioUrl,
     });
 
+    const renderTimeoutMs = 60 * 60 * 1000; // 60 minutes for webpack bundle + video render
+    const renderAbort = AbortController ? new AbortController() : undefined;
+    const renderTimer = renderAbort ? setTimeout(() => renderAbort.abort(), renderTimeoutMs) : undefined;
+
     const renderResponse = await fetch(`${renderServiceUrl}/render`, {
       method: 'POST',
       headers: {
@@ -272,7 +299,10 @@ export async function executeVisualGen(
         audioUrl: finalAudioUrl,
         resolution: '1080p',
       }),
+      ...(renderAbort ? { signal: renderAbort.signal } : {}),
     });
+
+    if (renderTimer) clearTimeout(renderTimer);
 
     if (!renderResponse.ok) {
       const errorBody = await renderResponse.text().catch(() => 'unknown');
@@ -379,7 +409,7 @@ export async function executeVisualGen(
       videoPath,  // GCS path to rendered video
       // Pass-through data for YouTube metadata generation
       topicData: data.topicData,
-      script: data.script,
+      script: resolvedScript,
       audioDurationSec: data.audioDurationSec,
       // Audio URL fields
       originalAudioUrl: data.audioUrl,

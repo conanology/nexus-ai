@@ -148,13 +148,22 @@ export async function withFallback<T, P extends NamedProvider>(
       };
     } catch (error) {
       const nexusError = NexusError.fromError(error, stage);
+      const durationMs = Date.now() - startTime;
+
+      // Log the actual error for debugging
+      console.error(`[withFallback] Provider ${provider.name} failed:`, {
+        code: nexusError.code,
+        message: nexusError.message,
+        originalError: error instanceof Error ? error.message : String(error),
+        durationMs,
+      });
 
       // Record failed attempt
       attempts.push({
         provider: provider.name,
         success: false,
         error: nexusError,
-        durationMs: Date.now() - startTime,
+        durationMs,
       });
 
       // Notify callback if not last provider

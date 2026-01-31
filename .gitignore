@@ -16,7 +16,14 @@ client_secret_408744545530-gc9es0chs4nthu12vb15d933i2p98gmi.apps.googleuserconte
 client_secret_408744545530-t1002u4eispl44eisqcbi87lup7vr776.apps.googleusercontent.com.json
 
 # Testing
+
 coverage
+test-results/
+playwright-report/
+playwright/.auth/
+test-results/
+playwright-report/
+playwright/.auth/
 
 _bmad/
 .agent/
