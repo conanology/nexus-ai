@@ -35,13 +35,14 @@ export class RenderService {
     return gsUrl.replace(/^gs:\/\/[^\/]+\//, '');
   }
 
-  async renderVideo(input: RenderInput): Promise<RenderOutput> {
+  async renderVideo(input: RenderInput, onProgress?: (progress: string) => void): Promise<RenderOutput> {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nexus-render-'));
     const timelinePath = path.join(tmpDir, 'timeline.json');
     const audioPath = path.join(tmpDir, 'audio.wav');
     const outputPath = path.join(tmpDir, 'output.mp4');
 
     logger.info({ pipelineId: input.pipelineId, tmpDir }, 'Starting render');
+    onProgress?.('Initializing render environment');
 
     // Start local file server for audio (Remotion doesn't support file:// URLs)
     const fileServer = express();
@@ -61,6 +62,7 @@ export class RenderService {
 
     try {
       // 1. Download Assets
+      onProgress?.('Downloading assets from Cloud Storage');
       // Parallel download
       const [timelineBuffer, audioBuffer] = await Promise.all([
         this.storage.downloadFile(this.getStoragePath(input.timelineUrl)),
@@ -92,6 +94,7 @@ export class RenderService {
       }
 
       logger.info({ entryPoint }, 'Bundling video studio');
+      onProgress?.('Bundling video studio (this may take several minutes)');
 
       const bundled = await bundle({
         entryPoint,
@@ -165,6 +168,7 @@ export class RenderService {
       });
 
       // 3. Read Timeline Data
+      onProgress?.('Bundle complete - preparing composition');
       const timelineData = JSON.parse(await fs.readFile(timelinePath, 'utf-8'));
 
       // 4. Select Composition
@@ -178,6 +182,7 @@ export class RenderService {
       });
 
       // 5. Render
+      onProgress?.('Rendering video frames');
       await renderMedia({
         composition,
         serveUrl: bundled,
@@ -211,6 +216,7 @@ export class RenderService {
       // Ideally we would parse logs for "Frame dropped", but validation is done via exit code.
 
       // 7. Upload
+      onProgress?.('Uploading video to Cloud Storage');
       const uploadPath = `${input.pipelineId}/render/video.mp4`;
       const videoStream = createReadStream(outputPath);
       const resultUrl = await this.storage.uploadStream(uploadPath, videoStream, 'video/mp4');

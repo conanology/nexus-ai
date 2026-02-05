@@ -27,3 +27,12 @@ export type {
 
 // Stage Execution Wrapper
 export { executeStage } from './execute-stage.js';
+
+// WAV utilities
+export {
+  parseWavHeader,
+  calculateWavDuration,
+  getWavDuration,
+} from './wav-utils.js';
+
+export type { WavHeaderInfo } from './wav-utils.js';

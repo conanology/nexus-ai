@@ -344,12 +344,15 @@ describe('generateTimeline', () => {
       expect(timeline.targetDuration).toBe('5min');
     });
 
-    it('should include totalDurationFrames in empty scene timeline', () => {
+    it('should include totalDurationFrames and fallback scene when scene mappings are empty', () => {
       const timeline = generateTimeline([], 120);
 
       expect(timeline.totalDurationFrames).toBe(Math.ceil(120 * 30));
       expect(timeline.targetDuration).toBeUndefined();
-      expect(timeline.scenes).toHaveLength(0);
+      // Empty scene mappings now generate a fallback TextOnGradient scene to prevent black screen
+      expect(timeline.scenes).toHaveLength(1);
+      expect(timeline.scenes[0].component).toBe('TextOnGradient');
+      expect(timeline.scenes[0].duration).toBe(120);
     });
 
     it('should ceil totalDurationFrames for fractional results', () => {
@@ -434,12 +437,16 @@ describe('generateTimeline', () => {
       expect(timeline.scenes[0].duration).toBe(45);
     });
 
-    it('should handle empty scene mappings', () => {
+    it('should handle empty scene mappings with fallback scene', () => {
       const sceneMappings: SceneMapping[] = [];
 
       const timeline = generateTimeline(sceneMappings, 60);
 
-      expect(timeline.scenes).toHaveLength(0);
+      // Empty scene mappings now generate a fallback TextOnGradient scene to prevent black screen
+      expect(timeline.scenes).toHaveLength(1);
+      expect(timeline.scenes[0].component).toBe('TextOnGradient');
+      expect(timeline.scenes[0].startTime).toBe(0);
+      expect(timeline.scenes[0].duration).toBe(60);
       expect(timeline.audioDurationSec).toBe(60);
     });
 

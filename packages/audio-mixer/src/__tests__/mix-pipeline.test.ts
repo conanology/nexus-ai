@@ -496,42 +496,8 @@ describe('GCS helpers (mocked in pipeline)', () => {
 });
 
 // =====================================================================
-// GCS helpers unit tests (unmocked - test actual URL conversion and error paths)
+// GCS helpers unit tests are in gcs-helpers.test.ts
 // =====================================================================
-describe('GCS helpers (unit)', () => {
-  it('downloadFromGCS throws retryable error on fetch failure', async () => {
-    // Temporarily restore real implementation for this test
-    const gcsModule = await vi.importActual<typeof import('../gcs-helpers.js')>('../gcs-helpers.js');
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi.fn().mockRejectedValueOnce(new Error('Network error'));
-
-    try {
-      await expect(gcsModule.downloadFromGCS('gs://bucket/file.wav', '/tmp/test.wav'))
-        .rejects.toThrow('Failed to download from GCS');
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('downloadFromGCS throws retryable error on non-OK response', async () => {
-    const gcsModule = await vi.importActual<typeof import('../gcs-helpers.js')>('../gcs-helpers.js');
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi.fn().mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-    try {
-      await expect(gcsModule.downloadFromGCS('gs://bucket/file.wav', '/tmp/test.wav'))
-        .rejects.toThrow('GCS download failed with status 404');
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('uploadToGCS throws on invalid GCS URL format', async () => {
-    const gcsModule = await vi.importActual<typeof import('../gcs-helpers.js')>('../gcs-helpers.js');
-    await expect(gcsModule.uploadToGCS('/tmp/test.wav', 'not-a-gcs-url'))
-      .rejects.toThrow('Invalid GCS URL');
-  });
-});
 
 // =====================================================================
 // mixAudio integration test (mocked dependencies)

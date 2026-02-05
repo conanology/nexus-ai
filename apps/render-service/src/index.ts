@@ -2,11 +2,41 @@ import express from 'express';
 import { logger } from '@nexus-ai/core';
 import { RenderService } from './render.js';
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
 
 const app = express();
 app.use(express.json());
 
 const renderService = new RenderService();
+
+// Job store for async renders
+interface RenderJob {
+  id: string;
+  pipelineId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress?: string;
+  result?: {
+    videoUrl: string;
+    duration: number;
+    fileSize: number;
+  };
+  error?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const jobStore = new Map<string, RenderJob>();
+
+// Cleanup old jobs (> 1 hour)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [id, job] of jobStore.entries()) {
+    if (job.updatedAt.getTime() < oneHourAgo) {
+      jobStore.delete(id);
+      logger.info({ jobId: id }, 'Cleaned up old render job');
+    }
+  }
+}, 5 * 60 * 1000); // Every 5 minutes
 
 // Auth Middleware
 const authMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -32,11 +62,12 @@ const renderSchema = z.object({
   resolution: z.string().optional().default('1080p'),
 });
 
+// Synchronous render (legacy - may timeout for long renders)
 app.post('/render', authMiddleware, async (req, res) => {
   try {
     const input = renderSchema.parse(req.body);
 
-    logger.info({ input }, 'Received render request');
+    logger.info({ input }, 'Received render request (sync)');
 
     const result = await renderService.renderVideo(input);
 
@@ -62,10 +93,108 @@ app.post('/render', authMiddleware, async (req, res) => {
   }
 });
 
+// Async render - returns immediately with job ID
+app.post('/render/async', authMiddleware, async (req, res) => {
+  try {
+    const input = renderSchema.parse(req.body);
+    const jobId = randomUUID();
+
+    const job: RenderJob = {
+      id: jobId,
+      pipelineId: input.pipelineId,
+      status: 'pending',
+      progress: 'Job queued',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    jobStore.set(jobId, job);
+
+    logger.info({ jobId, input }, 'Received async render request');
+
+    // Start render in background (don't await)
+    (async () => {
+      try {
+        job.status = 'running';
+        job.progress = 'Starting render';
+        job.updatedAt = new Date();
+
+        const result = await renderService.renderVideo(input, (progress) => {
+          job.progress = progress;
+          job.updatedAt = new Date();
+        });
+
+        job.status = 'completed';
+        job.result = result;
+        job.progress = 'Render complete';
+        job.updatedAt = new Date();
+
+        logger.info({ jobId, result }, 'Async render completed');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        job.status = 'failed';
+        job.error = errorMessage;
+        job.progress = 'Render failed';
+        job.updatedAt = new Date();
+
+        logger.error({ jobId, errorMessage }, 'Async render failed');
+      }
+    })();
+
+    // Return immediately with job ID
+    res.status(202).json({
+      jobId,
+      status: 'pending',
+      message: 'Render job started. Poll /render/status/:jobId for progress.',
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error({ errorMessage }, 'Failed to start async render');
+
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Invalid input', details: error.errors });
+    } else {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: errorMessage
+      });
+    }
+  }
+});
+
+// Get render job status
+app.get('/render/status/:jobId', authMiddleware, (req, res) => {
+  const { jobId } = req.params;
+  const job = jobStore.get(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  const response: any = {
+    jobId: job.id,
+    pipelineId: job.pipelineId,
+    status: job.status,
+    progress: job.progress,
+    createdAt: job.createdAt.toISOString(),
+    updatedAt: job.updatedAt.toISOString(),
+  };
+
+  if (job.status === 'completed' && job.result) {
+    response.result = job.result;
+  }
+
+  if (job.status === 'failed' && job.error) {
+    response.error = job.error;
+  }
+
+  return res.status(200).json(response);
+});
+
 const port = process.env.PORT || 8080;
 
-// Export app for testing
-export { app };
+// Export app and jobStore for testing
+export { app, jobStore };
 
 // Start server if main module or not test
 if (process.env.NODE_ENV !== 'test') {

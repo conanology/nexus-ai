@@ -134,13 +134,21 @@ export function generateTimeline(
   const fps = options?.fps && options.fps > 0 ? options.fps : 30;
   const totalDurationFrames = Math.ceil(audioDurationSec * fps);
 
-  // Handle empty scenes
+  // Handle empty scenes - generate a fallback scene to prevent black screen
   if (sceneMappings.length === 0) {
     return {
       audioDurationSec,
       totalDurationFrames,
       targetDuration: options?.targetDuration,
-      scenes: [],
+      scenes: [{
+        component: 'TextOnGradient',
+        props: {
+          text: 'Video Content',
+          data: { text: 'Video Content' },
+        },
+        startTime: 0,
+        duration: audioDurationSec,
+      }],
     };
   }
 

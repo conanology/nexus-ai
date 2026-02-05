@@ -100,7 +100,7 @@ export async function executeVisualGen(
     }
 
     // Step 1: Parse visual cues from script (V1 and V2 both use script-based flow for now)
-    const visualCues = parseVisualCues(resolvedScript);
+    let visualCues = parseVisualCues(resolvedScript);
 
     logger.info({
       msg: 'Visual cues parsed',
@@ -109,9 +109,27 @@ export async function executeVisualGen(
       cueCount: visualCues.length,
     });
 
+    // Generate fallback cues from directionDocument if no visual cues found in script
+    if (visualCues.length === 0 && hasDirectionDocument) {
+      logger.info({
+        msg: 'Generating fallback scenes from directionDocument segments',
+        pipelineId,
+        stage: 'visual-gen',
+        segmentCount: data.directionDocument!.segments.length,
+      });
+
+      visualCues = data.directionDocument!.segments.map((segment, index) => ({
+        index,
+        // Use first sentence of segment content as description
+        description: segment.content.text.split(/[.!?]/)[0]?.trim() || 'Scene',
+        context: segment.content.text,
+        position: index * 100,
+      }));
+    }
+
     if (visualCues.length === 0) {
       logger.warn({
-        msg: 'No visual cues found in script',
+        msg: 'No visual cues found in script and no directionDocument segments available',
         pipelineId,
         stage: 'visual-gen',
       });
@@ -270,12 +288,12 @@ export async function executeVisualGen(
       });
     }
 
-    // Step 6: Call render service to generate video
+    // Step 6: Call render service to generate video (async with polling)
     const renderServiceUrl = process.env.RENDER_SERVICE_URL || 'http://localhost:8081';
     const renderSecret = process.env.NEXUS_SECRET || '';
 
     logger.info({
-      msg: 'Calling render service',
+      msg: 'Calling render service (async)',
       pipelineId,
       stage: 'visual-gen',
       renderServiceUrl,
@@ -283,11 +301,8 @@ export async function executeVisualGen(
       audioUrl: finalAudioUrl,
     });
 
-    const renderTimeoutMs = 60 * 60 * 1000; // 60 minutes for webpack bundle + video render
-    const renderAbort = AbortController ? new AbortController() : undefined;
-    const renderTimer = renderAbort ? setTimeout(() => renderAbort.abort(), renderTimeoutMs) : undefined;
-
-    const renderResponse = await fetch(`${renderServiceUrl}/render`, {
+    // Start async render job
+    const startResponse = await fetch(`${renderServiceUrl}/render/async`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -299,21 +314,103 @@ export async function executeVisualGen(
         audioUrl: finalAudioUrl,
         resolution: '1080p',
       }),
-      ...(renderAbort ? { signal: renderAbort.signal } : {}),
     });
 
-    if (renderTimer) clearTimeout(renderTimer);
-
-    if (!renderResponse.ok) {
-      const errorBody = await renderResponse.text().catch(() => 'unknown');
+    if (!startResponse.ok) {
+      const errorBody = await startResponse.text().catch(() => 'unknown');
       throw NexusError.critical(
         'NEXUS_RENDER_FAILED',
-        `Render service returned ${renderResponse.status}: ${errorBody}`,
+        `Failed to start render job: ${startResponse.status}: ${errorBody}`,
         'visual-gen'
       );
     }
 
-    const renderResult = await renderResponse.json() as { videoUrl: string; duration: number; fileSize: number };
+    const { jobId } = await startResponse.json() as { jobId: string };
+
+    logger.info({
+      msg: 'Render job started',
+      pipelineId,
+      stage: 'visual-gen',
+      jobId,
+    });
+
+    // Poll for completion
+    const renderTimeoutMs = 60 * 60 * 1000; // 60 minutes max
+    const pollIntervalMs = 10 * 1000; // Poll every 10 seconds
+    const startTime = Date.now();
+    let lastProgress = '';
+    let renderResult: { videoUrl: string; duration: number; fileSize: number } | null = null;
+
+    while (Date.now() - startTime < renderTimeoutMs) {
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+
+      const statusResponse = await fetch(`${renderServiceUrl}/render/status/${jobId}`, {
+        headers: {
+          'X-Nexus-Secret': renderSecret,
+        },
+      });
+
+      if (!statusResponse.ok) {
+        logger.warn({
+          msg: 'Failed to poll render status',
+          pipelineId,
+          stage: 'visual-gen',
+          jobId,
+          status: statusResponse.status,
+        });
+        continue;
+      }
+
+      const status = await statusResponse.json() as {
+        status: 'pending' | 'running' | 'completed' | 'failed';
+        progress?: string;
+        result?: { videoUrl: string; duration: number; fileSize: number };
+        error?: string;
+      };
+
+      // Log progress updates
+      if (status.progress && status.progress !== lastProgress) {
+        lastProgress = status.progress;
+        logger.info({
+          msg: 'Render progress',
+          pipelineId,
+          stage: 'visual-gen',
+          jobId,
+          progress: status.progress,
+          status: status.status,
+        });
+      }
+
+      if (status.status === 'completed' && status.result) {
+        logger.info({
+          msg: 'Render job completed',
+          pipelineId,
+          stage: 'visual-gen',
+          jobId,
+          result: status.result,
+        });
+
+        renderResult = status.result;
+        break;
+      }
+
+      if (status.status === 'failed') {
+        throw NexusError.critical(
+          'NEXUS_RENDER_FAILED',
+          `Render job failed: ${status.error || 'unknown error'}`,
+          'visual-gen'
+        );
+      }
+    }
+
+    // Check if we timed out
+    if (!renderResult) {
+      throw NexusError.critical(
+        'NEXUS_RENDER_TIMEOUT',
+        `Render job timed out after ${renderTimeoutMs / 1000 / 60} minutes`,
+        'visual-gen'
+      );
+    }
     const videoPath = renderResult.videoUrl;
 
     logger.info({

@@ -1,4 +1,5 @@
 import { writeFile } from 'fs/promises';
+import { Storage } from '@google-cloud/storage';
 import { NexusError, logger } from '@nexus-ai/core';
 
 const log = logger.child({ module: 'nexus.audio-mixer.gcs' });
@@ -30,15 +31,36 @@ function parseGcsUrl(gcsUrl: string): { bucket: string; path: string } {
 
 /**
  * Download a file from a GCS URL to a local path.
+ * Uses authenticated GCS SDK first, falls back to public HTTPS URL if auth fails.
  * Supports both gs:// and https:// URLs.
  */
 export async function downloadFromGCS(
   gcsUrl: string,
   localPath: string
 ): Promise<void> {
-  const httpUrl = toHttpsUrl(gcsUrl);
-
   log.info({ gcsUrl, localPath }, 'Downloading from GCS');
+
+  // Try authenticated download first for gs:// URLs
+  if (gcsUrl.startsWith('gs://')) {
+    try {
+      const { bucket, path } = parseGcsUrl(gcsUrl);
+      const storage = new Storage();
+
+      await storage.bucket(bucket).file(path).download({ destination: localPath });
+
+      log.info({ gcsUrl, localPath }, 'Authenticated download complete');
+      return;
+    } catch (authError) {
+      log.warn(
+        { gcsUrl, error: authError instanceof Error ? authError.message : String(authError) },
+        'Authenticated GCS download failed, falling back to public URL'
+      );
+      // Fall through to public URL attempt
+    }
+  }
+
+  // Fallback: try public HTTPS URL
+  const httpUrl = toHttpsUrl(gcsUrl);
 
   let response: Response;
   try {
@@ -64,7 +86,7 @@ export async function downloadFromGCS(
   const arrayBuffer = await response.arrayBuffer();
   await writeFile(localPath, Buffer.from(arrayBuffer));
 
-  log.info({ gcsUrl, localPath, bytes: arrayBuffer.byteLength }, 'Download complete');
+  log.info({ gcsUrl, localPath, bytes: arrayBuffer.byteLength }, 'Download complete (public URL)');
 }
 
 /**
@@ -80,10 +102,7 @@ export async function uploadToGCS(
   log.info({ localPath, gcsUrl }, 'Uploading to GCS');
 
   try {
-    // Dynamic import - @google-cloud/storage is available at runtime (root devDependency)
-    const modulePath = '@google-cloud/storage';
-    const storageModule = await import(modulePath);
-    const storage = new storageModule.Storage();
+    const storage = new Storage();
     await storage.bucket(bucket).upload(localPath, { destination: path });
 
     const publicUrl = `https://storage.googleapis.com/${bucket}/${path}`;

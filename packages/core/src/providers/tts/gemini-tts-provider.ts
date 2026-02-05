@@ -8,6 +8,7 @@
 import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import type { TTSProvider, TTSOptions, TTSResult, Voice } from '../../types/providers.js';
 import { withRetry } from '../../utils/with-retry.js';
+import { getWavDuration } from '../../utils/wav-utils.js';
 import { NexusError } from '../../errors/index.js';
 
 // =============================================================================
@@ -129,9 +130,8 @@ export class GeminiTTSProvider implements TTSProvider {
           // Calculate estimated cost
           const cost = this.estimateCost(text);
 
-          // Calculate duration from buffer size
-          // 16-bit = 2 bytes, 44100 samples/sec -> 88200 bytes/sec
-          const durationSec = audioBuffer.length / 88200;
+          // Calculate duration from actual WAV header (handles mono/stereo correctly)
+          const durationSec = getWavDuration(audioBuffer);
 
           // Return result with audio content
           const result: TTSResult = {
