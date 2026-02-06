@@ -2,6 +2,7 @@ import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import type { TTSProvider, TTSOptions, TTSResult, Voice } from '../../types/providers.js';
 import { withRetry } from '../../utils/with-retry.js';
 import { NexusError } from '../../errors/index.js';
+import { getWavDuration } from '../../utils/wav-utils.js';
 
 // =============================================================================
 // Constants
@@ -111,7 +112,7 @@ export class WaveNetProvider implements TTSProvider {
 
           const audioBuffer = Buffer.from(response.audioContent);
           const cost = this.estimateCost(text);
-          const durationSec = audioBuffer.length / 88200;
+          const durationSec = getWavDuration(audioBuffer);
 
           const result: TTSResult = {
             audioUrl: '', // Will be filled by Stage

@@ -187,6 +187,7 @@ export class RenderService {
         composition,
         serveUrl: bundled,
         codec: 'h264',
+        audioCodec: 'aac',
         outputLocation: outputPath,
         inputProps: {
           timeline: timelineData,

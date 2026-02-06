@@ -10,19 +10,20 @@ import type { AudioSegment } from '../types.js';
 /**
  * Helper to create mock WAV buffer
  *
- * Creates a minimal valid WAV file with 16-bit PCM stereo audio.
+ * Creates a minimal valid WAV file with 16-bit PCM audio.
  *
  * @param durationMs - Duration in milliseconds
  * @param sampleRate - Sample rate in Hz
+ * @param numChannels - Number of channels (1 = mono, 2 = stereo). Default 2 for backward compat.
  * @returns WAV buffer
  */
 function createMockWAVBuffer(
   durationMs: number,
-  sampleRate: number = 44100
+  sampleRate: number = 44100,
+  numChannels: number = 2
 ): Buffer {
   // Calculate PCM data size
   const numSamples = Math.floor((durationMs / 1000) * sampleRate);
-  const numChannels = 2; // Stereo
   const bitsPerSample = 16;
   const pcmDataSize = numSamples * numChannels * (bitsPerSample / 8);
 
@@ -64,14 +65,16 @@ function createMockWAVBuffer(
   header.writeUInt32LE(pcmDataSize, offset);
 
   // Create PCM data (simple sine wave for testing)
+  const bytesPerFrame = numChannels * (bitsPerSample / 8);
   const pcmData = Buffer.alloc(pcmDataSize);
   for (let i = 0; i < numSamples; i++) {
     // Generate simple sine wave
     const sample = Math.floor(Math.sin((i / sampleRate) * 440 * 2 * Math.PI) * 10000);
 
-    // Write stereo samples (same value for both channels)
-    pcmData.writeInt16LE(sample, i * 4);
-    pcmData.writeInt16LE(sample, i * 4 + 2);
+    // Write sample for each channel
+    for (let ch = 0; ch < numChannels; ch++) {
+      pcmData.writeInt16LE(sample, i * bytesPerFrame + ch * 2);
+    }
   }
 
   return Buffer.concat([header, pcmData]);
@@ -216,9 +219,9 @@ describe('audio stitching', () => {
       expect(sampleRate).toBe(44100);
     });
 
-    it('should produce stereo WAV (2 channels)', () => {
+    it('should preserve stereo channel count (stereo input → stereo output)', () => {
       const segments: AudioSegment[] = [
-        { index: 0, audioBuffer: createMockWAVBuffer(1000), durationSec: 1.0 },
+        { index: 0, audioBuffer: createMockWAVBuffer(1000, 44100, 2), durationSec: 1.0 },
       ];
 
       const stitched = stitchAudio(segments, 200);
@@ -226,6 +229,55 @@ describe('audio stitching', () => {
       // Read number of channels from WAV header (offset 22, 2 bytes)
       const numChannels = stitched.readUInt16LE(22);
       expect(numChannels).toBe(2);
+    });
+
+    it('should preserve mono channel count (mono input → mono output)', () => {
+      const segments: AudioSegment[] = [
+        { index: 0, audioBuffer: createMockWAVBuffer(1000, 44100, 1), durationSec: 1.0 },
+      ];
+
+      const stitched = stitchAudio(segments, 200);
+
+      const numChannels = stitched.readUInt16LE(22);
+      expect(numChannels).toBe(1);
+    });
+
+    it('should stitch mono audio segments correctly', () => {
+      const segment1 = createMockWAVBuffer(1000, 44100, 1);
+      const segment2 = createMockWAVBuffer(1000, 44100, 1);
+
+      const segments: AudioSegment[] = [
+        { index: 0, audioBuffer: segment1, durationSec: 1.0 },
+        { index: 1, audioBuffer: segment2, durationSec: 1.0 },
+      ];
+
+      const stitched = stitchAudio(segments, 200);
+
+      // Verify valid WAV
+      expect(stitched.toString('utf8', 0, 4)).toBe('RIFF');
+      expect(stitched.toString('utf8', 8, 12)).toBe('WAVE');
+
+      // Verify mono output
+      const numChannels = stitched.readUInt16LE(22);
+      expect(numChannels).toBe(1);
+
+      // Verify stitched is larger than one segment
+      expect(stitched.length).toBeGreaterThan(segment1.length);
+    });
+
+    it('should add correct mono silence padding between segments', () => {
+      const segment1 = createMockWAVBuffer(1000, 44100, 1);
+      const segment2 = createMockWAVBuffer(1000, 44100, 1);
+
+      const segments: AudioSegment[] = [
+        { index: 0, audioBuffer: segment1, durationSec: 1.0 },
+        { index: 1, audioBuffer: segment2, durationSec: 1.0 },
+      ];
+
+      const stitchedWithSilence = stitchAudio(segments, 500);
+      const stitchedNoSilence = stitchAudio(segments, 0);
+
+      expect(stitchedWithSilence.length).toBeGreaterThan(stitchedNoSilence.length);
     });
 
     it('should produce 16-bit PCM WAV', () => {

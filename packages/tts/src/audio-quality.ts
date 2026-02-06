@@ -5,6 +5,7 @@
 
 import { AudioQualityInfo, AudioSegment } from './types.js';
 import { createLogger } from '@nexus-ai/core/observability';
+import { parseWavHeader } from '@nexus-ai/core/utils';
 
 const logger = createLogger('nexus.tts.audio-quality');
 
@@ -23,6 +24,12 @@ const MAX_AMPLITUDE = 32767; // for 16-bit PCM
 
 /** Expected words per minute for speech */
 const WORDS_PER_MINUTE = 140;
+
+/** PCM data extracted from a WAV buffer along with its channel count */
+interface ExtractedPCM {
+  pcmData: Buffer;
+  numChannels: number;
+}
 
 /** Duration tolerance (±20%) */
 const DURATION_TOLERANCE = 0.2;
@@ -333,15 +340,30 @@ export function stitchAudio(
   // Sort segments by index to ensure correct order
   const sorted = segments.sort((a, b) => a.index - b.index);
 
-  // Extract PCM data from each segment
-  const pcmBuffers = sorted.map((segment) => extractPCMData(segment.audioBuffer));
+  // Extract PCM data and channel info from each segment
+  const extracted = sorted.map((segment) => extractPCMData(segment.audioBuffer));
+  const pcmBuffers = extracted.map((e) => e.pcmData);
+
+  // Determine channel count from first segment (TTS providers return mono)
+  const numChannels = extracted[0]?.numChannels ?? 1;
+
+  // Validate all segments have the same channel count
+  for (let i = 1; i < extracted.length; i++) {
+    if (extracted[i].numChannels !== numChannels) {
+      logger.warn({
+        segmentIndex: i,
+        expectedChannels: numChannels,
+        actualChannels: extracted[i].numChannels,
+      }, 'Channel count mismatch between segments, using first segment channel count');
+    }
+  }
 
   // Normalize audio levels across all segments
   const normalized = normalizeAudioLevels(pcmBuffers);
 
-  // Generate silence padding (44.1kHz, 16-bit stereo)
+  // Generate silence padding with matching channel count
   const sampleRate = 44100;
-  const silenceBuffer = generateSilence(silenceDurationMs, sampleRate);
+  const silenceBuffer = generateSilence(silenceDurationMs, sampleRate, numChannels);
 
   // Concatenate segments with silence padding
   const combined: Buffer[] = [];
@@ -356,82 +378,75 @@ export function stitchAudio(
   // Combine all PCM buffers
   const totalPcmData = Buffer.concat(combined);
 
-  // Create WAV file with proper header
-  const wavBuffer = createWAVBuffer(totalPcmData, sampleRate);
+  // Create WAV file with header matching input channel count
+  const wavBuffer = createWAVBuffer(totalPcmData, sampleRate, numChannels);
 
   logger.info({
     totalPcmBytes: totalPcmData.length,
     totalWavBytes: wavBuffer.length,
     segmentCount: segments.length,
+    numChannels,
   }, 'Audio stitching complete');
 
   return wavBuffer;
 }
 
 /**
- * Extract PCM data from WAV buffer by finding the 'data' chunk
+ * Extract PCM data from WAV buffer and read actual channel count
  *
- * Parses RIFF header to locate the data chunk, handling variable header sizes.
+ * Uses parseWavHeader() to correctly determine channel count, data offset,
+ * and data size from the WAV header.
  *
  * @param wavBuffer - Complete WAV file buffer
- * @returns PCM data without WAV header
+ * @returns PCM data and the actual number of channels
  */
-function extractPCMData(wavBuffer: Buffer): Buffer {
+function extractPCMData(wavBuffer: Buffer): ExtractedPCM {
   // Minimum WAV header size is 44 bytes
   if (wavBuffer.length < 44) {
     logger.warn({
       bufferSize: wavBuffer.length,
-    }, 'WAV buffer too small, returning as-is');
-    return wavBuffer;
+    }, 'WAV buffer too small, returning as-is (assuming mono)');
+    return { pcmData: wavBuffer, numChannels: 1 };
   }
 
   // Verify RIFF header
   if (wavBuffer.toString('utf8', 0, 4) !== 'RIFF') {
-    logger.warn('Invalid WAV header: missing RIFF');
-    return wavBuffer;
+    logger.warn('Invalid WAV header: missing RIFF, returning as-is (assuming mono)');
+    return { pcmData: wavBuffer, numChannels: 1 };
   }
 
   // Verify WAVE format
   if (wavBuffer.toString('utf8', 8, 12) !== 'WAVE') {
-    logger.warn('Invalid WAV header: missing WAVE');
-    return wavBuffer;
+    logger.warn('Invalid WAV header: missing WAVE, returning as-is (assuming mono)');
+    return { pcmData: wavBuffer, numChannels: 1 };
   }
 
-  let offset = 12;
-  while (offset < wavBuffer.length) {
-    // Read chunk ID and size
-    if (offset + 8 > wavBuffer.length) break;
-    
-    const chunkId = wavBuffer.toString('utf8', offset, offset + 4);
-    const chunkSize = wavBuffer.readUInt32LE(offset + 4);
-    offset += 8;
-
-    if (chunkId === 'data') {
-      // Found data chunk
-      const end = Math.min(offset + chunkSize, wavBuffer.length);
-      return wavBuffer.subarray(offset, end);
-    }
-
-    // Skip to next chunk
-    offset += chunkSize;
+  try {
+    const wavInfo = parseWavHeader(wavBuffer);
+    const end = Math.min(wavInfo.dataOffset + wavInfo.dataSize, wavBuffer.length);
+    return {
+      pcmData: wavBuffer.subarray(wavInfo.dataOffset, end),
+      numChannels: wavInfo.numChannels,
+    };
+  } catch (error) {
+    logger.warn({ error }, 'Failed to parse WAV header, falling back to fixed offset (assuming mono)');
+    return { pcmData: wavBuffer.subarray(44), numChannels: 1 };
   }
-
-  logger.warn('No data chunk found in WAV buffer, falling back to fixed offset');
-  return wavBuffer.subarray(44);
 }
 
 /**
- * Generate silence buffer (16-bit PCM, stereo)
+ * Generate silence buffer (16-bit PCM)
  *
  * @param durationMs - Duration of silence in milliseconds
  * @param sampleRate - Sample rate in Hz
+ * @param numChannels - Number of audio channels (1 = mono, 2 = stereo)
  * @returns Buffer of silent PCM samples
  */
-function generateSilence(durationMs: number, sampleRate: number): Buffer {
+function generateSilence(durationMs: number, sampleRate: number, numChannels: number = 1): Buffer {
   // Calculate number of samples needed
-  // Stereo = 2 channels, 16-bit = 2 bytes per sample
+  // 16-bit = 2 bytes per sample per channel
   const numSamples = Math.floor((durationMs / 1000) * sampleRate);
-  const bufferSize = numSamples * 2 * 2; // 2 channels * 2 bytes
+  const bufferSize = numSamples * numChannels * 2; // numChannels * 2 bytes
 
   // Create buffer filled with zeros (silence)
   const silenceBuffer = Buffer.alloc(bufferSize, 0);
@@ -439,6 +454,7 @@ function generateSilence(durationMs: number, sampleRate: number): Buffer {
   logger.debug({
     durationMs,
     sampleRate,
+    numChannels,
     numSamples,
     bufferSize,
   }, 'Generated silence buffer');
@@ -521,16 +537,16 @@ function normalizeAudioLevels(pcmBuffers: Buffer[]): Buffer[] {
  *
  * Generates standard WAV file with:
  * - PCM format
- * - 44.1kHz sample rate
+ * - Configurable sample rate
  * - 16-bit depth
- * - Stereo (2 channels)
+ * - Configurable channel count (matches input)
  *
  * @param pcmData - Raw PCM audio data
  * @param sampleRate - Sample rate in Hz
+ * @param numChannels - Number of audio channels (1 = mono, 2 = stereo)
  * @returns Complete WAV file buffer
  */
-function createWAVBuffer(pcmData: Buffer, sampleRate: number): Buffer {
-  const numChannels = 2; // Stereo
+function createWAVBuffer(pcmData: Buffer, sampleRate: number, numChannels: number = 1): Buffer {
   const bitsPerSample = 16;
   const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
   const blockAlign = (numChannels * bitsPerSample) / 8;
