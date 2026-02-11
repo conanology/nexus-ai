@@ -9,6 +9,7 @@
 
 import { NexusError } from '../errors/index.js';
 import { buildStoragePath, type StorageStage } from './paths.js';
+import { LocalStorageClient } from './local-storage-client.js';
 
 /**
  * GCS SDK types (dynamically imported)
@@ -95,22 +96,27 @@ export class CloudStorageClient {
   /** Storage instance (lazy initialized) */
   private storage: StorageInstance | null = null;
 
+  /** Local storage delegate for local mode (avoids GCS SDK entirely) */
+  private delegate: LocalStorageClient | null = null;
+
   /**
    * Create a new CloudStorageClient
    *
    * @param bucketName - GCS bucket name (defaults to NEXUS_BUCKET_NAME env var)
-   * @throws NexusError if no bucket name is available
+   * @throws NexusError if no bucket name is available and not in local mode
    */
   constructor(bucketName?: string) {
-    this.bucketName = bucketName || process.env.NEXUS_BUCKET_NAME || '';
+    // Inline local-mode check (cannot use isLocalStorageMode from storage-factory — circular dep)
+    const resolvedBucket = bucketName || process.env.NEXUS_BUCKET_NAME || '';
+    const isLocal = process.env.STORAGE_MODE === 'local' || !resolvedBucket;
 
-    if (!this.bucketName) {
-      throw NexusError.critical(
-        'NEXUS_GCS_NO_BUCKET',
-        'NEXUS_BUCKET_NAME environment variable not set and no bucketName provided',
-        'cloud-storage'
-      );
+    if (isLocal) {
+      this.delegate = new LocalStorageClient();
+      this.bucketName = 'local';
+      return;
     }
+
+    this.bucketName = resolvedBucket;
   }
 
   /**
@@ -186,6 +192,7 @@ export class CloudStorageClient {
     content: Buffer | string,
     contentType: string
   ): Promise<string> {
+    if (this.delegate) return this.delegate.uploadFile(path, content, contentType);
     try {
       const bucket = await this.getBucket();
       const file = bucket.file(path);
@@ -215,6 +222,7 @@ export class CloudStorageClient {
    * ```
    */
   async downloadFile(path: string): Promise<Buffer> {
+    if (this.delegate) return this.delegate.downloadFile(path);
     try {
       const bucket = await this.getBucket();
       const normalizedPath = this.normalizePath(path);
@@ -242,6 +250,7 @@ export class CloudStorageClient {
     stream: NodeJS.ReadableStream,
     contentType: string
   ): Promise<string> {
+    if (this.delegate) return this.delegate.uploadStream(path, stream, contentType);
     try {
       const bucket = await this.getBucket();
       const file = bucket.file(path);
@@ -279,6 +288,7 @@ export class CloudStorageClient {
    * ```
    */
   async getSignedUrl(path: string, expirationMinutes: number = 60): Promise<string> {
+    if (this.delegate) return this.delegate.getSignedUrl(path, expirationMinutes);
     try {
       const bucket = await this.getBucket();
       const file = bucket.file(path);
@@ -310,6 +320,7 @@ export class CloudStorageClient {
    * ```
    */
   async deleteFile(path: string): Promise<void> {
+    if (this.delegate) return this.delegate.deleteFile(path);
     try {
       const bucket = await this.getBucket();
       const file = bucket.file(path);
@@ -337,6 +348,7 @@ export class CloudStorageClient {
    * ```
    */
   async fileExists(path: string): Promise<boolean> {
+    if (this.delegate) return this.delegate.fileExists(path);
     try {
       const bucket = await this.getBucket();
       const normalizedPath = this.normalizePath(path);
@@ -366,6 +378,7 @@ export class CloudStorageClient {
    * ```
    */
   async listFiles(prefix: string): Promise<string[]> {
+    if (this.delegate) return this.delegate.listFiles(prefix);
     try {
       const bucket = await this.getBucket();
       const [files] = await bucket.getFiles({ prefix });
@@ -408,6 +421,7 @@ export class CloudStorageClient {
     content: Buffer | string,
     contentType: string
   ): Promise<string> {
+    if (this.delegate) return this.delegate.uploadArtifact(date, stage, filename, content, contentType);
     const path = buildStoragePath(date, stage, filename);
     return this.uploadFile(path, content, contentType);
   }
@@ -432,6 +446,7 @@ export class CloudStorageClient {
     stage: StorageStage,
     filename: string
   ): Promise<Buffer> {
+    if (this.delegate) return this.delegate.downloadArtifact(date, stage, filename);
     const path = buildStoragePath(date, stage, filename);
     return this.downloadFile(path);
   }
@@ -452,6 +467,7 @@ export class CloudStorageClient {
    * ```
    */
   getPublicUrl(path: string): string {
+    if (this.delegate) return this.delegate.getPublicUrl(path);
     return `https://storage.googleapis.com/${this.bucketName}/${path}`;
   }
 
@@ -470,6 +486,7 @@ export class CloudStorageClient {
    * ```
    */
   getGsUri(path: string): string {
+    if (this.delegate) return this.delegate.getGsUri(path);
     return `gs://${this.bucketName}/${path}`;
   }
 }

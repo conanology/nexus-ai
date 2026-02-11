@@ -14,6 +14,17 @@ export type { FirestoreQueryFilter, FirestoreWhereFilterOp } from './firestore-c
 // Cloud Storage client
 export { CloudStorageClient } from './cloud-storage-client.js';
 
+// Local Storage client (for local development mode)
+export { LocalStorageClient } from './local-storage-client.js';
+
+// Storage factory (auto-selects Cloud or Local based on environment)
+export {
+  getStorageClient,
+  isLocalStorageMode,
+  resetStorageClient,
+} from './storage-factory.js';
+export type { StorageClient } from './storage-factory.js';
+
 // Path helpers
 export {
   // Firestore document paths

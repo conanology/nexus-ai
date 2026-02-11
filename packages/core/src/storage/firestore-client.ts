@@ -163,22 +163,27 @@ export class FirestoreClient {
   /** Firestore instance (lazy initialized) */
   private db: FirestoreInstance | null = null;
 
+  /** When true, all operations are no-ops (local mode without Firestore) */
+  private readonly localMode: boolean;
+
   /**
    * Create a new FirestoreClient
    *
    * @param projectId - GCP project ID (defaults to NEXUS_PROJECT_ID env var)
-   * @throws NexusError if no project ID is available
+   * @throws NexusError if no project ID is available and not in local mode
    */
   constructor(projectId?: string) {
-    this.projectId = projectId || process.env.NEXUS_PROJECT_ID || '';
+    const resolved = projectId || process.env.NEXUS_PROJECT_ID || '';
+    const isLocal = process.env.STORAGE_MODE === 'local' || !resolved;
 
-    if (!this.projectId) {
-      throw NexusError.critical(
-        'NEXUS_FIRESTORE_NO_PROJECT',
-        'NEXUS_PROJECT_ID environment variable not set and no projectId provided',
-        'firestore'
-      );
+    if (isLocal) {
+      this.localMode = true;
+      this.projectId = 'local';
+      return;
     }
+
+    this.localMode = false;
+    this.projectId = resolved;
   }
 
   /**
@@ -229,6 +234,7 @@ export class FirestoreClient {
    * ```
    */
   async getDocument<T>(collection: string, docId: string): Promise<T | null> {
+    if (this.localMode) return null;
     try {
       const db = await this.getDb();
       const resolved = this.resolveDocPath(collection, docId);
@@ -269,6 +275,7 @@ export class FirestoreClient {
     docId: string,
     data: T
   ): Promise<void> {
+    if (this.localMode) return;
     try {
       const db = await this.getDb();
       const resolved = this.resolveDocPath(collection, docId);
@@ -306,6 +313,7 @@ export class FirestoreClient {
     docId: string,
     updates: Partial<T>
   ): Promise<void> {
+    if (this.localMode) return;
     try {
       const db = await this.getDb();
       const resolved = this.resolveDocPath(collection, docId);
@@ -339,6 +347,7 @@ export class FirestoreClient {
     collection: string,
     filters: FirestoreQueryFilter[]
   ): Promise<T[]> {
+    if (this.localMode) return [];
     try {
       const db = await this.getDb();
       let query: Query | CollectionReference = db.collection(collection);
@@ -375,6 +384,7 @@ export class FirestoreClient {
    * ```
    */
   async deleteDocument(collection: string, docId: string): Promise<void> {
+    if (this.localMode) return;
     try {
       const db = await this.getDb();
       const resolved = this.resolveDocPath(collection, docId);

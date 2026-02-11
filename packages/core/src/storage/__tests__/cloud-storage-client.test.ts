@@ -57,28 +57,24 @@ describe('CloudStorageClient', () => {
   });
 
   describe('constructor', () => {
-    it('should throw if no bucket name available', async () => {
+    it('should delegate to local storage when no bucket name available', async () => {
       delete process.env.NEXUS_BUCKET_NAME;
+      delete process.env.STORAGE_MODE;
 
       const module = await import('../cloud-storage-client.js');
-      try {
-        new module.CloudStorageClient();
-        expect.fail('Should have thrown');
-      } catch (error) {
-        expect(error).toBeInstanceOf(NexusError);
-      }
+      const client = new module.CloudStorageClient();
+      // Should not throw — auto-delegates to LocalStorageClient
+      expect(client.name).toBe('cloud-storage');
     });
 
-    it('should throw with NEXUS_GCS_NO_BUCKET code', async () => {
-      delete process.env.NEXUS_BUCKET_NAME;
+    it('should delegate to local storage when STORAGE_MODE=local', async () => {
+      process.env.STORAGE_MODE = 'local';
 
       const module = await import('../cloud-storage-client.js');
-      try {
-        new module.CloudStorageClient();
-        expect.fail('Should have thrown');
-      } catch (error) {
-        expect((error as NexusError).code).toBe('NEXUS_GCS_NO_BUCKET');
-      }
+      const client = new module.CloudStorageClient();
+      expect(client.name).toBe('cloud-storage');
+      // Delegate handles all operations — verify getGsUri returns local:// format
+      expect(client.getGsUri('test/file.txt')).toBe('local://test/file.txt');
     });
 
     it('should accept explicit bucket name', async () => {
