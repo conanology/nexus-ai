@@ -9,11 +9,20 @@ const DEFAULT_PREVIEW_DURATION_FRAMES = 9000; // 5 minutes at 30fps for Remotion
 
 /**
  * Resolves composition duration dynamically from props.
- * Priority: timeline.totalDurationFrames > audioDurationSec * fps > 5-min default
+ * Priority: V2-Director scenes > timeline > directionDocument > 5-min default
+ *
+ * Note: V2-Director must be checked BEFORE timeline because defaultProps
+ * include a sample timeline that would match the timeline check even when
+ * inputProps use the scenes path.
  */
 export const calculateTechExplainerMetadata: CalculateMetadataFunction<TechExplainerProps> = ({
   props,
 }) => {
+  // V2-Director scenes mode: totalDurationFrames provided directly (check first)
+  if ('scenes' in props && 'totalDurationFrames' in props) {
+    return { durationInFrames: (props as any).totalDurationFrames };
+  }
+
   // Timeline mode: prefer totalDurationFrames
   if ('timeline' in props && props.timeline) {
     const { totalDurationFrames, audioDurationSec } = props.timeline;
