@@ -7,6 +7,15 @@ import { randomUUID } from 'crypto';
 const app = express();
 app.use(express.json());
 
+// Startup validation: check for GEMINI_API_KEY (required for V2 Director Agent)
+const geminiKeyAvailable = !!process.env.GEMINI_API_KEY || !!process.env.NEXUS_GEMINI_API_KEY;
+if (!geminiKeyAvailable) {
+  logger.warn(
+    'GEMINI_API_KEY not set — V2 Director Agent unavailable, falling back to legacy SceneMapper mode. ' +
+    'Set GEMINI_API_KEY or NEXUS_GEMINI_API_KEY to enable V2 Director rendering.'
+  );
+}
+
 const renderService = new RenderService();
 
 // Job store for async renders

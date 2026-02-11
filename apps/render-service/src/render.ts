@@ -167,21 +167,67 @@ export class RenderService {
         }),
       });
 
-      // 3. Read Timeline Data
+      // 3. Read Timeline/Scenes Data
       onProgress?.('Bundle complete - preparing composition');
       const timelineData = JSON.parse(await fs.readFile(timelinePath, 'utf-8'));
+
+      // Build inputProps depending on V2-director or legacy format
+      const isV2Director = timelineData.version === 'v2-director';
+      const inputProps = isV2Director
+        ? {
+            scenes: timelineData.scenes,
+            totalDurationFrames: timelineData.totalDurationFrames,
+            audioUrl: localAudioUrl,
+          }
+        : {
+            timeline: timelineData,
+            audioUrl: localAudioUrl,
+          };
+
+      if (isV2Director) {
+        // Compute scene type distribution for logging
+        const typeCounts: Record<string, number> = {};
+        for (const scene of timelineData.scenes) {
+          typeCounts[scene.type] = (typeCounts[scene.type] ?? 0) + 1;
+        }
+        const typesSummary = Object.entries(typeCounts)
+          .map(([t, n]) => `${t} x${n}`)
+          .join(', ');
+
+        logger.info({
+          pipelineId: input.pipelineId,
+          sceneCount: timelineData.scenes.length,
+          totalDurationFrames: timelineData.totalDurationFrames,
+          durationSec: timelineData.totalDurationFrames / 30,
+          typeDistribution: typeCounts,
+        }, `Director Agent: produced ${timelineData.scenes.length} scenes (types: ${typesSummary})`);
+      } else {
+        logger.info({
+          pipelineId: input.pipelineId,
+          sceneCount: timelineData.scenes?.length,
+          mode: 'legacy-timeline',
+        }, 'Legacy timeline mode — using keyword SceneMapper output');
+      }
 
       // 4. Select Composition
       const composition = await selectComposition({
         serveUrl: bundled,
         id: 'TechExplainer', // Matches apps/video-studio/src/Root.tsx
-        inputProps: {
-          timeline: timelineData,
-          audioUrl: localAudioUrl, // Use HTTP URL served by local file server
-        },
+        inputProps,
       });
 
       // 5. Render
+      const sceneCount = isV2Director ? timelineData.scenes.length : (timelineData.scenes?.length ?? 0);
+      const renderDurationSec = composition.durationInFrames / composition.fps;
+      logger.info({
+        pipelineId: input.pipelineId,
+        sceneCount,
+        durationSec: renderDurationSec,
+        durationInFrames: composition.durationInFrames,
+        fps: composition.fps,
+        codec: 'h264',
+        audioCodec: 'aac',
+      }, `Render: starting Remotion render, ${sceneCount} scenes, duration ${renderDurationSec.toFixed(1)}s`);
       onProgress?.('Rendering video frames');
       await renderMedia({
         composition,
@@ -189,10 +235,7 @@ export class RenderService {
         codec: 'h264',
         audioCodec: 'aac',
         outputLocation: outputPath,
-        inputProps: {
-          timeline: timelineData,
-          audioUrl: localAudioUrl, // Use HTTP URL served by local file server
-        },
+        inputProps,
         timeoutInMilliseconds: 45 * 60 * 1000, // 45 minutes
         chromiumOptions: {
             enableMultiProcessOnLinux: true
@@ -221,6 +264,15 @@ export class RenderService {
       const uploadPath = `${input.pipelineId}/render/video.mp4`;
       const videoStream = createReadStream(outputPath);
       const resultUrl = await this.storage.uploadStream(uploadPath, videoStream, 'video/mp4');
+
+      logger.info({
+        pipelineId: input.pipelineId,
+        videoUrl: resultUrl,
+        durationSec,
+        fileSize: stats.size,
+        fileSizeMB: (stats.size / (1024 * 1024)).toFixed(1),
+        mode: isV2Director ? 'v2-director' : 'legacy-timeline',
+      }, `Render: complete, output at ${uploadPath}`);
 
       return {
         videoUrl: resultUrl,
