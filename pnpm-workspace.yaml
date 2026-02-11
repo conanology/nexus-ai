@@ -1,4 +1,10 @@
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "packages/**"
+  - apps/*
+  - packages/*
+  - packages/**
+
+onlyBuiltDependencies:
+  - esbuild
+  - ffmpeg-static
+  - protobufjs
+  - sharp

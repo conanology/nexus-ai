@@ -1,0 +1,22 @@
+{
+  "name": "@nexus-ai/asset-library",
+  "version": "0.1.0",
+  "description": "Static asset data (logos, fonts) and logo fetching for NEXUS-AI video pipeline",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "author": "Cryptology",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.16.0",
+    "playwright-core": "^1.50.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.1.0"
+  }
+}
