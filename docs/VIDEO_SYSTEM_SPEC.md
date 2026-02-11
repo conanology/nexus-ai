@@ -2,15 +2,16 @@
 
 ## Nexus AI — Autonomous AI News Video Pipeline
 
-> **Version:** 1.0
-> **Last Updated:** 2026-02-06
-> **Status:** Active — Master Blueprint
+> **Version:** 2.0
+> **Last Updated:** 2026-02-07
+> **Status:** Active — V2 Production Ready
 > **Audience:** Claude Code sessions, developers, pipeline operators
 
 ---
 
 ## Table of Contents
 
+0. [Current Status](#0-current-status)
 1. [Project Overview](#1-project-overview)
 2. [Current System Audit](#2-current-system-audit)
 3. [Known Bugs](#3-known-bugs)
@@ -23,6 +24,21 @@
 10. [Implementation Roadmap](#10-implementation-roadmap)
 11. [Example: Script-to-Scenes Mapping](#11-example-script-to-scenes-mapping)
 12. [File Structure Target](#12-file-structure-target)
+13. [Running a V2 Render](#13-running-a-v2-render)
+
+---
+
+## 0. CURRENT STATUS
+
+| Component | Status |
+|---|---|
+| Implementation Phases 0-10 | COMPLETE |
+| Scene Types (14/14) | BUILT — intro, chapter-break, narration-default, text-emphasis, full-screen-text, stat-callout, comparison, diagram, logo-showcase, timeline, quote, list-reveal, code-block, outro |
+| Director Agent | OPERATIONAL — LLM-powered scene classification via Gemini |
+| Audio Bug Fix | APPLIED — WAV header channel count corrected |
+| Theme Migration | COMPLETE — Cyan primary (#00d4ff), violet secondary (#8b5cf6) |
+| Docker Build | UPDATED — fonts (Inter + JetBrains Mono), GEMINI_API_KEY support |
+| Production Readiness | READY (pending first full production render) |
 
 ---
 
@@ -1699,3 +1715,79 @@ Adding new scene types affects multiple packages:
 | CodeBlock | CodeHighlight | Evolve | VS Code aesthetic, better syntax highlighting |
 | OutroSequence | — | New | Subscribe CTA, social links, branding |
 | AnimatedCaptions | KineticText | Refactor | Overlay layer (not scene), full-composition span |
+
+---
+
+## 13. RUNNING A V2 RENDER
+
+### 13.1 Required Environment Variables
+
+| Variable | Purpose | Required |
+|---|---|---|
+| `GEMINI_API_KEY` or `NEXUS_GEMINI_API_KEY` | Director Agent LLM calls | Yes (for V2 mode; legacy works without) |
+| `GOOGLE_APPLICATION_CREDENTIALS` | GCS uploads and downloads | Yes (production) |
+| `NEXUS_BUCKET_NAME` | GCS bucket name (default: `nexus-ai-artifacts`) | No |
+| `NEXUS_SECRET` | Render service auth token | Recommended |
+| `RENDER_SERVICE_URL` | Render service endpoint (default: `http://localhost:8081`) | No |
+
+### 13.2 Validation Commands
+
+```bash
+# Production readiness check (validates Director Agent, scene registry, colors, fonts)
+npx tsx scripts/production-test.ts
+
+# Director Agent pipeline validation (requires GEMINI_API_KEY)
+npx tsx scripts/validate-pipeline.ts
+
+# V2 Director Bridge validation (requires GEMINI_API_KEY)
+npx tsx scripts/render-test-v2.ts
+```
+
+### 13.3 Triggering a Render
+
+The render service exposes two endpoints:
+
+**Async render (recommended):**
+```bash
+curl -X POST http://localhost:8081/render/async \
+  -H "Content-Type: application/json" \
+  -H "X-Nexus-Secret: $NEXUS_SECRET" \
+  -d '{
+    "pipelineId": "test-001",
+    "timelineUrl": "gs://nexus-ai-artifacts/test-001/visual-gen/scenes.json",
+    "audioUrl": "gs://nexus-ai-artifacts/test-001/tts/audio.wav"
+  }'
+```
+
+**Poll for status:**
+```bash
+curl http://localhost:8081/render/status/<jobId> \
+  -H "X-Nexus-Secret: $NEXUS_SECRET"
+```
+
+### 13.4 V2 vs Legacy Mode
+
+The pipeline defaults to V2 Director Agent mode. To use legacy keyword-based SceneMapper:
+
+```typescript
+// In visual-gen pipeline input:
+{ mode: 'legacy-timeline' }
+```
+
+The render service auto-detects the mode from the JSON payload:
+- V2: `{ "version": "v2-director", "scenes": [...], "totalDurationFrames": N }`
+- Legacy: `{ "audioDurationSec": N, "scenes": [...] }` (no `version` field)
+
+If `GEMINI_API_KEY` is not set at startup, the render service logs a warning and the pipeline should use `mode: 'legacy-timeline'` to avoid Director Agent failures.
+
+### 13.5 Cloud Run Deployment
+
+```bash
+# Build and push Docker image
+gcloud builds submit --config=cloudbuild-render.yaml
+
+# Set GEMINI_API_KEY as a Cloud Run environment variable
+gcloud run services update nexus-render-service \
+  --set-env-vars="GEMINI_API_KEY=<key>" \
+  --region=us-central1
+```
