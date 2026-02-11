@@ -105,6 +105,25 @@ meme-reaction, map-animation, outro
 - `bundle()` must set `publicDir` explicitly (entry not at project root)
 - Zod scene schema uses `.passthrough()` to preserve enrichment fields
 
+### Key File Locations
+
+| Category | Path |
+|----------|------|
+| Scene components | `apps/video-studio/src/components/scenes/*.tsx` |
+| Overlays | `apps/video-studio/src/components/overlays/*.tsx` |
+| Shared components | `apps/video-studio/src/components/shared/*.tsx` |
+| Annotations | `apps/video-studio/src/components/annotations/*.tsx` |
+| Maps | `apps/video-studio/src/components/maps/` |
+| Scene types (TS) | `apps/video-studio/src/types/scenes.ts` |
+| Scene router | `apps/video-studio/src/SceneRouter.tsx` |
+| Composition | `apps/video-studio/src/compositions/TechExplainer.tsx` |
+| Theme / colors | `apps/video-studio/src/theme.ts`, `apps/video-studio/src/utils/colors.ts` |
+| Enrichers | `packages/visual-gen/src/*-enricher.ts` |
+| Asset fetcher | `packages/visual-gen/src/asset-fetcher.ts` |
+| Director classifier | `packages/director-agent/src/scene-classifier.ts` |
+| Local pipeline | `scripts/run-local.ts` |
+| Storage factory | `packages/core/src/storage/storage-factory.ts` |
+
 ## Environment Variables
 
 Required for local mode (see `.env.local.example`):
@@ -140,3 +159,17 @@ Root cause: FirestoreClient constructor was modified for local-mode detection, b
 5. **Remotion `publicDir`** — Must be set in `bundle()` when entry point is not at project root
 6. **Data URI images** — Don't pass base64 images in Remotion `inputProps` (24MB+ JSON); materialize to disk and serve via HTTP
 7. **Frame math** — `Math.floor()` on small scene counts can produce 0; always wrap with `Math.max(1, ...)`
+
+## Documentation
+
+| Document | Path |
+|----------|------|
+| Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Pipeline Reference | [docs/PIPELINE.md](docs/PIPELINE.md) |
+| Scene Types | [docs/SCENE-TYPES.md](docs/SCENE-TYPES.md) |
+| Visual Layers | [docs/VISUAL-LAYERS.md](docs/VISUAL-LAYERS.md) |
+| API Keys | [docs/API-KEYS.md](docs/API-KEYS.md) |
+| Contributing | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
+| Local Mode | [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) |
+| Video System Spec | [docs/VIDEO_SYSTEM_SPEC.md](docs/VIDEO_SYSTEM_SPEC.md) |
+| User Guide | [docs/NEXUS-AI-USER-GUIDE.md](docs/NEXUS-AI-USER-GUIDE.md) |

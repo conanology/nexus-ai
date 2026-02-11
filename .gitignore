@@ -52,6 +52,11 @@ output/
 # Windows artifacts
 nul
 
+# Media artifacts (safety net — also covered by output/ and local-storage/)
+*.mp4
+*.wav
+*.mp3
+
 # Misc
 .DS_Store
 Thumbs.db
