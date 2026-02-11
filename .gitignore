@@ -11,24 +11,23 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
-/mnt/d/05_Work/NEXUS-AI-PROJECT/SETUP-PROGRESS.md
+SETUP-PROGRESS.md
 
 client_secret_408744545530-gc9es0chs4nthu12vb15d933i2p98gmi.apps.googleusercontent.com.json
 client_secret_408744545530-t1002u4eispl44eisqcbi87lup7vr776.apps.googleusercontent.com.json
 
 # Testing
-
 coverage
 test-results/
 playwright-report/
 playwright/.auth/
-test-results/
-playwright-report/
-playwright/.auth/
 
+# BMAD / Agent frameworks
 _bmad/
+_bmad-output/
 .agent/
 .claude/
+
 # Turbo
 .turbo
 
@@ -41,14 +40,17 @@ out/
 build
 dist
 
-.ralph/
-.ralph.backup.epic5/
-
-
 # Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local mode storage & output
+local-storage/
+output/
+
+# Windows artifacts
+nul
 
 # Misc
 .DS_Store
