@@ -28,6 +28,8 @@ export interface VisualGenInput {
   wordTimings?: WordTiming[];
   /** Whether audio mixing is enabled (default: true when directionDocument present) */
   audioMixingEnabled?: boolean;
+  /** Pipeline mode: 'v2-director' uses LLM Director Agent (default), 'legacy-timeline' uses keyword SceneMapper */
+  mode?: 'v2-director' | 'legacy-timeline';
 }
 
 /**

@@ -10,6 +10,8 @@ import type { VisualGenInput, VisualGenOutput, SceneMapping } from './types.js';
 import { parseVisualCues } from './visual-cue-parser.js';
 import { SceneMapper } from './scene-mapper.js';
 import { generateTimeline } from './timeline.js';
+import { generateDirectorScenes } from './director-bridge.js';
+import { enrichScenesWithAssets } from './asset-fetcher.js';
 
 /**
  * Resolve segment start time from a direction document segment's timing.
@@ -76,135 +78,237 @@ export async function executeVisualGen(
       hasWordTimings: !!data.wordTimings,
     });
 
-    // V2 path: directionDocument is available with segment timings.
-    // For now, still use existing script-based flow (full V2 rendering is later stories 6.16+).
-    // The directionDocument timing data is logged and available for future use.
-    if (hasDirectionDocument) {
-      const segments = data.directionDocument!.segments;
-      const timingSummary = segments.map((seg) => ({
-        id: seg.id,
-        type: seg.type,
-        startSec: resolveSegmentStartSec(seg.timing),
-        durationSec: resolveSegmentDurationSec(seg.timing),
-        timingSource: seg.timing.timingSource,
-      }));
+    // =========================================================================
+    // Route: V2-Director (LLM) or Legacy (keyword SceneMapper)
+    // =========================================================================
+    const mode = data.mode ?? 'v2-director';
+    let timelineJson: string;
+    let sceneCount: number;
+    let fallbackUsage: number;
+    let providerName: string;
+    let providerTier: string;
+    let alignmentError: number;
 
+    if (mode === 'v2-director') {
+      // ----- V2 Director Agent path -----
       logger.info({
-        msg: 'V2 direction document available - timing data resolved',
-        pipelineId,
-        stage: 'visual-gen',
-        segmentCount: segments.length,
-        timingSource: segments[0]?.timing.timingSource,
-        timingSummary,
-      });
-    }
-
-    // Step 1: Parse visual cues from script (V1 and V2 both use script-based flow for now)
-    let visualCues = parseVisualCues(resolvedScript);
-
-    logger.info({
-      msg: 'Visual cues parsed',
-      pipelineId,
-      stage: 'visual-gen',
-      cueCount: visualCues.length,
-    });
-
-    // Generate fallback cues from directionDocument if no visual cues found in script
-    if (visualCues.length === 0 && hasDirectionDocument) {
-      logger.info({
-        msg: 'Generating fallback scenes from directionDocument segments',
-        pipelineId,
-        stage: 'visual-gen',
-        segmentCount: data.directionDocument!.segments.length,
-      });
-
-      visualCues = data.directionDocument!.segments.map((segment, index) => ({
-        index,
-        // Use first sentence of segment content as description
-        description: segment.content.text.split(/[.!?]/)[0]?.trim() || 'Scene',
-        context: segment.content.text,
-        position: index * 100,
-      }));
-    }
-
-    if (visualCues.length === 0) {
-      logger.warn({
-        msg: 'No visual cues found in script and no directionDocument segments available',
+        msg: 'V2 Director Agent path selected',
         pipelineId,
         stage: 'visual-gen',
       });
-    }
 
-    // Step 2: Map cues to components using SceneMapper with TextOnGradient fallback
-    const mapper = new SceneMapper();
-    const sceneMappings: SceneMapping[] = [];
-
-    for (const cue of visualCues) {
-      // Use mapCueWithFallback which always returns a mapping (TextOnGradient if no match)
-      const mapping = await mapper.mapCueWithFallback(cue);
-      sceneMappings.push(mapping);
-      logger.info({
-        msg: 'Visual cue mapped',
-        pipelineId,
-        stage: 'visual-gen',
-        cueIndex: cue.index,
-        description: cue.description,
-        component: mapping.component,
+      const fps = 30;
+      const directorResult = await generateDirectorScenes({
+        script: resolvedScript,
+        audioDurationSec: data.audioDurationSec,
+        wordTimings: data.wordTimings,
+        metadata: data.topicData
+          ? { topic: data.topicData.title, title: data.topicData.title }
+          : undefined,
       });
-    }
 
-    // Record costs from mapper (LLM usage)
-    if (config.tracker && typeof (config.tracker as any).recordApiCall === 'function') {
-      const mapperCost = mapper.getTotalCost();
-      if (mapperCost > 0) {
-        (config.tracker as any).recordApiCall(
-          'gemini-3-pro-preview', // Assuming SceneMapper uses this model
-          { input: 0, output: 0 },
-          mapperCost
-        );
+      const totalDurationFrames = Math.ceil(data.audioDurationSec * fps);
+
+      // Enrich scenes with fetched assets (logos, etc.)
+      try {
+        await enrichScenesWithAssets(directorResult.scenes);
+        logger.info({
+          msg: 'Asset enrichment completed',
+          pipelineId,
+          stage: 'visual-gen',
+        });
+      } catch (error) {
+        logger.warn({
+          msg: 'Asset enrichment failed - continuing with text-only scenes',
+          pipelineId,
+          stage: 'visual-gen',
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
-    }
 
-    // Step 3: Generate timeline aligned to audio duration
-    const timeline = generateTimeline(sceneMappings, data.audioDurationSec, {
-      segments: data.directionDocument?.segments,
-    });
+      // Build V2 JSON payload
+      const v2Payload = {
+        version: 'v2-director' as const,
+        totalDurationFrames,
+        scenes: directorResult.scenes,
+      };
 
-    // Compute timing mode distribution across all segments
-    let timingMode = 'proportional';
-    const timingModeCounts: Record<string, number> = {};
-    if (data.directionDocument?.segments?.length) {
-      for (const seg of data.directionDocument.segments) {
-        const mode = seg.timing.wordTimings?.length
-          ? 'word-timings'
-          : seg.timing.actualDurationSec !== undefined
-            ? 'actual'
-            : seg.timing.estimatedDurationSec !== undefined
-              ? 'estimated'
-              : 'proportional';
-        timingModeCounts[mode] = (timingModeCounts[mode] ?? 0) + 1;
+      timelineJson = JSON.stringify(v2Payload, null, 2);
+      sceneCount = directorResult.sceneCount;
+      fallbackUsage = 0;
+      providerName = 'director-agent';
+      providerTier = 'primary';
+
+      // Alignment error: compute from last scene's endFrame
+      const lastScene = directorResult.scenes[directorResult.scenes.length - 1];
+      const coveredDurationSec = lastScene ? lastScene.endFrame / fps : 0;
+      alignmentError = data.audioDurationSec > 0
+        ? Math.abs(coveredDurationSec - data.audioDurationSec) / data.audioDurationSec
+        : 0;
+
+      // Log director warnings
+      if (directorResult.warnings.length > 0) {
+        logger.warn({
+          msg: 'Director agent produced warnings',
+          pipelineId,
+          stage: 'visual-gen',
+          warnings: directorResult.warnings,
+        });
       }
-      // Primary mode is the most common across segments
-      timingMode = Object.entries(timingModeCounts)
-        .sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'proportional';
+
+      logger.info({
+        msg: 'Director Agent scenes generated',
+        pipelineId,
+        stage: 'visual-gen',
+        sceneCount,
+        sceneTypeDistribution: directorResult.sceneTypeDistribution,
+        totalDurationFrames,
+        alignmentError,
+      });
+
+    } else {
+      // ----- Legacy keyword-matching SceneMapper path -----
+      logger.info({
+        msg: 'Legacy SceneMapper path selected',
+        pipelineId,
+        stage: 'visual-gen',
+      });
+
+      // Log V2 direction document timing if available
+      if (hasDirectionDocument) {
+        const segments = data.directionDocument!.segments;
+        const timingSummary = segments.map((seg) => ({
+          id: seg.id,
+          type: seg.type,
+          startSec: resolveSegmentStartSec(seg.timing),
+          durationSec: resolveSegmentDurationSec(seg.timing),
+          timingSource: seg.timing.timingSource,
+        }));
+
+        logger.info({
+          msg: 'V2 direction document available - timing data resolved',
+          pipelineId,
+          stage: 'visual-gen',
+          segmentCount: segments.length,
+          timingSource: segments[0]?.timing.timingSource,
+          timingSummary,
+        });
+      }
+
+      // Step 1: Parse visual cues from script
+      let visualCues = parseVisualCues(resolvedScript);
+
+      logger.info({
+        msg: 'Visual cues parsed',
+        pipelineId,
+        stage: 'visual-gen',
+        cueCount: visualCues.length,
+      });
+
+      // Generate fallback cues from directionDocument if no visual cues found in script
+      if (visualCues.length === 0 && hasDirectionDocument) {
+        logger.info({
+          msg: 'Generating fallback scenes from directionDocument segments',
+          pipelineId,
+          stage: 'visual-gen',
+          segmentCount: data.directionDocument!.segments.length,
+        });
+
+        visualCues = data.directionDocument!.segments.map((segment, index) => ({
+          index,
+          description: segment.content.text.split(/[.!?]/)[0]?.trim() || 'Scene',
+          context: segment.content.text,
+          position: index * 100,
+        }));
+      }
+
+      if (visualCues.length === 0) {
+        logger.warn({
+          msg: 'No visual cues found in script and no directionDocument segments available',
+          pipelineId,
+          stage: 'visual-gen',
+        });
+      }
+
+      // Step 2: Map cues to components using SceneMapper with TextOnGradient fallback
+      const mapper = new SceneMapper();
+      const sceneMappings: SceneMapping[] = [];
+
+      for (const cue of visualCues) {
+        const mapping = await mapper.mapCueWithFallback(cue);
+        sceneMappings.push(mapping);
+        logger.info({
+          msg: 'Visual cue mapped',
+          pipelineId,
+          stage: 'visual-gen',
+          cueIndex: cue.index,
+          description: cue.description,
+          component: mapping.component,
+        });
+      }
+
+      // Record costs from mapper (LLM usage)
+      if (config.tracker && typeof (config.tracker as any).recordApiCall === 'function') {
+        const mapperCost = mapper.getTotalCost();
+        if (mapperCost > 0) {
+          (config.tracker as any).recordApiCall(
+            'gemini-3-pro-preview',
+            { input: 0, output: 0 },
+            mapperCost
+          );
+        }
+      }
+
+      // Step 3: Generate timeline aligned to audio duration
+      const timeline = generateTimeline(sceneMappings, data.audioDurationSec, {
+        segments: data.directionDocument?.segments,
+      });
+
+      // Compute timing mode distribution across all segments
+      let timingMode = 'proportional';
+      const timingModeCounts: Record<string, number> = {};
+      if (data.directionDocument?.segments?.length) {
+        for (const seg of data.directionDocument.segments) {
+          const segTimingMode = seg.timing.wordTimings?.length
+            ? 'word-timings'
+            : seg.timing.actualDurationSec !== undefined
+              ? 'actual'
+              : seg.timing.estimatedDurationSec !== undefined
+                ? 'estimated'
+                : 'proportional';
+          timingModeCounts[segTimingMode] = (timingModeCounts[segTimingMode] ?? 0) + 1;
+        }
+        timingMode = Object.entries(timingModeCounts)
+          .sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'proportional';
+      }
+
+      logger.info({
+        msg: 'Timeline generated',
+        pipelineId,
+        stage: 'visual-gen',
+        sceneCount: timeline.scenes.length,
+        audioDuration: timeline.audioDurationSec,
+        timingMode,
+        timingModeCounts: Object.keys(timingModeCounts).length > 0 ? timingModeCounts : undefined,
+        validationWarnings: timeline.validationWarnings,
+      });
+
+      timelineJson = JSON.stringify(timeline, null, 2);
+      sceneCount = timeline.scenes.length;
+      fallbackUsage = mapper.getFallbackUsage();
+      providerName = fallbackUsage > 0 ? 'keyword-matching+TextOnGradient' : 'keyword-matching';
+      providerTier = fallbackUsage > 0 ? 'fallback' : 'primary';
+
+      // Compute alignment error
+      const totalDuration = timeline.scenes.reduce((sum, scene) => sum + scene.duration, 0);
+      alignmentError = data.audioDurationSec > 0
+        ? Math.abs(totalDuration - data.audioDurationSec) / data.audioDurationSec
+        : 0;
     }
 
-    logger.info({
-      msg: 'Timeline generated',
-      pipelineId,
-      stage: 'visual-gen',
-      sceneCount: timeline.scenes.length,
-      audioDuration: timeline.audioDurationSec,
-      timingMode,
-      timingModeCounts: Object.keys(timingModeCounts).length > 0 ? timingModeCounts : undefined,
-      validationWarnings: timeline.validationWarnings,
-    });
-
-    // Step 4: Generate Cloud Storage path and URL
+    // Step 4: Upload to Cloud Storage (shared)
     const storagePath = `${pipelineId}/visual-gen/scenes.json`;
-    const timelineJson = JSON.stringify(timeline, null, 2);
-    
-    // Upload to Cloud Storage
+
     const storageClient = new CloudStorageClient(process.env.NEXUS_BUCKET_NAME || 'nexus-ai-artifacts');
     const timelineUrl = await storageClient.uploadFile(
       storagePath,
@@ -213,11 +317,12 @@ export async function executeVisualGen(
     );
 
     logger.info({
-      msg: 'Timeline path generated',
+      msg: 'Scenes uploaded to GCS',
       pipelineId,
       stage: 'visual-gen',
       url: timelineUrl,
       size: timelineJson.length,
+      mode,
     });
 
     // Step 5: Audio mixing (if enabled)
@@ -423,9 +528,8 @@ export async function executeVisualGen(
     });
 
     // Step 7: Calculate quality metrics
-    const fallbackUsage = mapper.getFallbackUsage();
-    const fallbackPercentage = visualCues.length > 0
-      ? (fallbackUsage / visualCues.length) * 100
+    const fallbackPercentage = sceneCount > 0
+      ? (fallbackUsage / sceneCount) * 100
       : 0;
 
     // Check if quality is DEGRADED (>30% fallback usage)
@@ -439,26 +543,19 @@ export async function executeVisualGen(
         pipelineId,
         stage: 'visual-gen',
         fallbackUsage,
-        totalCues: visualCues.length,
+        totalScenes: sceneCount,
         percentage: fallbackPercentage,
         status: 'DEGRADED',
       });
     }
-
-    // Calculate timeline alignment error
-    const totalDuration = timeline.scenes.reduce((sum, scene) => sum + scene.duration, 0);
-    const alignmentError = data.audioDurationSec > 0
-      ? Math.abs(totalDuration - data.audioDurationSec) / data.audioDurationSec
-      : 0;
 
     if (alignmentError > 0.05) {
       logger.warn({
         msg: 'Timeline alignment error exceeds 5%',
         pipelineId,
         stage: 'visual-gen',
-        expectedDuration: data.audioDurationSec,
-        actualDuration: totalDuration,
         errorPercentage: alignmentError * 100,
+        mode,
       });
     }
 
@@ -469,7 +566,7 @@ export async function executeVisualGen(
 
     // Build quality metrics
     const qualityMeasurements = {
-      sceneCount: timeline.scenes.length,
+      sceneCount,
       fallbackUsage,
       fallbackPercentage,
       timelineAlignmentError: alignmentError,
@@ -501,7 +598,7 @@ export async function executeVisualGen(
     // Return data for executeStage
     return {
       timelineUrl,
-      sceneCount: timeline.scenes.length,
+      sceneCount,
       fallbackUsage,
       videoPath,  // GCS path to rendered video
       // Pass-through data for YouTube metadata generation
@@ -520,8 +617,8 @@ export async function executeVisualGen(
         measurements: qualityMeasurements,
       },
       provider: {
-        name: fallbackUsage > 0 ? 'keyword-matching+TextOnGradient' : 'keyword-matching',
-        tier: fallbackUsage > 0 ? 'fallback' : 'primary',
+        name: providerName,
+        tier: providerTier,
         attempts: 1,
       },
     } as any;
