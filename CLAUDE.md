@@ -10,6 +10,10 @@
 | Type-check       | `npx tsc --noEmit` (per-package, no root tsconfig) |
 | Local pipeline   | `pnpm run pipeline:local "topic"`                  |
 | Local pipeline (script) | `pnpm run pipeline:local -- --script path/to/script.txt` |
+| Verify all       | `npx tsx scripts/dev/verify.ts`                    |
+| Check imports    | `npx tsx scripts/dev/check-imports.ts`             |
+| Bundle report    | `npx tsx scripts/dev/bundle-report.ts`             |
+| Render test clip | `npx tsx scripts/dev/render-clip.ts`               |
 
 ## Project Overview
 
@@ -160,6 +164,26 @@ Root cause: FirestoreClient constructor was modified for local-mode detection, b
 6. **Data URI images** — Don't pass base64 images in Remotion `inputProps` (24MB+ JSON); materialize to disk and serve via HTTP
 7. **Frame math** — `Math.floor()` on small scene counts can produce 0; always wrap with `Math.max(1, ...)`
 
+## Custom Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/verify` | Full verification: tsc (4 packages) + tests + git status |
+| `/test-package <name>` | Run vitest for a specific package |
+| `/render-test` | Execute E2E render test |
+| `/scene-check` | Type-check all scene-related packages |
+| `/pipeline-status` | Show branch, commits, test summary |
+
+## Pre-Flight Checklists
+
+**After code changes**: Type-check affected packages → run their tests → if scene types changed, rebuild director-agent.
+
+**Before commits**: `git diff` to review → `pnpm test` confirms baseline (22/152, 37/3033) → conventional commit message.
+
+**Before renders**: Verify `.env.local` has `NEXUS_GEMINI_API_KEY` → check `publicDir` set → no data URIs in inputProps.
+
+See [docs/CLAUDE-OPS.md](docs/CLAUDE-OPS.md) for the detailed operations manual.
+
 ## Documentation
 
 | Document | Path |
@@ -170,6 +194,7 @@ Root cause: FirestoreClient constructor was modified for local-mode detection, b
 | Visual Layers | [docs/VISUAL-LAYERS.md](docs/VISUAL-LAYERS.md) |
 | API Keys | [docs/API-KEYS.md](docs/API-KEYS.md) |
 | Contributing | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
+| Operations Manual | [docs/CLAUDE-OPS.md](docs/CLAUDE-OPS.md) |
 | Local Mode | [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) |
 | Video System Spec | [docs/VIDEO_SYSTEM_SPEC.md](docs/VIDEO_SYSTEM_SPEC.md) |
 | User Guide | [docs/NEXUS-AI-USER-GUIDE.md](docs/NEXUS-AI-USER-GUIDE.md) |
