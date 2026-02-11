@@ -10,12 +10,15 @@
     "test": "echo 'Tests run at root level'"
   },
   "dependencies": {
+    "@nexus-ai/asset-library": "workspace:*",
     "@nexus-ai/core": "workspace:*",
+    "@nexus-ai/director-agent": "workspace:*",
     "@nexus-ai/broll-engine": "workspace:*",
     "@nexus-ai/script-gen": "workspace:*",
     "@nexus-ai/visual-gen": "workspace:*",
     "@remotion/bundler": "^4.0.0",
     "@remotion/cli": "^4.0.0",
+    "@remotion/gif": "^4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "remotion": "^4.0.0",

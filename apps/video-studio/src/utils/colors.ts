@@ -2,8 +2,8 @@
  * Target Color Palette — Nexus AI Brand
  *
  * From VIDEO_SYSTEM_SPEC.md Section 4.2.
- * These are the TARGET colors for the new scene system.
- * theme.ts is NOT modified — the full theme migration happens in Phase 10.
+ * Canonical color source for all scene components.
+ * theme.ts has been migrated to match this palette (Phase 10).
  */
 
 export const COLORS = {
@@ -58,5 +58,29 @@ export function withOpacity(hexColor: string, opacity: number): string {
  * @param angle - Gradient angle in degrees (default 135)
  */
 export function gradientBg(angle: number = 135): string {
-  return `linear-gradient(${angle}deg, ${COLORS.bgDeepDark}, ${COLORS.bgBase}, ${COLORS.bgDeepDark})`;
+  return `linear-gradient(${angle}deg, ${COLORS.bgDeepDark} 0%, ${COLORS.bgBase} 40%, ${COLORS.bgElevated} 70%, ${COLORS.bgBase} 100%)`;
 }
+
+/**
+ * Generate a CSS text-shadow string for glow effects.
+ *
+ * @param color  - Glow color (hex)
+ * @param intensity - 'subtle' (readability), 'medium' (emphasis), 'strong' (dramatic)
+ * @returns CSS text-shadow value
+ */
+export function textGlow(color: string, intensity: 'subtle' | 'medium' | 'strong' = 'subtle'): string {
+  const rgba = withOpacity(color, 0.6);
+  const rgbaOuter = withOpacity(color, 0.3);
+
+  switch (intensity) {
+    case 'subtle':
+      return `0 0 6px ${rgba}, 0 2px 4px rgba(0,0,0,0.8)`;
+    case 'medium':
+      return `0 0 10px ${rgba}, 0 0 20px ${rgbaOuter}, 0 2px 4px rgba(0,0,0,0.8)`;
+    case 'strong':
+      return `0 0 15px ${rgba}, 0 0 30px ${rgbaOuter}, 0 0 45px ${withOpacity(color, 0.15)}, 0 2px 4px rgba(0,0,0,0.9)`;
+  }
+}
+
+/** Base dark text shadow for readability on all text over images. */
+export const TEXT_CONTRAST_SHADOW = '0 2px 4px rgba(0,0,0,0.8)';

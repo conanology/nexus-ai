@@ -5,45 +5,45 @@
 
 export const THEME = {
   colors: {
-    // Primary brand colors
-    primary: '#6366f1', // Indigo - Brand Blue/Purple
-    primaryLight: '#818cf8',
-    primaryDark: '#4f46e5',
+    // Primary brand colors — Cyan (target palette from VIDEO_SYSTEM_SPEC.md Section 4.2)
+    primary: '#00d4ff', // Electric Cyan
+    primaryLight: '#0ea5e9',
+    primaryDark: '#0284c7',
 
     // Secondary colors
     secondary: '#8b5cf6', // Violet
-    secondaryLight: '#a78bfa',
+    secondaryLight: '#a855f7',
     secondaryDark: '#7c3aed',
 
     // Accent colors
-    accent: '#06b6d4', // Cyan
-    accentLight: '#22d3ee',
-    accentDark: '#0891b2',
+    accent: '#00d4ff', // Cyan (matches primary)
+    accentLight: '#0ea5e9',
+    accentDark: '#0284c7',
 
     // Background colors (dark mode default)
-    background: '#0f172a', // Slate 900
-    backgroundLight: '#1e293b', // Slate 800
-    backgroundDark: '#020617', // Slate 950
+    background: '#0a0e1a', // Deep dark
+    backgroundLight: '#1e293b', // Elevated
+    backgroundDark: '#111827', // Base
 
     // Text colors
-    text: '#f8fafc', // Slate 50
-    textSecondary: '#cbd5e1', // Slate 300
-    textMuted: '#94a3b8', // Slate 400
+    text: '#ffffff', // Pure white
+    textSecondary: '#94a3b8', // Slate 400
+    textMuted: '#64748b', // Slate 500
 
     // UI colors
     success: '#10b981', // Green
     warning: '#f59e0b', // Amber
     error: '#ef4444', // Red
-    info: '#3b82f6', // Blue
+    info: '#0ea5e9', // Sky
 
     // Chart/visualization colors
     chart: {
-      blue: '#3b82f6',
+      blue: '#0ea5e9',
       green: '#10b981',
       yellow: '#f59e0b',
       red: '#ef4444',
       purple: '#8b5cf6',
-      cyan: '#06b6d4',
+      cyan: '#00d4ff',
     },
   },
 
@@ -91,7 +91,7 @@ export const THEME = {
     md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
     lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-    glow: '0 0 20px rgba(99, 102, 241, 0.5)',
+    glow: '0 0 20px rgba(0, 212, 255, 0.3)',
   },
 
   // Animation timing

@@ -99,7 +99,24 @@ export type ComponentName =
   | 'LowerThird'
   | 'TextOnGradient'
   | 'KineticText'
-  | 'BrowserFrame';
+  | 'BrowserFrame'
+  // Scene system types (Phase 1+)
+  | 'intro'
+  | 'chapter-break'
+  | 'narration-default'
+  | 'text-emphasis'
+  | 'full-screen-text'
+  | 'stat-callout'
+  | 'comparison'
+  | 'diagram'
+  | 'logo-showcase'
+  | 'timeline'
+  | 'quote'
+  | 'list-reveal'
+  | 'code-block'
+  | 'meme-reaction'
+  | 'map-animation'
+  | 'outro';
 
 /**
  * Entrance animation types
@@ -786,6 +803,23 @@ export const ComponentNameSchema = z.enum([
   'TextOnGradient',
   'KineticText',
   'BrowserFrame',
+  // Scene system types (Phase 1+)
+  'intro',
+  'chapter-break',
+  'narration-default',
+  'text-emphasis',
+  'full-screen-text',
+  'stat-callout',
+  'comparison',
+  'diagram',
+  'logo-showcase',
+  'timeline',
+  'quote',
+  'list-reveal',
+  'code-block',
+  'meme-reaction',
+  'map-animation',
+  'outro',
 ]);
 
 export const EntranceTypeSchema = z.enum(['fade', 'slide', 'pop', 'scale', 'blur', 'none']);
