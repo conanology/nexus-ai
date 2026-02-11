@@ -1,6 +1,6 @@
 {
   "name": "@nexus-ai/operator-cli",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "NEXUS-AI pipeline operator CLI",
   "private": true,
   "type": "module",
