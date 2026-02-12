@@ -72,7 +72,7 @@ export class ArxivRSSSource implements NewsSource {
   private async fetchFeed(url: string, pipelineId: string): Promise<NewsItem[]> {
     try {
       const { result } = await withRetry(async () => {
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
         
         if (!response.ok) {
            throw new Error(`Failed to fetch ${url}: ${response.statusText}`);

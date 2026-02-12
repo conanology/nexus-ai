@@ -33,7 +33,7 @@ export class HuggingFacePapersSource implements NewsSource {
       const { result: response } = await withRetry(
         async () => {
           try {
-            const res = await fetch(this.endpoint);
+            const res = await fetch(this.endpoint, { signal: AbortSignal.timeout(15000) });
             
             if (!res.ok) {
               if (res.status === 429 || res.status >= 500) {

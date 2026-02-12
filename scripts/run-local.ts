@@ -930,6 +930,17 @@ function startFileServer(
 ): Promise<{ url: string; port: number; close: () => void }> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
+      // CORS headers for Remotion's headless browser (different origin)
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Range');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
       const urlPath = decodeURIComponent((req.url || '').replace(/^\/assets\//, ''));
       const filePath = path.join(dir, urlPath);
 

@@ -43,7 +43,9 @@ export class HackerNewsSource implements NewsSource {
       const { result: storyIds } = await withRetry(
         async () => {
           try {
-            const res = await fetch(this.topStoriesEndpoint);
+            const res = await fetch(this.topStoriesEndpoint, {
+              signal: AbortSignal.timeout(15000),
+            });
 
             if (!res.ok) {
               if (res.status === 429 || res.status >= 500) {
@@ -108,7 +110,7 @@ export class HackerNewsSource implements NewsSource {
 
       // Fetch story details until we have 10 relevant items
       const relevantItems: NewsItem[] = [];
-      const maxToCheck = Math.min(100, (storyIds as number[]).length); // Check max 100 stories
+      const maxToCheck = Math.min(30, (storyIds as number[]).length); // Check top 30 stories (need only 10)
 
       for (let i = 0; i < maxToCheck && relevantItems.length < 10; i++) {
         const storyId = (storyIds as number[])[i];
@@ -138,7 +140,9 @@ export class HackerNewsSource implements NewsSource {
       const { result: story } = await withRetry(
         async () => {
           try {
-            const res = await fetch(`${this.itemEndpoint}/${storyId}.json`);
+            const res = await fetch(`${this.itemEndpoint}/${storyId}.json`, {
+              signal: AbortSignal.timeout(10000),
+            });
 
             if (!res.ok) {
               if (res.status === 429 || res.status >= 500) {
