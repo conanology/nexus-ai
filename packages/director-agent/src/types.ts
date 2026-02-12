@@ -364,7 +364,7 @@ export const VISUAL_DATA_SCHEMAS: Record<SceneType, z.ZodType> = {
 // Overlay Types (composite scene system)
 // =============================================================================
 
-export type OverlayType = 'corner-logo' | 'info-badge' | 'floating-label' | 'source-citation';
+export type OverlayType = 'corner-logo' | 'info-badge' | 'floating-label' | 'source-citation' | 'key-phrase' | 'source-badge';
 
 export interface BaseOverlay {
   type: OverlayType;
@@ -398,7 +398,18 @@ export interface SourceCitationOverlay extends BaseOverlay {
   source: string;
 }
 
-export type SceneOverlay = CornerLogoOverlay | InfoBadgeOverlay | FloatingLabelOverlay | SourceCitationOverlay;
+export interface KeyPhraseOverlay extends BaseOverlay {
+  type: 'key-phrase';
+  phrase: string;
+}
+
+export interface SourceBadgeOverlay extends BaseOverlay {
+  type: 'source-badge';
+  position: 'bottom-left';
+  sourceName: string;
+}
+
+export type SceneOverlay = CornerLogoOverlay | InfoBadgeOverlay | FloatingLabelOverlay | SourceCitationOverlay | KeyPhraseOverlay | SourceBadgeOverlay;
 
 // =============================================================================
 // Annotation Types (hand-drawn SVG annotations)
@@ -466,6 +477,7 @@ export interface Scene {
   backgroundImage?: string;
   screenshotImage?: string;
   sourceUrl?: string;
+  visualSource?: 'source-screenshot' | 'content-screenshot' | 'company-screenshot' | 'stock' | 'ai-generated' | 'programmatic' | 'gradient';
   overlays?: SceneOverlay[];
   annotations?: SceneAnnotation[];
   isColdOpen?: boolean;

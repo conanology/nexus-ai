@@ -292,9 +292,8 @@ describe('enrichScenesWithOverlays — exclusions and limits', () => {
     expect(scenes[0].overlays).toBeUndefined();
   });
 
-  it('enforces max 3 overlays per scene', () => {
+  it('enforces max 4 overlays per scene', () => {
     // comparison + company mention = floating-label x2 + corner-logo + source-citation = 4
-    // Should be trimmed to 3
     const scenes = [
       makeScene({
         type: 'comparison',
@@ -308,7 +307,7 @@ describe('enrichScenesWithOverlays — exclusions and limits', () => {
 
     enrichScenesWithOverlays(scenes, emptyLogos);
 
-    expect(scenes[0].overlays!.length).toBeLessThanOrEqual(3);
+    expect(scenes[0].overlays!.length).toBeLessThanOrEqual(4);
   });
 });
 

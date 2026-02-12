@@ -11,7 +11,7 @@ import type { SceneComponentProps } from '../../types/scenes.js';
 // ---------------------------------------------------------------------------
 
 const TITLE_FADE_FRAMES = 15;
-const ITEM_STAGGER = 8;
+const ITEM_STAGGER = 5;
 const ITEM_FADE_FRAMES = 10;
 const MARKER_LEAD = 3; // marker appears 3 frames before text
 const TITLE_OFFSET = 15; // items start after title
@@ -88,9 +88,15 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
   const fontSize = compact ? 34 : 40;
   const itemSpacing = compact ? 60 : 80;
 
-  // Title fade
+  // Title slide-up
   const titleOpacity = title
     ? interpolate(frame, [0, TITLE_FADE_FRAMES], [0, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : 0;
+  const titleSlideY = title
+    ? interpolate(frame, [0, TITLE_FADE_FRAMES], [20, 0], {
         extrapolateLeft: 'clamp',
         extrapolateRight: 'clamp',
       })
@@ -126,6 +132,7 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
               color: COLORS.textPrimary,
               marginBottom: itemSpacing,
               opacity: titleOpacity,
+              transform: `translateY(${titleSlideY}px)`,
             }}
           >
             {title}
@@ -154,7 +161,7 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
           const textSlideX = interpolate(
             frame,
             [itemStart, itemStart + ITEM_FADE_FRAMES],
-            [-30, 0],
+            [-40, 0],
             { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
           );
 

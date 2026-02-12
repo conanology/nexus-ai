@@ -112,28 +112,25 @@ describe('enrichScenesWithScreenshots', () => {
     expect(scenes[0].screenshotImage).toBeDefined();
   });
 
-  it('does NOT add screenshots to ineligible scene types', async () => {
+  it('does NOT add screenshots to excluded scene types (intro, outro, code-block, meme-reaction, map-animation)', async () => {
     const scenes = [
       makeScene({
         id: 'scene-4',
-        type: 'comparison',
-        content: 'Klarna vs traditional support',
-        visualData: {
-          left: { title: 'Traditional', items: ['Slow'] },
-          right: { title: 'Klarna AI', items: ['Fast'] },
-        },
+        type: 'intro',
+        content: 'Welcome to the show about Klarna',
+        visualData: {},
       }),
       makeScene({
         id: 'scene-5',
-        type: 'diagram',
-        content: 'How Salesforce integrates AI',
-        visualData: { nodes: [], edges: [], layout: 'horizontal' },
+        type: 'outro',
+        content: 'Thanks for watching about Salesforce',
+        visualData: {},
       }),
       makeScene({
         id: 'scene-6',
-        type: 'intro',
-        content: 'Welcome to the show about OpenAI',
-        visualData: {},
+        type: 'code-block',
+        content: 'OpenAI API example code',
+        visualData: { code: 'const ai = new OpenAI();', language: 'javascript' },
       }),
     ];
 
@@ -145,7 +142,7 @@ describe('enrichScenesWithScreenshots', () => {
     expect(captureWebsiteScreenshot).not.toHaveBeenCalled();
   });
 
-  it('limits to MAX 5 screenshots per video', async () => {
+  it('limits to MAX 10 screenshots per video', async () => {
     const companies = ['Klarna', 'Salesforce', 'Stripe', 'NVIDIA', 'OpenAI', 'GitHub', 'Shopify'];
     const scenes = companies.map((name, i) =>
       makeScene({
@@ -159,8 +156,9 @@ describe('enrichScenesWithScreenshots', () => {
     await enrichScenesWithScreenshots(scenes);
 
     const screenshotCount = scenes.filter((s) => s.screenshotImage).length;
-    expect(screenshotCount).toBeLessThanOrEqual(5);
-    expect(captureWebsiteScreenshot).toHaveBeenCalledTimes(5);
+    expect(screenshotCount).toBeLessThanOrEqual(10);
+    // All 7 companies should get screenshots (under the new limit of 10)
+    expect(captureWebsiteScreenshot).toHaveBeenCalledTimes(7);
   });
 
   it('preserves existing backgroundImage when screenshot fails', async () => {

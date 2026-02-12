@@ -55,6 +55,16 @@ export const CountUpNumber: React.FC<CountUpNumberProps> = ({
     maximumFractionDigits: resolvedDecimals,
   });
 
+  // Entrance: slam scale from 1.5→1.0 with spring over first 8 frames
+  const entranceSpring = spring({
+    frame: effectiveFrame,
+    fps,
+    config: { damping: 10, mass: 0.5, stiffness: 200 },
+    durationInFrames: 8,
+  });
+  const entranceScale = interpolate(entranceSpring, [0, 1], [1.5, 1.0]);
+  const entranceOpacity = entranceSpring;
+
   // Scale overshoot: triggers when count-up completes
   const overshootFrame = effectiveFrame - durationFrames;
   const scaleSpring =
@@ -66,13 +76,15 @@ export const CountUpNumber: React.FC<CountUpNumberProps> = ({
         })
       : 0;
 
-  const scale = interpolate(scaleSpring, [0, 0.5, 1], [1, 1.06, 1]);
+  const overshootScale = interpolate(scaleSpring, [0, 0.5, 1], [1, 1.06, 1]);
+  const scale = overshootScale * entranceScale;
 
   return (
     <div
       style={{
         display: 'inline-flex',
         alignItems: 'baseline',
+        opacity: entranceOpacity,
         transform: `scale(${scale})`,
         willChange: 'transform',
       }}

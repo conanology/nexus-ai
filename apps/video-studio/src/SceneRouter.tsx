@@ -155,11 +155,11 @@ export interface SceneRouterProps {
   wordTimings?: WordTiming[];
 }
 
-/** SFX volume (quieter than narration) */
-const SFX_VOLUME = 0.4;
+/** SFX volume (present but not overpowering) */
+const SFX_VOLUME = 0.45;
 
-/** Background music volume (barely audible under narration) */
-const MUSIC_VOLUME = 0.12;
+/** Background music volume (subtle but audible under narration) */
+const MUSIC_VOLUME = 0.20;
 
 function sfxUrl(name: string): string {
   return staticFile(`audio/sfx/${name}.wav`);
@@ -243,6 +243,7 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl }) =>
                 content={scene.content}
                 backgroundImage={scene.backgroundImage}
                 screenshotImage={scene.screenshotImage}
+                pacing={scene.pacing}
               />
               {scene.type !== 'meme-reaction' && scene.type !== 'map-animation' && scene.annotations && scene.annotations.length > 0 && (
                 <AnnotationLayer annotations={scene.annotations} sceneDurationFrames={durationInFrames} />

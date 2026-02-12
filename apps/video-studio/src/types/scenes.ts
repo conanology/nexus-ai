@@ -227,7 +227,7 @@ export type AnyVisualData = VisualDataMap[SceneType];
 // 5.4: Overlay Types (composite scene system)
 // -----------------------------------------------------------------------------
 
-export type OverlayType = 'corner-logo' | 'info-badge' | 'floating-label' | 'source-citation';
+export type OverlayType = 'corner-logo' | 'info-badge' | 'floating-label' | 'source-citation' | 'key-phrase' | 'source-badge';
 
 export interface BaseOverlay {
   type: OverlayType;
@@ -261,7 +261,17 @@ export interface SourceCitationOverlay extends BaseOverlay {
   source: string;
 }
 
-export type SceneOverlay = CornerLogoOverlay | InfoBadgeOverlay | FloatingLabelOverlay | SourceCitationOverlay;
+export interface KeyPhraseOverlay extends BaseOverlay {
+  type: 'key-phrase';
+  phrase: string;
+}
+
+export interface SourceBadgeOverlay extends BaseOverlay {
+  type: 'source-badge';
+  sourceName: string;
+}
+
+export type SceneOverlay = CornerLogoOverlay | InfoBadgeOverlay | FloatingLabelOverlay | SourceCitationOverlay | KeyPhraseOverlay | SourceBadgeOverlay;
 
 // -----------------------------------------------------------------------------
 // 5.5: Annotation Types (hand-drawn SVG annotations)
@@ -345,4 +355,5 @@ export interface SceneComponentProps<T extends SceneType = SceneType> {
   motion?: MotionConfig;
   backgroundImage?: string;
   screenshotImage?: string;
+  pacing?: 'punch' | 'breathe' | 'dense' | 'normal';
 }

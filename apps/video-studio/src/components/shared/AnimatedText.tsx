@@ -79,20 +79,22 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
       : TEXT_CONTRAST_SHADOW;
 
   if (animationStyle === 'fade') {
-    const fadeProgress = spring({
+    // Slide-up with spring — punchy entrance, not a gentle fade
+    const slideSpring = spring({
       frame: effectiveFrame,
       fps,
-      config: { damping: 100, mass: 0.5, stiffness: 120 },
-      durationInFrames: 15,
+      config: { damping: 14, mass: 0.6, stiffness: 180 },
+      durationInFrames: 12,
     });
-    const scale = interpolate(fadeProgress, [0, 1], [0.9, 1.0]);
+    const translateY = interpolate(slideSpring, [0, 1], [30, 0]);
+    const scale = interpolate(slideSpring, [0, 1], [0.95, 1.0]);
 
     return (
       <div
         style={{
           ...containerStyle,
-          opacity: fadeProgress,
-          transform: `scale(${scale})`,
+          opacity: slideSpring,
+          transform: `translateY(${translateY}px) scale(${scale})`,
         }}
       >
         {words.map((word, i) => (
@@ -111,16 +113,16 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
     const slamProgress = spring({
       frame: effectiveFrame,
       fps,
-      config: { damping: 12, mass: 0.8, stiffness: 200 },
+      config: { damping: 10, mass: 0.8, stiffness: 220 },
     });
-    const scale = interpolate(slamProgress, [0, 1], [1.4, 1.0]);
+    const scale = interpolate(slamProgress, [0, 1], [1.8, 1.0]);
     const opacity = effectiveFrame > 0 ? 1 : 0;
 
     const shakeAmount =
-      effectiveFrame > 0 && effectiveFrame <= 5
+      effectiveFrame > 0 && effectiveFrame <= 8
         ? Math.sin(effectiveFrame * Math.PI * 2) *
-          3 *
-          (1 - effectiveFrame / 5)
+          6 *
+          (1 - effectiveFrame / 8)
         : 0;
 
     return (

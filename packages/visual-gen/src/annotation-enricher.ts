@@ -85,8 +85,8 @@ function colorForSentiment(sentiment: Sentiment): string {
 
 const MAX_ANNOTATIONS_PER_SCENE = 2;
 
-/** Max fraction of scenes that get annotations (60%) */
-const MAX_ANNOTATION_RATIO = 0.6;
+/** Max fraction of scenes that get annotations (70%) */
+const MAX_ANNOTATION_RATIO = 0.7;
 
 /** Scene types that never get annotations */
 const EXCLUDED_TYPES = new Set([
@@ -241,7 +241,27 @@ export function enrichScenesWithAnnotations(scenes: Scene[]): Scene[] {
         break;
       }
 
-      // quote, narration-default, full-screen-text, diagram, timeline, logo-showcase: no annotations
+      case 'narration-default': {
+        // Underline when content contains a number or emphasis word
+        const hasNumber = /\d+/.test(text);
+        const hasEmphasis = /\b(critical|important|key|major|significant|massive|huge|revolutionary)\b/i.test(text);
+        if (hasNumber || hasEmphasis) {
+          const underline: UnderlineAnnotation = {
+            type: 'underline',
+            x: 400,
+            y: 640,
+            width: 1100,
+            style: hasEmphasis ? 'squiggly' : 'single',
+            color: sentiment === 'positive' ? ANNOTATION_COLORS.success : ANNOTATION_COLORS.brand,
+            delayFrames: 20,
+            drawDurationFrames: 24,
+          };
+          annotations.push(underline);
+        }
+        break;
+      }
+
+      // quote, full-screen-text, diagram, timeline, logo-showcase: no annotations
       default:
         break;
     }

@@ -34,7 +34,7 @@ export const FullScreenText: React.FC<SceneComponentProps<'full-screen-text'>> =
       </ParallaxContainer>
 
       <ParallaxContainer layer="foreground">
-      <SlowZoom>
+      <SlowZoom direction="in">
         <div
           style={{
             position: 'absolute',

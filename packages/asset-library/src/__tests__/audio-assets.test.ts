@@ -210,8 +210,8 @@ describe('getSfxForSceneType', () => {
     expect(getSfxForSceneType('quote')).toEqual(['impact-soft']);
   });
 
-  it('returns [] for narration-default', () => {
-    expect(getSfxForSceneType('narration-default')).toEqual([]);
+  it('returns ["whoosh-in"] for narration-default', () => {
+    expect(getSfxForSceneType('narration-default')).toEqual(['whoosh-in']);
   });
 
   it('returns [] for unknown scene type', () => {

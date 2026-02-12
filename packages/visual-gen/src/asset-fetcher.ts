@@ -25,6 +25,7 @@ import { enrichScenesWithMemes } from './meme-enricher.js';
 import { enrichScenesWithScreenshots } from './screenshot-enricher.js';
 import { enrichScenesWithSourceScreenshots } from './source-screenshot-enricher.js';
 import type { SourceUrl } from './source-screenshot-enricher.js';
+import { enrichScenesWithContentScreenshots } from './content-screenshot-enricher.js';
 import { enrichScenesWithStock } from './stock-enricher.js';
 import { enrichScenesWithGeoData } from './geo-enricher.js';
 
@@ -98,22 +99,25 @@ export async function enrichScenesWithAssets(
   // --- Geo enrichment (before images — map scenes should NOT get AI background images) ---
   enrichScenesWithGeoData(scenes);
 
-  // --- Image enrichment ---
-  await enrichScenesWithImages(scenes, 'technology');
-
   // --- Source screenshot enrichment (HIGHEST priority — actual article/repo screenshots) ---
   if (options?.sourceUrls && options.sourceUrls.length > 0) {
     await enrichScenesWithSourceScreenshots(scenes, options.sourceUrls);
   }
 
-  // --- Company screenshot enrichment (after source screenshots — lower priority) ---
+  // --- Content screenshot enrichment (scan narration for company/platform mentions) ---
+  await enrichScenesWithContentScreenshots(scenes);
+
+  // --- Company screenshot enrichment (known companies with curated URLs) ---
   await enrichScenesWithScreenshots(scenes);
 
-  // --- Stock enrichment (after all screenshots — real photos for tangible concepts) ---
+  // --- Stock enrichment (real photos for tangible concepts) ---
   const pexelsApiKey = process.env.PEXELS_API_KEY;
   if (pexelsApiKey) {
     await enrichScenesWithStock(scenes, pexelsApiKey, 'technology');
   }
+
+  // --- AI Image enrichment (LAST visual source — only for scenes still without visuals, max 4) ---
+  await enrichScenesWithImages(scenes, 'technology');
 
   // --- Overlay enrichment ---
   enrichScenesWithOverlays(scenes, fetchedLogos);
@@ -182,22 +186,25 @@ export async function enrichScenesWithAssetsFull(
   // --- Geo enrichment (before images — map scenes should NOT get AI background images) ---
   enrichScenesWithGeoData(scenes);
 
-  // --- Image enrichment ---
-  await enrichScenesWithImages(scenes, topic);
-
   // --- Source screenshot enrichment (HIGHEST priority — actual article/repo screenshots) ---
   if (options?.sourceUrls && options.sourceUrls.length > 0) {
     await enrichScenesWithSourceScreenshots(scenes, options.sourceUrls);
   }
 
-  // --- Company screenshot enrichment (after source screenshots — lower priority) ---
+  // --- Content screenshot enrichment (scan narration for company/platform mentions) ---
+  await enrichScenesWithContentScreenshots(scenes);
+
+  // --- Company screenshot enrichment (known companies with curated URLs) ---
   await enrichScenesWithScreenshots(scenes);
 
-  // --- Stock enrichment (after all screenshots — real photos for tangible concepts) ---
+  // --- Stock enrichment (real photos for tangible concepts) ---
   const pexelsKey = process.env.PEXELS_API_KEY;
   if (pexelsKey) {
     await enrichScenesWithStock(scenes, pexelsKey, topic);
   }
+
+  // --- AI Image enrichment (LAST visual source — only for scenes still without visuals, max 4) ---
+  await enrichScenesWithImages(scenes, topic);
 
   // --- Overlay enrichment ---
   enrichScenesWithOverlays(scenes, fetchedLogos);
@@ -218,17 +225,28 @@ export async function enrichScenesWithAssetsFull(
  * Sets scene.sfx based on scene type and scene.musicTrack on the first scene.
  * Mutates scenes in place.
  */
+/** Cycle through different SFX for narration-default to avoid repetition */
+const NARRATION_SFX_CYCLE = ['whoosh-in', 'reveal', 'click'];
+
 export function enrichScenesWithAudio(scenes: Scene[]): void {
   let sfxCount = 0;
+  let narrationSfxIndex = 0;
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
 
-    // Set SFX for this scene type
-    const sfx = getSfxForSceneType(scene.type);
-    if (sfx.length > 0) {
-      scene.sfx = sfx;
+    if (scene.type === 'narration-default') {
+      // Cycle through SFX variants for variety
+      scene.sfx = [NARRATION_SFX_CYCLE[narrationSfxIndex % NARRATION_SFX_CYCLE.length]];
+      narrationSfxIndex++;
       sfxCount++;
+    } else {
+      // Set SFX for this scene type from the standard map
+      const sfx = getSfxForSceneType(scene.type);
+      if (sfx.length > 0) {
+        scene.sfx = sfx;
+        sfxCount++;
+      }
     }
 
     // Set background music on the first scene
@@ -249,6 +267,9 @@ export function enrichScenesWithAudio(scenes: Scene[]): void {
  * scene.backgroundImage to the resulting data URI. Gracefully degrades if
  * GEMINI_API_KEY is not set.
  */
+/** Max AI-generated images per video — screenshots and stock are preferred */
+const MAX_AI_IMAGES = 4;
+
 export async function enrichScenesWithImages(
   scenes: Scene[],
   topic: string,
@@ -261,8 +282,15 @@ export async function enrichScenesWithImages(
 
   const requests: ImageRequest[] = [];
   let previousPrompt: string | undefined;
+  let skippedWithVisuals = 0;
 
   for (const scene of scenes) {
+    // Skip scenes that already have a visual from screenshots or stock
+    if (scene.screenshotImage || scene.backgroundImage) {
+      skippedWithVisuals++;
+      continue;
+    }
+
     const prompt = buildPromptForScene(
       { type: scene.type, content: scene.content, visualData: scene.visualData as Record<string, unknown> },
       topic,
@@ -275,25 +303,31 @@ export async function enrichScenesWithImages(
     }
   }
 
-  if (requests.length === 0) {
-    console.log('Image enrichment: no eligible scenes');
+  // Hard cap: only generate for first MAX_AI_IMAGES eligible scenes
+  const cappedRequests = requests.slice(0, MAX_AI_IMAGES);
+
+  if (cappedRequests.length === 0) {
+    console.log(`Image enrichment: no eligible scenes (${skippedWithVisuals} already have visuals)`);
     return;
   }
 
-  console.log(`Image enrichment: generating images for ${requests.length} eligible scenes...`);
+  console.log(
+    `Image enrichment: generating ${cappedRequests.length} images (${skippedWithVisuals} scenes already have visuals, ${requests.length - cappedRequests.length} capped)`,
+  );
 
-  const imageMap = await generateSceneImages(requests);
+  const imageMap = await generateSceneImages(cappedRequests);
 
   let successCount = 0;
   for (const scene of scenes) {
     const dataUri = imageMap.get(scene.id);
     if (dataUri) {
       scene.backgroundImage = dataUri;
+      scene.visualSource = 'ai-generated';
       successCount++;
     }
   }
 
   console.log(
-    `Image enrichment: ${successCount}/${requests.length} scenes received images`,
+    `Image enrichment: ${successCount}/${cappedRequests.length} scenes received AI images`,
   );
 }

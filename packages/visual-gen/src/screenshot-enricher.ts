@@ -22,30 +22,16 @@ import type { Scene } from '@nexus-ai/director-agent';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Max screenshots per video — screenshots are for variety, not the primary visual */
-const MAX_SCREENSHOTS_PER_VIDEO = 5;
-
-/** Scene types eligible for screenshots */
-const ELIGIBLE_SCENE_TYPES = new Set([
-  'logo-showcase',
-  'stat-callout',
-  'narration-default',
-]);
+/** Max screenshots per video — screenshots are a PRIMARY visual source */
+const MAX_SCREENSHOTS_PER_VIDEO = 10;
 
 /** Scene types that should NEVER get screenshots */
 const EXCLUDED_SCENE_TYPES = new Set([
   'intro',
   'outro',
-  'chapter-break',
   'code-block',
   'meme-reaction',
-  'comparison',
-  'diagram',
-  'timeline',
-  'list-reveal',
-  'quote',
-  'text-emphasis',
-  'full-screen-text',
+  'map-animation',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -130,8 +116,10 @@ export async function enrichScenesWithScreenshots(
     const scene = scenes[i];
 
     // Skip ineligible scene types
-    if (!ELIGIBLE_SCENE_TYPES.has(scene.type)) continue;
     if (EXCLUDED_SCENE_TYPES.has(scene.type)) continue;
+
+    // Skip scenes that already have screenshots (source screenshots have priority)
+    if (scene.screenshotImage) continue;
 
     const match = extractCompanyMentions(scene);
     if (!match) continue;
@@ -159,31 +147,39 @@ export async function enrichScenesWithScreenshots(
   );
 
   let successCount = 0;
+  const CONCURRENCY = 5;
 
   try {
-    for (const { sceneIndex, match } of candidates) {
-      const { urlEntry } = match;
-      const url = urlEntry.darkModeUrl ?? urlEntry.url;
+    // Process in parallel batches of CONCURRENCY
+    for (let batchStart = 0; batchStart < candidates.length; batchStart += CONCURRENCY) {
+      const batch = candidates.slice(batchStart, batchStart + CONCURRENCY);
 
-      const buffer = await captureWebsiteScreenshot(url, {
-        darkMode: true,
-        waitForSelector: urlEntry.waitForSelector,
-        ...(urlEntry.clip ? { clip: urlEntry.clip } : {}),
-      });
+      const results = await Promise.allSettled(
+        batch.map(async ({ sceneIndex, match }) => {
+          const { urlEntry } = match;
+          const url = urlEntry.darkModeUrl ?? urlEntry.url;
 
-      if (buffer) {
-        const dataUri = screenshotToDataUri(buffer);
-        const scene = scenes[sceneIndex];
+          const buffer = await captureWebsiteScreenshot(url, {
+            darkMode: true,
+            waitForSelector: urlEntry.waitForSelector,
+            ...(urlEntry.clip ? { clip: urlEntry.clip } : {}),
+          });
 
-        // Screenshot takes priority — set as screenshotImage
-        scene.screenshotImage = dataUri;
+          return { sceneIndex, buffer };
+        }),
+      );
 
-        successCount++;
-      }
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.buffer) {
+          const { sceneIndex, buffer } = result.value;
+          const dataUri = screenshotToDataUri(buffer);
+          const scene = scenes[sceneIndex];
 
-      // Brief delay between captures
-      if (successCount < candidates.length) {
-        await sleep(1000);
+          scene.screenshotImage = dataUri;
+          scene.visualSource = 'company-screenshot';
+
+          successCount++;
+        }
       }
     }
   } finally {
@@ -195,10 +191,3 @@ export async function enrichScenesWithScreenshots(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

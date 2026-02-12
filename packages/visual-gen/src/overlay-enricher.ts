@@ -11,13 +11,13 @@
  */
 
 import { LOGOS, getLogoEntry } from '@nexus-ai/asset-library';
-import type { Scene, SceneOverlay, CornerLogoOverlay, SourceCitationOverlay, InfoBadgeOverlay, FloatingLabelOverlay } from '@nexus-ai/director-agent';
+import type { Scene, SceneOverlay, CornerLogoOverlay, SourceCitationOverlay, InfoBadgeOverlay, FloatingLabelOverlay, KeyPhraseOverlay, SourceBadgeOverlay } from '@nexus-ai/director-agent';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_OVERLAYS_PER_SCENE = 3;
+const MAX_OVERLAYS_PER_SCENE = 4;
 
 /** Scene types that never get overlays */
 const EXCLUDED_SCENE_TYPES = new Set(['intro', 'outro', 'code-block']);
@@ -111,6 +111,30 @@ function extractSourceCitation(text: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Key phrase extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract a short key phrase (2-3 words) from scene text for a floating badge.
+ * Focuses on the most impactful or topical phrase.
+ */
+function extractKeyPhrase(text: string): string | null {
+  // Try to find a capitalized multi-word phrase (likely a proper noun/term)
+  const properNounMatch = text.match(/\b([A-Z][a-z]+ [A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b/);
+  if (properNounMatch) {
+    return properNounMatch[1].toUpperCase();
+  }
+
+  // Try to find a phrase after "the" or "a" that starts with an adjective
+  const phraseMatch = text.match(/\b(?:the|a|an)\s+((?:\w+\s){1,2}\w+)/i);
+  if (phraseMatch && phraseMatch[1].length <= 30) {
+    return phraseMatch[1].toUpperCase();
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Main enrichment function
 // ---------------------------------------------------------------------------
 
@@ -161,8 +185,9 @@ export function enrichScenesWithOverlays(
       }
     }
 
-    // B. Source citation overlays
-    if (scene.type === 'stat-callout') {
+    // B. Source citation overlays — now applied to more scene types
+    const CITATION_ELIGIBLE = new Set(['stat-callout', 'narration-default', 'text-emphasis', 'comparison']);
+    if (CITATION_ELIGIBLE.has(scene.type)) {
       const citation = extractSourceCitation(allText);
       if (citation) {
         const overlay: SourceCitationOverlay = {
@@ -172,8 +197,8 @@ export function enrichScenesWithOverlays(
           delayFrames: DELAY['source-citation'],
         };
         overlays.push(overlay);
-      } else {
-        // Generic citation for stats
+      } else if (scene.type === 'stat-callout') {
+        // Generic citation for stats only
         const vd = scene.visualData as Record<string, unknown>;
         const label = (vd.label as string) ?? '';
         if (label) {
@@ -185,18 +210,6 @@ export function enrichScenesWithOverlays(
           };
           overlays.push(overlay);
         }
-      }
-    } else {
-      // Non-stat scenes: only add citation if explicit pattern found
-      const citation = extractSourceCitation(allText);
-      if (citation) {
-        const overlay: SourceCitationOverlay = {
-          type: 'source-citation',
-          position: 'bottom-left',
-          source: `Source: ${citation}`,
-          delayFrames: DELAY['source-citation'],
-        };
-        overlays.push(overlay);
       }
     }
 
@@ -231,6 +244,34 @@ export function enrichScenesWithOverlays(
         delayFrames: DELAY['floating-label'],
       };
       overlays.push(leftLabel, rightLabel);
+    }
+
+    // E. Key-phrase overlay for narration-default scenes that look bare
+    if (scene.type === 'narration-default' && overlays.length < 2) {
+      const phrase = extractKeyPhrase(allText);
+      if (phrase) {
+        const overlay: KeyPhraseOverlay = {
+          type: 'key-phrase',
+          position: 'top-left',
+          phrase,
+          delayFrames: 20,
+        };
+        overlays.push(overlay);
+      }
+    }
+
+    // F. Source badge when scene has a source screenshot
+    if (scene.screenshotImage && scene.sourceUrl) {
+      try {
+        const hostname = new URL(scene.sourceUrl).hostname.replace(/^www\./, '');
+        const overlay: SourceBadgeOverlay = {
+          type: 'source-badge',
+          position: 'bottom-left',
+          sourceName: hostname,
+          delayFrames: 10,
+        };
+        overlays.push(overlay);
+      } catch { /* invalid URL — skip */ }
     }
 
     // Enforce max overlays per scene

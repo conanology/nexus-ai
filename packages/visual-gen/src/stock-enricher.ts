@@ -19,8 +19,8 @@ import type { Scene } from '@nexus-ai/director-agent';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Max stock assets per video (selectivity = curation feel) */
-const MAX_STOCK_PER_VIDEO = 5;
+/** Max stock assets per video — real photos over AI art */
+const MAX_STOCK_PER_VIDEO = 10;
 
 /** Scene types that should NEVER get stock backgrounds */
 const EXCLUDED_SCENE_TYPES = new Set([
@@ -103,6 +103,7 @@ export async function enrichScenesWithStock(
     if (result) {
       const scene = scenes[index];
       scene.backgroundImage = result.dataUri;
+      scene.visualSource = 'stock';
       successCount++;
       console.log(`  OK: ${result.type} (${result.attribution})`);
     } else {

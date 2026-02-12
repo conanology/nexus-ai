@@ -44,8 +44,8 @@ export const ParallaxContainer: React.FC<ParallaxContainerProps> = ({
   return (
     <div
       style={{
-        width: '100%',
-        height: '100%',
+        position: 'absolute',
+        inset: 0,
         transform: `translateX(${translateX}px)`,
         willChange: 'transform',
       }}

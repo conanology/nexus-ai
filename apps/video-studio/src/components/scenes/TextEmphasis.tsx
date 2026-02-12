@@ -9,11 +9,13 @@ import { AnimatedText } from '../shared/AnimatedText.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 export const TextEmphasis: React.FC<SceneComponentProps<'text-emphasis'>> = (props) => {
-  const { visualData, motion, backgroundImage } = props;
+  const { visualData, motion, backgroundImage, pacing } = props;
   const { durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
 
-  const { phrase, highlightWords, style } = visualData;
+  const { phrase, highlightWords, style: rawStyle } = visualData;
+  // Override to slam when pacing is punch for extra impact
+  const style = (pacing === 'punch' && rawStyle === 'fade') ? 'slam' as const : rawStyle;
   const bgVariant = style === 'slam' ? 'intense' : 'cool';
   const fontSize = phrase.length > 60 ? 72 : 96;
 
@@ -24,7 +26,7 @@ export const TextEmphasis: React.FC<SceneComponentProps<'text-emphasis'>> = (pro
       </ParallaxContainer>
 
       <ParallaxContainer layer="foreground">
-      <SlowZoom>
+      <SlowZoom direction="in">
         <div
           style={{
             position: 'absolute',

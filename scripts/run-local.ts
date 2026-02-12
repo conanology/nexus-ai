@@ -742,7 +742,7 @@ async function enrichScenes(
     );
 
     console.log('  Running enrichment pipeline:');
-    console.log('    logos -> audio -> geo -> images -> SOURCE SCREENSHOTS -> company screenshots -> STOCK -> overlays -> annotations -> memes');
+    console.log('    logos -> audio -> geo -> SOURCE SCREENSHOTS -> content screenshots -> company screenshots -> STOCK -> AI images (max 4) -> overlays -> annotations -> memes');
 
     if (sourceUrls && sourceUrls.length > 0) {
       console.log(`  Source URLs available: ${sourceUrls.length}`);
@@ -1338,6 +1338,42 @@ async function main() {
       typeCounts[scene.type] = (typeCounts[scene.type] ?? 0) + 1;
     }
 
+    // Visual source report
+    const visualReport = {
+      sourceScreenshots: 0,
+      contentScreenshots: 0,
+      companyScreenshots: 0,
+      stockPhotos: 0,
+      aiGenerated: 0,
+      programmatic: 0,
+      gradientOnly: 0,
+    };
+    const PROGRAMMATIC_TYPES = new Set(['code-block', 'diagram', 'map-animation', 'intro', 'outro']);
+    for (const scene of enrichedScenes) {
+      if (PROGRAMMATIC_TYPES.has(scene.type)) {
+        visualReport.programmatic++;
+      } else if (scene.visualSource === 'source-screenshot') {
+        visualReport.sourceScreenshots++;
+      } else if (scene.visualSource === 'content-screenshot') {
+        visualReport.contentScreenshots++;
+      } else if (scene.visualSource === 'company-screenshot') {
+        visualReport.companyScreenshots++;
+      } else if (scene.visualSource === 'stock') {
+        visualReport.stockPhotos++;
+      } else if (scene.visualSource === 'ai-generated') {
+        visualReport.aiGenerated++;
+      } else if (scene.screenshotImage) {
+        visualReport.sourceScreenshots++; // legacy: no visualSource set
+      } else if (scene.backgroundImage) {
+        visualReport.aiGenerated++; // legacy: no visualSource set
+      } else {
+        visualReport.gradientOnly++;
+      }
+    }
+
+    const total = enrichedScenes.length || 1;
+    const pct = (n: number) => Math.round((n / total) * 100);
+
     header('Pipeline Complete');
     console.log(`  Mode:       LOCAL (Production Stages)`);
     console.log(`  Pipeline:   ${pipelineId}`);
@@ -1355,6 +1391,44 @@ async function main() {
     console.log(`  Chapters:   ${chapterCount}`);
     console.log(`  Elapsed:    ${elapsed}s`);
     console.log(`  Output:     ${videoPath}`);
+    console.log('');
+    console.log('  Visual Sources:');
+    console.log(`    Source screenshots:  ${String(visualReport.sourceScreenshots).padStart(3)} (${pct(visualReport.sourceScreenshots)}%)`);
+    console.log(`    Content screenshots: ${String(visualReport.contentScreenshots).padStart(3)} (${pct(visualReport.contentScreenshots)}%)`);
+    console.log(`    Company screenshots: ${String(visualReport.companyScreenshots).padStart(3)} (${pct(visualReport.companyScreenshots)}%)`);
+    console.log(`    Stock photos:        ${String(visualReport.stockPhotos).padStart(3)} (${pct(visualReport.stockPhotos)}%)`);
+    console.log(`    AI-generated:        ${String(visualReport.aiGenerated).padStart(3)} (${pct(visualReport.aiGenerated)}%)`);
+    console.log(`    Programmatic:        ${String(visualReport.programmatic).padStart(3)} (${pct(visualReport.programmatic)}%)`);
+    console.log(`    Gradient only:       ${String(visualReport.gradientOnly).padStart(3)} (${pct(visualReport.gradientOnly)}%)`);
+
+    // --- Estimated Cost Report ---
+    const screenshotCalls = visualReport.sourceScreenshots + visualReport.contentScreenshots + visualReport.companyScreenshots;
+    const memeCalls = typeCounts['meme-reaction'] ?? 0;
+    const ttsIsGemini = ttsSource.toLowerCase().includes('gemini') || ttsSource.toLowerCase().includes('ai studio');
+
+    // Estimated costs (Google AI Studio pricing, Dec 2025)
+    const COST_GEMINI_LLM_CALL = 0.018;   // ~avg blended input+output per call
+    const COST_GEMINI_IMAGE = 0.02;        // per image generation
+    const COST_GEMINI_TTS = 0.25;          // per TTS call (~2000 words)
+    const geminiLlmCalls = 5; // research(1) + script-gen(3) + director(1)
+    const geminiImageCalls = visualReport.aiGenerated;
+    const geminiTtsCalls = ttsIsGemini ? 1 : 0;
+
+    const costLlm = geminiLlmCalls * COST_GEMINI_LLM_CALL;
+    const costImage = geminiImageCalls * COST_GEMINI_IMAGE;
+    const costTts = geminiTtsCalls * COST_GEMINI_TTS;
+    const totalCost = costLlm + costImage + costTts;
+
+    console.log('');
+    console.log('  Estimated API Costs:');
+    console.log(`    Gemini LLM:    ${geminiLlmCalls} calls  ($${costLlm.toFixed(2)})`);
+    console.log(`    Gemini Image:  ${geminiImageCalls} calls  ($${costImage.toFixed(2)})`);
+    console.log(`    Gemini TTS:    ${geminiTtsCalls} calls  ($${costTts.toFixed(2)})`);
+    console.log(`    Pexels:        ${visualReport.stockPhotos} calls  ($0.00)`);
+    console.log(`    Giphy:         ${memeCalls} calls  ($0.00)`);
+    console.log(`    Playwright:   ${String(screenshotCalls).padStart(2)} calls  ($0.00)`);
+    console.log(`    ────────────────────────────`);
+    console.log(`    Total:         $${totalCost.toFixed(2)}`);
 
     if (warnings.length > 0) {
       console.log(`  Warnings:   ${warnings.join('; ')}`);

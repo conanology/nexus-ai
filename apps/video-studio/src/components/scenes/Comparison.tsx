@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
 import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS, withOpacity } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
@@ -30,6 +30,7 @@ interface PanelProps {
   titleStartFrame: number;
   itemsStartFrame: number;
   frame: number;
+  fps: number;
 }
 
 const Panel: React.FC<PanelProps> = ({
@@ -41,6 +42,7 @@ const Panel: React.FC<PanelProps> = ({
   titleStartFrame,
   itemsStartFrame,
   frame,
+  fps,
 }) => {
   const titleOpacity = interpolate(
     frame,
@@ -48,6 +50,17 @@ const Panel: React.FC<PanelProps> = ({
     [0, 1],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
+
+  // Panel slides in from its side
+  const slideSpring = spring({
+    frame: Math.max(0, frame - (titleStartFrame - 5)),
+    fps,
+    config: { damping: 14, mass: 0.6, stiffness: 160 },
+    durationInFrames: 15,
+  });
+  const slideX = side === 'left'
+    ? interpolate(slideSpring, [0, 1], [-60, 0])
+    : interpolate(slideSpring, [0, 1], [60, 0]);
 
   const positionStyle =
     side === 'left'
@@ -66,6 +79,8 @@ const Panel: React.FC<PanelProps> = ({
         padding: '40px 32px',
         backgroundColor: bgTint,
         borderRadius: 12,
+        opacity: slideSpring,
+        transform: `translateX(${slideX}px)`,
       }}
     >
       {/* Title */}
@@ -131,7 +146,7 @@ const Panel: React.FC<PanelProps> = ({
 export const Comparison: React.FC<SceneComponentProps<'comparison'>> = (props) => {
   const { visualData, motion, backgroundImage } = props;
   const frame = useCurrentFrame();
-  const { durationInFrames } = useVideoConfig();
+  const { durationInFrames, fps } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
 
   const { left, right } = visualData;
@@ -223,6 +238,7 @@ export const Comparison: React.FC<SceneComponentProps<'comparison'>> = (props) =
           titleStartFrame={leftTitleStart}
           itemsStartFrame={leftItemsStart}
           frame={frame}
+          fps={fps}
         />
 
         {/* Right panel (cool tint — "new" / "after") */}
@@ -235,6 +251,7 @@ export const Comparison: React.FC<SceneComponentProps<'comparison'>> = (props) =
           titleStartFrame={rightTitleStart}
           itemsStartFrame={rightItemsStart}
           frame={frame}
+          fps={fps}
         />
       </div>
     </AbsoluteFill>

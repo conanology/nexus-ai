@@ -20,6 +20,7 @@ function parseStatNumber(numStr: string): { numeric: number; decimals: number } 
 
 const COUNT_UP_DURATION = 30;
 const LABEL_FADE_DELAY = 10; // frames after count-up completes
+const SHAKE_FRAMES = 6; // screen shake after count-up
 
 export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props) => {
   const { visualData, motion, backgroundImage, screenshotImage } = props;
@@ -32,10 +33,21 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
   const countUpDuration = countUp ? COUNT_UP_DURATION : 1;
 
   const labelDelay = countUp ? countUpDuration + LABEL_FADE_DELAY : 0;
+  const labelSlideY = interpolate(frame, [labelDelay, labelDelay + 10], [20, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const labelOpacity = interpolate(frame, [labelDelay, labelDelay + 10], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+
+  // Screen shake when count-up completes
+  const shakeStart = countUp ? countUpDuration : 0;
+  const shakeFrame = frame - shakeStart;
+  const shakeX = shakeFrame >= 0 && shakeFrame < SHAKE_FRAMES
+    ? Math.sin(shakeFrame * Math.PI * 2.5) * 4 * (1 - shakeFrame / SHAKE_FRAMES)
+    : 0;
 
   if (comparison) {
     const compStat = parseStatNumber(comparison.number);
@@ -55,7 +67,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
         </ParallaxContainer>
 
         <ParallaxContainer layer="foreground">
-        <SlowZoom>
+        <SlowZoom direction="in" reactionZoom>
           <div
             style={{
               position: 'absolute',
@@ -147,7 +159,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
       </ParallaxContainer>
 
       <ParallaxContainer layer="foreground">
-      <SlowZoom>
+      <SlowZoom direction="in" reactionZoom>
         <div
           style={{
             position: 'absolute',
@@ -162,14 +174,16 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
             ...motionStyles.exitStyle,
           }}
         >
-          <CountUpNumber
-            targetNumber={mainStat.numeric}
-            prefix={prefix}
-            suffix={suffix}
-            decimals={mainStat.decimals}
-            fontSize={160}
-            durationFrames={countUpDuration}
-          />
+          <div style={{ transform: `translateX(${shakeX}px)` }}>
+            <CountUpNumber
+              targetNumber={mainStat.numeric}
+              prefix={prefix}
+              suffix={suffix}
+              decimals={mainStat.decimals}
+              fontSize={160}
+              durationFrames={countUpDuration}
+            />
+          </div>
 
           <div
             style={{
@@ -179,6 +193,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
               fontWeight: 400,
               color: COLORS.textSecondary,
               opacity: labelOpacity,
+              transform: `translateY(${labelSlideY}px) translateX(${shakeX}px)`,
               textAlign: 'center',
             }}
           >

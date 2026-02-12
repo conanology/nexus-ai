@@ -83,7 +83,7 @@ const SCENE_SFX_MAP: Record<string, string[]> = {
   'quote': ['impact-soft'],
   'meme-reaction': ['whoosh-in'],
   'map-animation': ['reveal'],
-  'narration-default': [],
+  'narration-default': ['whoosh-in'],
 };
 
 /**

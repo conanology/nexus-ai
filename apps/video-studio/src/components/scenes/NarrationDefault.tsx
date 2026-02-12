@@ -36,11 +36,11 @@ export const NarrationDefault: React.FC<SceneComponentProps<'narration-default'>
         />
       </ParallaxContainer>
       <ParallaxContainer layer="foreground">
-      <SlowZoom>
+      <SlowZoom direction="pan-left">
         <div
           style={{
-            width: '100%',
-            height: '100%',
+            position: 'absolute',
+            inset: 0,
             ...motionStyles.entranceStyle,
             ...motionStyles.exitStyle,
           }}

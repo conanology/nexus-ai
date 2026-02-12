@@ -39,20 +39,24 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
     extrapolateRight: 'clamp',
   });
 
-  // Title (20-35) using spring
+  // Title (20-35) using spring — slam in with scale 1.3→1.0
   const titleProgress = spring({
     frame: Math.max(0, frame - 20),
     fps,
-    config: { damping: 100, mass: 0.5, stiffness: 120 },
-    durationInFrames: 15,
+    config: { damping: 12, mass: 0.6, stiffness: 200 },
+    durationInFrames: 12,
   });
-  const titleScale = interpolate(titleProgress, [0, 1], [0.95, 1.0]);
+  const titleScale = interpolate(titleProgress, [0, 1], [1.3, 1.0]);
 
-  // Subtitle (25-40)
-  const subtitleOpacity = interpolate(frame, [25, 40], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
+  // Subtitle (30-45) slides up after title lands
+  const subtitleDelay = 30;
+  const subtitleProgress = spring({
+    frame: Math.max(0, frame - subtitleDelay),
+    fps,
+    config: { damping: 14, mass: 0.6, stiffness: 180 },
+    durationInFrames: 12,
   });
+  const subtitleSlideY = interpolate(subtitleProgress, [0, 1], [20, 0]);
 
   return (
     <AbsoluteFill>
@@ -140,7 +144,8 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
               fontWeight: 400,
               color: COLORS.textSecondary,
               textAlign: 'center',
-              opacity: subtitleOpacity,
+              opacity: subtitleProgress,
+              transform: `translateY(${subtitleSlideY}px)`,
             }}
           >
             {subtitle}

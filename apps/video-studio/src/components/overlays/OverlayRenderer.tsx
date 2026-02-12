@@ -4,6 +4,8 @@ import { CornerLogo } from './CornerLogo.js';
 import { InfoBadge } from './InfoBadge.js';
 import { FloatingLabel } from './FloatingLabel.js';
 import { SourceCitation } from './SourceCitation.js';
+import { KeyPhrase } from './KeyPhrase.js';
+import { SourceBadge } from './SourceBadge.js';
 import type { SceneOverlay } from '../../types/scenes.js';
 
 // ---------------------------------------------------------------------------
@@ -62,6 +64,24 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = ({
             return (
               <SourceCitation
                 key={`overlay-${index}-source-citation`}
+                {...overlay}
+                fps={fps}
+                sceneDuration={sceneDuration}
+              />
+            );
+          case 'key-phrase':
+            return (
+              <KeyPhrase
+                key={`overlay-${index}-key-phrase`}
+                {...overlay}
+                fps={fps}
+                sceneDuration={sceneDuration}
+              />
+            );
+          case 'source-badge':
+            return (
+              <SourceBadge
+                key={`overlay-${index}-source-badge`}
                 {...overlay}
                 fps={fps}
                 sceneDuration={sceneDuration}

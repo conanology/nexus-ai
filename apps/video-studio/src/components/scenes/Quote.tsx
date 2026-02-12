@@ -28,8 +28,12 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
   const { text, attribution, role } = visualData;
   const quoteFontSize = text.length > 150 ? 40 : 48;
 
-  // --- Quotation mark (0-15) ---
+  // --- Quotation mark (0-15) — slides down ---
   const quoteMarkOpacity = interpolate(frame, [0, QUOTE_MARK_FADE_FRAMES], [0, 0.2], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const quoteMarkSlideY = interpolate(frame, [0, QUOTE_MARK_FADE_FRAMES], [-20, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -40,14 +44,22 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
     extrapolateRight: 'clamp',
   });
 
-  // --- Attribution (starts at ~35) ---
+  // --- Attribution (starts at ~35) — slides up ---
   const attrOpacity = interpolate(frame, [ATTRIBUTION_START, ATTRIBUTION_START + 10], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const attrSlideY = interpolate(frame, [ATTRIBUTION_START, ATTRIBUTION_START + 10], [15, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
-  // --- Role (starts at ~45) ---
+  // --- Role (starts at ~45) — slides up ---
   const roleOpacity = interpolate(frame, [ROLE_START, ROLE_START + 8], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const roleSlideY = interpolate(frame, [ROLE_START, ROLE_START + 8], [10, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -59,7 +71,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
       </ParallaxContainer>
 
       <ParallaxContainer layer="foreground">
-      <SlowZoom>
+      <SlowZoom direction="pan-right">
         {/* Decorative quotation mark */}
         <div
           style={{
@@ -73,6 +85,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
             lineHeight: 1,
             userSelect: 'none',
             zIndex: 2,
+            transform: `translateY(${quoteMarkSlideY}px)`,
           }}
         >
           {'\u201C'}
@@ -134,6 +147,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
                   fontWeight: 400,
                   color: COLORS.textSecondary,
                   opacity: attrOpacity,
+                  transform: `translateY(${attrSlideY}px)`,
                   fontStyle: 'normal',
                 }}
               >
@@ -151,6 +165,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
                   fontWeight: 400,
                   color: COLORS.textMuted,
                   opacity: roleOpacity,
+                  transform: `translateY(${roleSlideY}px)`,
                 }}
               >
                 {role}

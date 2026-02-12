@@ -24,7 +24,7 @@ import type { Scene } from '@nexus-ai/director-agent';
 // ---------------------------------------------------------------------------
 
 /** Max source screenshots per video (generous — these are the most valuable visuals) */
-const MAX_SOURCE_SCREENSHOTS = 8;
+const MAX_SOURCE_SCREENSHOTS = 12;
 
 /** Scene types that should NEVER get source screenshots */
 const EXCLUDED_SCENE_TYPES = new Set([
@@ -199,36 +199,48 @@ export async function enrichScenesWithSourceScreenshots(
   );
 
   let successCount = 0;
+  const CONCURRENCY = 5;
+  const matchEntries = Array.from(matches.entries());
 
   try {
-    for (const [sceneIndex, source] of matches) {
-      const waitMs = getWaitMs(source.url);
+    // Process in parallel batches of CONCURRENCY
+    for (let batchStart = 0; batchStart < matchEntries.length; batchStart += CONCURRENCY) {
+      const batch = matchEntries.slice(batchStart, batchStart + CONCURRENCY);
 
-      console.log(`  Capturing: ${source.url} (wait ${waitMs}ms)`);
+      const results = await Promise.allSettled(
+        batch.map(async ([sceneIndex, source]) => {
+          const waitMs = getWaitMs(source.url);
+          console.log(`  Capturing: ${source.url} (wait ${waitMs}ms)`);
 
-      const buffer = await captureWebsiteScreenshot(source.url, {
-        darkMode: true,
-        waitMs,
-        width: 1920,
-        height: 1080,
-      });
+          const buffer = await captureWebsiteScreenshot(source.url, {
+            darkMode: true,
+            waitMs,
+            width: 1920,
+            height: 1080,
+          });
 
-      if (buffer) {
-        const dataUri = screenshotToDataUri(buffer);
-        const scene = scenes[sceneIndex];
+          return { sceneIndex, source, buffer };
+        }),
+      );
 
-        // Source screenshots take TOP priority — override everything
-        scene.screenshotImage = dataUri;
-        scene.sourceUrl = source.url;
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.buffer) {
+          const { sceneIndex, source, buffer } = result.value;
+          const dataUri = screenshotToDataUri(buffer);
+          const scene = scenes[sceneIndex];
 
-        successCount++;
-        console.log(`  OK: scene ${sceneIndex} (${scene.type})`);
-      } else {
-        console.log(`  FAILED: ${source.url} — keeping existing background`);
+          scene.screenshotImage = dataUri;
+          scene.sourceUrl = source.url;
+          scene.visualSource = 'source-screenshot';
+
+          successCount++;
+          console.log(`  OK: scene ${sceneIndex} (${scene.type})`);
+        } else if (result.status === 'fulfilled') {
+          console.log(`  FAILED: ${result.value.source.url} — keeping existing background`);
+        } else {
+          console.log(`  ERROR: ${result.reason}`);
+        }
       }
-
-      // Brief delay between captures
-      await sleep(1000);
     }
   } finally {
     await closeBrowser();
@@ -239,10 +251,3 @@ export async function enrichScenesWithSourceScreenshots(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

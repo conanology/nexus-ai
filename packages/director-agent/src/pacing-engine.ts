@@ -21,17 +21,17 @@ const PACING_MULTIPLIER: Record<ScenePacing, number> = {
   normal: 1.0,
 };
 
-/** Duration constraints per pacing type (in frames) */
+/** Duration constraints per pacing type (in frames) — tighter for broadcast feel */
 const PACING_CONSTRAINTS: Record<ScenePacing, { min: number; max: number }> = {
-  punch: { min: 60, max: 90 },
-  breathe: { min: 150, max: 270 },
-  dense: { min: 150, max: 240 },
-  normal: { min: 90, max: 180 },
+  punch: { min: 45, max: 75 },     // 1.5-2.5s (snappier impact)
+  breathe: { min: 120, max: 200 },  // 4.0-6.7s (tighter breathing room)
+  dense: { min: 120, max: 200 },    // 4.0-6.7s (less lingering on data)
+  normal: { min: 75, max: 135 },    // 2.5-4.5s (faster conversational pace)
 };
 
 /** Absolute limits for any scene */
 const ABSOLUTE_MIN_FRAMES = 45; // 1.5 seconds at 30fps
-const ABSOLUTE_MAX_FRAMES = 300; // 10 seconds at 30fps
+const ABSOLUTE_MAX_FRAMES = 210; // 7 seconds at 30fps (was 10s)
 
 // =============================================================================
 // Main Export

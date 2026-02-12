@@ -73,6 +73,8 @@ export type {
   InfoBadgeOverlay,
   FloatingLabelOverlay,
   SourceCitationOverlay,
+  KeyPhraseOverlay,
+  SourceBadgeOverlay,
   SceneOverlay,
   // Annotation types
   AnnotationType,
