@@ -103,7 +103,7 @@ describe('performHealthCheck', () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return allPassed true when all services are healthy', async () => {

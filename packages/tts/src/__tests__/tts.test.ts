@@ -7,18 +7,41 @@ import type { StageInput } from '@nexus-ai/core/types';
 import type { TTSInput } from '../types.js';
 import { executeTTS } from '../tts.js';
 
+// Hoisted helper for creating valid WAV buffers in mock factories
+const { createTestWavBuffer } = vi.hoisted(() => ({
+  createTestWavBuffer: (durationSec: number, sampleRate = 44100): Buffer => {
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const bytesPerSample = bitsPerSample / 8;
+    const numSamples = Math.floor(durationSec * sampleRate);
+    const dataSize = numSamples * numChannels * bytesPerSample;
+    const headerSize = 44;
+    const buffer = Buffer.alloc(headerSize + dataSize);
+    buffer.write('RIFF', 0);
+    buffer.writeUInt32LE(36 + dataSize, 4);
+    buffer.write('WAVE', 8);
+    buffer.write('fmt ', 12);
+    buffer.writeUInt32LE(16, 16);
+    buffer.writeUInt16LE(1, 20);
+    buffer.writeUInt16LE(numChannels, 22);
+    buffer.writeUInt32LE(sampleRate, 24);
+    buffer.writeUInt32LE(sampleRate * numChannels * bytesPerSample, 28);
+    buffer.writeUInt16LE(numChannels * bytesPerSample, 32);
+    buffer.writeUInt16LE(bitsPerSample, 34);
+    buffer.write('data', 36);
+    buffer.writeUInt32LE(dataSize, 40);
+    return buffer;
+  },
+}));
+
 // Mock dependencies
 vi.mock('@google-cloud/text-to-speech', () => ({
   TextToSpeechClient: vi.fn().mockImplementation(() => ({
-    synthesizeSpeech: vi.fn().mockImplementation(async (request) => {
+    synthesizeSpeech: vi.fn().mockImplementation(async (request: any) => {
       const text = request.input.ssml || request.input.text || '';
-      // Approximate 1 sec per 100 chars for test to ensure long scripts get long duration
       const durationSec = Math.max(1, text.length / 100);
-      const sampleRate = 44100;
-      const numSamples = Math.floor(durationSec * sampleRate);
-      const numBytes = numSamples * 2;
       return [{
-        audioContent: Buffer.alloc(numBytes),
+        audioContent: createTestWavBuffer(durationSec),
       }];
     }),
   })),

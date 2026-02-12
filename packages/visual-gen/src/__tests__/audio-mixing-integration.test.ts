@@ -84,6 +84,28 @@ vi.mock('../timeline.js', () => ({
   }),
 }));
 
+// Mock V2 director path modules (executeVisualGen defaults to v2-director mode)
+vi.mock('../director-bridge.js', () => ({
+  generateDirectorScenes: vi.fn().mockResolvedValue({
+    scenes: [
+      {
+        type: 'narration-default',
+        title: 'Test Scene',
+        narrationText: 'Test script',
+        durationFrames: 3600,
+        pacing: 'normal',
+        transition: 'cut',
+      },
+    ],
+    sceneCount: 1,
+    warnings: [],
+  }),
+}));
+
+vi.mock('../asset-fetcher.js', () => ({
+  enrichScenesWithAssets: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Import after mocks
 import { executeVisualGen } from '../visual-gen.js';
 import type { StageInput } from '@nexus-ai/core';
@@ -140,15 +162,37 @@ describe('Audio Mixing Integration (Story 6.26)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Default: render service returns success
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        videoUrl: 'gs://bucket/video.mp4',
-        duration: 120,
-        fileSize: 50000000,
-      }),
-      text: () => Promise.resolve(''),
+    // Override setTimeout to execute immediately (avoids 10-second render polling delays)
+    vi.stubGlobal('setTimeout', ((fn: (...args: any[]) => void) => {
+      fn();
+      return 0;
+    }) as unknown as typeof setTimeout);
+
+    // Mock fetch: first call = render start (POST), subsequent = status poll (GET)
+    let fetchCallCount = 0;
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
+      fetchCallCount++;
+      if (fetchCallCount === 1) {
+        // Render start response
+        return {
+          ok: true,
+          json: () => Promise.resolve({ jobId: 'test-job-123' }),
+          text: () => Promise.resolve(''),
+        };
+      }
+      // Status poll response — render completed
+      return {
+        ok: true,
+        json: () => Promise.resolve({
+          status: 'completed',
+          result: {
+            videoUrl: 'gs://bucket/video.mp4',
+            duration: 120,
+            fileSize: 50000000,
+          },
+        }),
+        text: () => Promise.resolve(''),
+      };
     }));
 
     // Default: mixAudio succeeds
@@ -172,6 +216,10 @@ describe('Audio Mixing Integration (Story 6.26)', () => {
       durationMs: 500,
       provider: { name: 'ffmpeg', tier: 'primary', attempts: 1 },
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   describe('AC1: Config Flag Check', () => {
@@ -320,7 +368,7 @@ describe('Audio Mixing Integration (Story 6.26)', () => {
       await executeVisualGen(input);
 
       const fetchMock = vi.mocked(fetch);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2); // start + status poll
       const callArgs = fetchMock.mock.calls[0];
       const body = JSON.parse(callArgs[1]!.body as string);
       expect(body.audioUrl).toBe('gs://bucket/mixed.wav');

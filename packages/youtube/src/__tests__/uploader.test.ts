@@ -39,15 +39,20 @@ vi.mock('@nexus-ai/core', () => ({
     debug: vi.fn(),
   }),
   FirestoreClient: vi.fn().mockImplementation(() => ({
-    get: mockFirestoreGet,
-    set: mockFirestoreSet,
-    update: mockFirestoreUpdate,
+    getDocument: mockFirestoreGet,
+    setDocument: mockFirestoreSet,
+    updateDocument: mockFirestoreUpdate,
   })),
   CloudStorageClient: vi.fn().mockImplementation(() => ({
     download: mockStorageDownload,
+    downloadFile: mockStorageDownload,
     getMetadata: mockStorageGetMetadata,
+    fileExists: vi.fn().mockResolvedValue(true),
   })),
-  withRetry: vi.fn().mockImplementation(async (fn: () => Promise<unknown>) => fn()),
+  withRetry: vi.fn().mockImplementation(async (fn: () => Promise<unknown>) => {
+    const result = await fn();
+    return { result, attempts: 1, totalDelayMs: 0 };
+  }),
   getSecret: mockGetSecret,
   NexusError: {
     critical: (code: string, message: string, stage: string) => {
@@ -115,8 +120,8 @@ describe('ResumableUploader', () => {
     mockFirestoreGet.mockResolvedValue(null); // No existing session
     mockFirestoreSet.mockResolvedValue(undefined);
     mockFirestoreUpdate.mockResolvedValue(undefined);
-    mockStorageDownload.mockResolvedValue(Buffer.from('video data'));
-    mockStorageGetMetadata.mockResolvedValue({ size: 1024 * 1024 }); // 1MB
+    mockStorageDownload.mockResolvedValue(Buffer.alloc(1024 * 1024)); // 1MB
+    mockStorageGetMetadata.mockResolvedValue({ size: 1024 * 1024 }); // 1MB (unused but kept for reference)
     mockGetSecret.mockResolvedValue(JSON.stringify({
       client_id: 'test-client-id',
       client_secret: 'test-client-secret',
@@ -161,7 +166,8 @@ describe('ResumableUploader', () => {
       await uploader.upload(testConfig);
 
       expect(mockFirestoreSet).toHaveBeenCalledWith(
-        'pipelines/2026-01-18/youtube-upload-session',
+        'pipelines/2026-01-18',
+        'youtube-upload-session',
         expect.objectContaining({
           pipelineId: '2026-01-18',
           videoPath: testConfig.videoPath,
@@ -175,7 +181,8 @@ describe('ResumableUploader', () => {
       await uploader.upload(testConfig);
 
       expect(mockFirestoreUpdate).toHaveBeenCalledWith(
-        'pipelines/2026-01-18/youtube-upload-session',
+        'pipelines/2026-01-18',
+        'youtube-upload-session',
         expect.objectContaining({
           status: 'completed',
         })
@@ -219,9 +226,9 @@ describe('ResumableUploader', () => {
     });
 
     it('should throw error if video exceeds 128GB', async () => {
-      mockStorageGetMetadata.mockResolvedValue({ 
-        size: 129 * 1024 * 1024 * 1024 // 129GB
-      });
+      // getFileSize uses downloadFile + buffer.length, so we mock downloadFile
+      // to return an object with a large .length (can't allocate 129GB buffer)
+      mockStorageDownload.mockResolvedValue({ length: 129 * 1024 * 1024 * 1024 });
 
       const uploader = new ResumableUploader();
 
@@ -247,7 +254,8 @@ describe('ResumableUploader', () => {
       await expect(uploader.upload(testConfig)).rejects.toThrow('Upload failed');
 
       expect(mockFirestoreUpdate).toHaveBeenCalledWith(
-        'pipelines/2026-01-18/youtube-upload-session',
+        'pipelines/2026-01-18',
+        'youtube-upload-session',
         expect.objectContaining({
           status: 'failed',
         })

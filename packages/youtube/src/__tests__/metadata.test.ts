@@ -84,9 +84,10 @@ vi.mock('@nexus-ai/core', async () => {
     }
     
     return {
-        FirestoreClient: {
-            getInstance: () => mockFirestore
-        },
+        FirestoreClient: vi.fn().mockImplementation(() => ({
+            setDocument: mockFirestore.set,
+            getDocument: vi.fn().mockResolvedValue(null),
+        })),
         createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
         NexusError
     };
@@ -226,8 +227,7 @@ describe('Metadata Generation', () => {
             expect(metadata.madeForKids).toBe(false);
             expect(metadata.containsSyntheticMedia).toBe(true);
             
-            // Verify Firestore call
-            expect(mockFirestore.doc).toHaveBeenCalledWith('pipelines/2026-01-18/youtube/metadata');
+            // Verify Firestore call — setDocument(collection, docId, data)
             expect(mockFirestore.set).toHaveBeenCalled();
         });
     });

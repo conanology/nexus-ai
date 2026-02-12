@@ -100,17 +100,17 @@ describe('GeminiTTSProvider', () => {
   });
 
   describe('synthesize', () => {
-    it('should call getSecret for API key', async () => {
+    it('should use withRetry for resilient synthesis', async () => {
       const provider = new GeminiTTSProvider();
-      const { getSecret } = await import('../../../secrets/index.js');
+      const { withRetry } = await import('../../../utils/with-retry.js');
 
       try {
         await provider.synthesize('Test text', { voice: 'en-US-Neural2-F' });
       } catch {
-        // Expected in placeholder mode
+        // Expected - no ADC credentials in test environment
       }
 
-      expect(getSecret).toHaveBeenCalledWith('nexus-gemini-api-key');
+      expect(withRetry).toHaveBeenCalled();
     });
 
     it('should use withRetry for API calls', async () => {

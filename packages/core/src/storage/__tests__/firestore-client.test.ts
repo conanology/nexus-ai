@@ -81,29 +81,22 @@ describe('FirestoreClient', () => {
   });
 
   describe('constructor', () => {
-    it('should throw if no project ID available', async () => {
+    it('should enter local mode when no project ID available', async () => {
       delete process.env.NEXUS_PROJECT_ID;
 
-      // Dynamic import to get fresh module
       const module = await import('../firestore-client.js');
-      try {
-        new module.FirestoreClient();
-        expect.fail('Should have thrown');
-      } catch (error) {
-        expect(error).toBeInstanceOf(NexusError);
-      }
+      const client = new module.FirestoreClient();
+      expect((client as any).localMode).toBe(true);
+      expect((client as any).projectId).toBe('local');
     });
 
-    it('should throw with NEXUS_FIRESTORE_NO_PROJECT code', async () => {
+    it('should return no-op results in local mode', async () => {
       delete process.env.NEXUS_PROJECT_ID;
 
       const module = await import('../firestore-client.js');
-      try {
-        new module.FirestoreClient();
-        expect.fail('Should have thrown');
-      } catch (error) {
-        expect((error as NexusError).code).toBe('NEXUS_FIRESTORE_NO_PROJECT');
-      }
+      const client = new module.FirestoreClient();
+      const result = await client.getDocument('test', 'test');
+      expect(result).toBeNull();
     });
 
     it('should accept explicit project ID', async () => {
@@ -192,7 +185,7 @@ describe('FirestoreClient', () => {
   });
 
   describe('updateDocument', () => {
-    it('should update document successfully', async () => {
+    it('should update document successfully using set with merge', async () => {
       const module = await import('../firestore-client.js');
       const client = new module.FirestoreClient('test-project');
 
@@ -200,11 +193,11 @@ describe('FirestoreClient', () => {
         status: 'complete',
       });
 
-      expect(mockUpdate).toHaveBeenCalledWith({ status: 'complete' });
+      expect(mockSet).toHaveBeenCalledWith({ status: 'complete' }, { merge: true });
     });
 
     it('should wrap SDK errors in NexusError', async () => {
-      mockUpdate.mockRejectedValue(new Error('Update failed'));
+      mockSet.mockRejectedValue(new Error('Update failed'));
 
       const module = await import('../firestore-client.js');
       const client = new module.FirestoreClient('test-project');
@@ -215,6 +208,9 @@ describe('FirestoreClient', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(NexusError);
       }
+
+      // Restore mockSet for other tests
+      mockSet.mockResolvedValue(undefined);
     });
   });
 
@@ -322,7 +318,7 @@ describe('FirestoreClient', () => {
 
       await client.updatePipelineState('2026-01-08', { status: 'complete' });
 
-      expect(mockUpdate).toHaveBeenCalledWith({ status: 'complete' });
+      expect(mockSet).toHaveBeenCalledWith({ status: 'complete' }, { merge: true });
     });
 
     it('should get pipeline artifacts using path helpers', async () => {

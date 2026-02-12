@@ -48,6 +48,7 @@ vi.mock('../state.js', () => ({
     getState: vi.fn(),
     markComplete: vi.fn(),
     markFailed: vi.fn(),
+    markSkipped: vi.fn(),
     updateQualityContext: vi.fn(),
     updateRetryAttempts: vi.fn(),
     persistStageOutput: vi.fn(),
@@ -56,9 +57,12 @@ vi.mock('../state.js', () => ({
   })),
 }));
 
-// Mock logger
+// Mock @nexus-ai/core with immediate withRetry (no delays) and no-op Firestore helpers
 vi.mock('@nexus-ai/core', async () => {
-  const actual = await vi.importActual('@nexus-ai/core');
+  const actual = await vi.importActual<Record<string, unknown>>('@nexus-ai/core');
+  const ActualNexusError = actual.NexusError as any;
+  const ActualErrorSeverity = actual.ErrorSeverity as any;
+
   return {
     ...actual,
     logger: {
@@ -73,8 +77,64 @@ vi.mock('@nexus-ai/core', async () => {
       error: vi.fn(),
       debug: vi.fn(),
     })),
+    // Immediate withRetry — same retry semantics, no sleep()
+    withRetry: vi.fn(async (fn: () => Promise<unknown>, options?: any) => {
+      const maxRetries = options?.maxRetries ?? 3;
+      let attempts = 0;
+      const retryHistory: any[] = [];
+
+      while (attempts <= maxRetries) {
+        try {
+          const result = await fn();
+          return { result, attempts: attempts + 1, totalDelayMs: 0 };
+        } catch (error: any) {
+          const nexusError = error instanceof ActualNexusError
+            ? error
+            : ActualNexusError.fromError(error, options?.stage);
+
+          const isRetryableError = nexusError.severity === ActualErrorSeverity.RETRYABLE;
+
+          if (!isRetryableError || attempts >= maxRetries) {
+            throw ActualNexusError.critical(
+              nexusError.code,
+              nexusError.message,
+              options?.stage,
+              {
+                ...nexusError.context,
+                originalSeverity: nexusError.severity,
+                retryAttempts: attempts + 1,
+                exhaustedRetries: attempts >= maxRetries && isRetryableError,
+                retryHistory,
+              }
+            );
+          }
+
+          retryHistory.push({ attempt: attempts + 1, error: nexusError.code, delay: 0 });
+          options?.onRetry?.(attempts + 1, 0, nexusError);
+          attempts++;
+        }
+      }
+
+      throw ActualNexusError.critical('NEXUS_RETRY_LOGIC_ERROR', 'Unexpected exit', options?.stage);
+    }),
+    // No-op Firestore/budget/incident functions
+    updateBudgetSpent: vi.fn().mockResolvedValue(undefined),
+    checkCostThresholds: vi.fn().mockResolvedValue({ triggered: false }),
+    logIncident: vi.fn().mockResolvedValue('incident-test-123'),
+    mapSeverity: vi.fn((severity: string) => severity),
+    inferRootCause: vi.fn(() => 'unknown'),
+    queueFailedTopic: vi.fn().mockResolvedValue(undefined),
+    checkTodayQueuedTopic: vi.fn().mockResolvedValue(null),
+    clearQueuedTopic: vi.fn().mockResolvedValue(undefined),
+    incrementRetryCount: vi.fn().mockResolvedValue(null),
+    QUEUE_MAX_RETRIES: 3,
   };
 });
+
+// Mock @nexus-ai/notifications
+vi.mock('@nexus-ai/notifications', () => ({
+  sendDiscordAlert: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 // Helper to create mock stage output
 function createMockStageOutput(stageName: string, data: unknown = {}) {
@@ -108,6 +168,7 @@ describe('executePipeline', () => {
     getState: ReturnType<typeof vi.fn>;
     markComplete: ReturnType<typeof vi.fn>;
     markFailed: ReturnType<typeof vi.fn>;
+    markSkipped: ReturnType<typeof vi.fn>;
     updateQualityContext: ReturnType<typeof vi.fn>;
     updateRetryAttempts: ReturnType<typeof vi.fn>;
     persistStageOutput: ReturnType<typeof vi.fn>;
@@ -127,6 +188,7 @@ describe('executePipeline', () => {
       ),
       markComplete: vi.fn(),
       markFailed: vi.fn(),
+      markSkipped: vi.fn(),
       updateQualityContext: vi.fn(),
     updateRetryAttempts: vi.fn(),
     persistStageOutput: vi.fn(),
@@ -265,6 +327,7 @@ describe('executePipeline - Error Handling', () => {
     getState: ReturnType<typeof vi.fn>;
     markComplete: ReturnType<typeof vi.fn>;
     markFailed: ReturnType<typeof vi.fn>;
+    markSkipped: ReturnType<typeof vi.fn>;
     updateQualityContext: ReturnType<typeof vi.fn>;
     updateRetryAttempts: ReturnType<typeof vi.fn>;
     persistStageOutput: ReturnType<typeof vi.fn>;
@@ -283,6 +346,7 @@ describe('executePipeline - Error Handling', () => {
       ),
       markComplete: vi.fn(),
       markFailed: vi.fn(),
+      markSkipped: vi.fn(),
       updateQualityContext: vi.fn(),
     updateRetryAttempts: vi.fn(),
     persistStageOutput: vi.fn(),
@@ -304,9 +368,9 @@ describe('executePipeline - Error Handling', () => {
   it('handles CRITICAL error by aborting pipeline', async () => {
     const pipelineId = '2026-01-19';
 
-    // Script-gen throws critical error
+    // Script-gen throws critical error (use non-provider error code to test hard abort)
     const criticalError = NexusError.critical(
-      'NEXUS_SCRIPT_GENERATION_FAILED',
+      'NEXUS_SCRIPT_INVALID_INPUT',
       'Script generation failed critically',
       'script-gen'
     );
@@ -319,7 +383,7 @@ describe('executePipeline - Error Handling', () => {
     // Pipeline should be marked failed
     expect(result.success).toBe(false);
     expect(result.status).toBe('failed');
-    expect(result.error?.code).toBe('NEXUS_SCRIPT_GENERATION_FAILED');
+    expect(result.error?.code).toBe('NEXUS_SCRIPT_INVALID_INPUT');
 
     // Later stages should not have been called
     expect(stageRegistry['pronunciation']).not.toHaveBeenCalled();
@@ -433,6 +497,7 @@ describe('executePipeline - Retry Logic', () => {
     getState: ReturnType<typeof vi.fn>;
     markComplete: ReturnType<typeof vi.fn>;
     markFailed: ReturnType<typeof vi.fn>;
+    markSkipped: ReturnType<typeof vi.fn>;
     updateQualityContext: ReturnType<typeof vi.fn>;
     updateRetryAttempts: ReturnType<typeof vi.fn>;
     persistStageOutput: ReturnType<typeof vi.fn>;
@@ -452,6 +517,7 @@ describe('executePipeline - Retry Logic', () => {
       ),
       markComplete: vi.fn(),
       markFailed: vi.fn(),
+      markSkipped: vi.fn(),
       updateQualityContext: vi.fn(),
     updateRetryAttempts: vi.fn(),
     persistStageOutput: vi.fn(),
@@ -546,9 +612,9 @@ describe('executePipeline - Retry Logic', () => {
     await vi.runAllTimersAsync();
     const result = await resultPromise;
 
-    // Pipeline should fail (research is critical)
+    // Pipeline should be skipped (retryable errors exhaust → graceful skip)
     expect(result.success).toBe(false);
-    expect(result.status).toBe('failed');
+    expect(result.status).toBe('skipped');
   });
 });
 
@@ -559,6 +625,7 @@ describe('resumePipeline', () => {
     getState: ReturnType<typeof vi.fn>;
     markComplete: ReturnType<typeof vi.fn>;
     markFailed: ReturnType<typeof vi.fn>;
+    markSkipped: ReturnType<typeof vi.fn>;
     updateQualityContext: ReturnType<typeof vi.fn>;
     updateRetryAttempts: ReturnType<typeof vi.fn>;
     persistStageOutput: ReturnType<typeof vi.fn>;
@@ -575,6 +642,7 @@ describe('resumePipeline', () => {
       getState: vi.fn(),
       markComplete: vi.fn(),
       markFailed: vi.fn(),
+      markSkipped: vi.fn(),
       updateQualityContext: vi.fn(),
     updateRetryAttempts: vi.fn(),
     persistStageOutput: vi.fn(),
@@ -596,10 +664,10 @@ describe('resumePipeline', () => {
   it('resumes from last successful stage', async () => {
     const pipelineId = '2026-01-19';
 
-    // State shows stages 1-5 completed
+    // State shows stages 1-5 completed (status must be resumable)
     mockStateManager.getState.mockResolvedValue({
       pipelineId,
-      status: 'running',
+      status: 'failed',
       currentStage: 'tts',
       startTime: new Date().toISOString(),
       stages: {
@@ -637,10 +705,10 @@ describe('resumePipeline', () => {
   it('resumes from explicit fromStage parameter', async () => {
     const pipelineId = '2026-01-19';
 
-    // State shows stages 1-7 completed
+    // State shows stages 1-7 completed (status must be resumable)
     mockStateManager.getState.mockResolvedValue({
       pipelineId,
-      status: 'running',
+      status: 'failed',
       currentStage: 'thumbnail',
       startTime: new Date().toISOString(),
       stages: {
@@ -692,7 +760,7 @@ describe('resumePipeline', () => {
 
     mockStateManager.getState.mockResolvedValue({
       pipelineId,
-      status: 'running',
+      status: 'failed',
       currentStage: 'tts',
       startTime: new Date().toISOString(),
       stages: {

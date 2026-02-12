@@ -19,6 +19,14 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@nexus-ai/core/types': new URL('../../packages/core/src/types/index.ts', import.meta.url).pathname,
+      '@nexus-ai/core/errors': new URL('../../packages/core/src/errors/index.ts', import.meta.url).pathname,
+      '@nexus-ai/core/storage': new URL('../../packages/core/src/storage/index.ts', import.meta.url).pathname,
+      '@nexus-ai/core/secrets': new URL('../../packages/core/src/secrets/index.ts', import.meta.url).pathname,
+      '@nexus-ai/core/observability': new URL('../../packages/core/src/observability/index.ts', import.meta.url).pathname,
+      '@nexus-ai/core/utils': new URL('../../packages/core/src/utils/index.ts', import.meta.url).pathname,
+      '@nexus-ai/core/providers': new URL('../../packages/core/src/providers/index.ts', import.meta.url).pathname,
+      '@nexus-ai/core/quality': new URL('../../packages/core/src/quality/index.ts', import.meta.url).pathname,
       '@nexus-ai/core': new URL('../../packages/core/src/index.ts', import.meta.url).pathname,
       '@nexus-ai/news-sourcing': new URL('../../packages/news-sourcing/src/index.ts', import.meta.url).pathname,
       '@nexus-ai/research': new URL('../../packages/research/src/index.ts', import.meta.url).pathname,

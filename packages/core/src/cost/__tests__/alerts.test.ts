@@ -201,7 +201,7 @@ describe('checkCostThresholds', () => {
     const recentAlertState = {
       warningCount: 1,
       criticalCount: 0,
-      month: '2026-01',
+      month: getCurrentTestMonth(),
       lastWarningAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
     };
 
@@ -224,7 +224,7 @@ describe('checkCostThresholds', () => {
     const oldAlertState = {
       warningCount: 1,
       criticalCount: 0,
-      month: '2026-01',
+      month: getCurrentTestMonth(),
       lastWarningAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     };
 
@@ -338,7 +338,7 @@ describe('getAlertCounts', () => {
     const alertState = {
       warningCount: 3,
       criticalCount: 1,
-      month: '2026-01',
+      month: getCurrentTestMonth(),
       lastWarningAt: '2026-01-20T10:00:00.000Z',
       lastCriticalAt: '2026-01-22T14:00:00.000Z',
     };
@@ -383,7 +383,7 @@ describe('getAlertCounts', () => {
     const warningMoreRecent = {
       warningCount: 2,
       criticalCount: 1,
-      month: '2026-01',
+      month: getCurrentTestMonth(),
       lastWarningAt: '2026-01-22T15:00:00.000Z',
       lastCriticalAt: '2026-01-22T10:00:00.000Z',
     };
