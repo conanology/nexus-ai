@@ -223,7 +223,7 @@ interface CodeBlockVisualData {
 }
 ```
 
-Font sizes: 34px (base), 30px (>18 lines), 26px (truncated).
+Font sizes: 38px (base), 30px (>18 lines), 26px (truncated).
 
 ### `meme-reaction`
 
@@ -274,15 +274,30 @@ Only `stat-callout` and `text-emphasis` can be cold-opens (`isColdOpen: true`). 
 
 ## Transitions
 
-Each scene has a `transition` field assigned by the Director Agent:
+Each scene has a `transition` field assigned by the Director Agent. All transitions are near-instant (0.07-0.1s) for Fireship-style pacing. Dissolve has been eliminated entirely.
 
 | Transition | Frames | Duration | Style |
 |-----------|--------|----------|-------|
-| `cut` | 0 | 0s | Instant |
-| `crossfade` | 8 | 0.27s | Opacity fade |
-| `dissolve` | 20 | 0.67s | Long opacity fade |
-| `wipe-left` | 10 | 0.33s | Clip-path reveal from left |
-| `slide-up` | 10 | 0.33s | Opacity + translateY |
+| `cut` | 0 | 0s | Instant — no animation |
+| `slide-left` | 3 | 0.1s | Ease-out quartic translateX |
+| `slam` | 2 | 0.07s | Scale 1.15→1.0 + sine shake |
+| `wipe-down` | 3 | 0.1s | clipPath inset reveal from top |
+| `split` | 3 | 0.1s | Opacity fade (component handles internal) |
+| `zoom-in` | 3 | 0.1s | Opacity fade (component handles internal) |
+| `pop-in` | 3 | 0.1s | Spring overshoot 0→1.2→1.0 |
+
+**Transition SFX** — non-cut transitions play a characteristic sound at 60% SFX volume:
+
+| Transition | SFX | Notes |
+|-----------|-----|-------|
+| `slide-left` | `whoosh-in` | Skipped if scene already has whoosh-in |
+| `slam` | `impact-hard` | Skipped if scene already has impact-hard |
+| `wipe-down` | `transition` | |
+| `pop-in` | `whoosh-in` | |
+| `split` | `whoosh-in` | |
+| `zoom-in` | `reveal` | |
+
+**Impact flashes** — 2-frame white flash overlays at key dramatic moments (configurable per scene via `impactWords`).
 
 ## Director Classification
 

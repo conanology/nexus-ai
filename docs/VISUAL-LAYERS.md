@@ -72,16 +72,29 @@ Hand-drawn SVG annotations (circles, arrows, underlines, x-marks) that appear to
 |----------|-------|
 | **Z-index** | 8 |
 | **Viewport** | 1920 x 1080 SVG |
-| **Stroke width** | 4px |
+| **Stroke width** | 5px |
+| **Opacity** | 1.0 |
 
-**Draw durations:**
+**Draw durations (default):**
 
 | Type | Frames | Description |
 |------|--------|-------------|
-| Circle | 30 | 48-point ellipse, opacity ramp 0→0.85 over 5 frames |
-| Underline | 24 | Wavy or straight line under text |
-| Arrow | 28 | Curved arrow with head |
-| X-mark | 20 | Two crossing strokes |
+| Circle | 9 | 48-point ellipse, full opacity |
+| Underline | 9 | Wavy or straight line under text |
+| Arrow | 9 | Curved arrow with head (body draws first, arrowhead in last 3 frames) |
+| X-mark | 9 | Two crossing strokes (2nd stroke starts 2 frames after 1st) |
+
+**Enricher annotation delays (from scene start):**
+
+| Scene Type | Annotation | Delay | Draw Duration |
+|-----------|-----------|-------|---------------|
+| stat-callout | circle | 8 | 12 |
+| comparison | arrow | 10 | 12 |
+| comparison | x-mark | 18 | 8 |
+| text-emphasis | underline | 6 | 10 |
+| full-screen-text | underline | 6 | 10 |
+| list-reveal | arrow | 8 | 10 |
+| narration-default | underline | 6 | 10 |
 
 **Annotation colors (by sentiment):**
 
@@ -113,17 +126,30 @@ Post-processing wrapper applied to the entire composition. All three effects are
 
 ## Scene Transitions
 
-Each scene is wrapped by `SceneEnvelope` which handles entrance and exit animations.
+Each scene is wrapped by `SceneEnvelope` which handles entrance animations. All exits are hard cuts — the incoming scene covers the outgoing one.
 
 | Transition | Frames | Duration | Animation |
 |-----------|--------|----------|-----------|
 | `cut` | 0 | instant | No animation |
-| `crossfade` | 8 | 0.27s | Opacity 0→1 (entrance), 1→0 (exit) |
-| `dissolve` | 20 | 0.67s | Longer opacity fade |
-| `wipe-left` | 10 | 0.33s | `clipPath` rectangle reveals from left |
-| `slide-up` | 10 | 0.33s | Opacity + `translateY(8%)` → `translateY(0)` |
+| `slide-left` | 3 | 0.1s | Ease-out quartic `translateX(100%→0)` |
+| `slam` | 2 | 0.07s | `scale(1.15→1.0)` + sine shake |
+| `wipe-down` | 3 | 0.1s | `clipPath` inset reveals from top |
+| `split` | 3 | 0.1s | Opacity fade (component handles internal panel slide) |
+| `zoom-in` | 3 | 0.1s | Opacity fade (component handles internal zoom) |
+| `pop-in` | 3 | 0.1s | Spring overshoot `0→1.2→1.0` + opacity |
 
-Exit animations only apply to opacity-based transitions (crossfade, dissolve). Wipe and slide rely on the next scene covering the previous one.
+**Transition SFX** — non-cut transitions play a characteristic sound at 60% SFX volume:
+
+| Transition | SFX | Notes |
+|-----------|-----|-------|
+| `slide-left` | `whoosh-in` | Skipped if scene already has whoosh-in |
+| `slam` | `impact-hard` | Skipped if scene already has impact-hard |
+| `wipe-down` | `transition` | |
+| `pop-in` | `whoosh-in` | |
+| `split` | `whoosh-in` | |
+| `zoom-in` | `reveal` | |
+
+**Impact flashes** — 2-frame white flash overlays at key dramatic moments (configurable per scene via `impactWords`).
 
 ## Color Theme
 
@@ -147,7 +173,8 @@ Exit animations only apply to opacity-based transitions (crossfade, dissolve). W
 | `medium` | 10px + 20px blur at 0.6/0.3 opacity |
 | `strong` | 15px + 30px + 45px blur at 0.6/0.3/0.15 opacity |
 
-**`TEXT_CONTRAST_SHADOW`** — `0 2px 4px rgba(0,0,0,0.8)` — applied to all text over images.
+**`TEXT_CONTRAST_SHADOW`** — triple-layer shadow applied to all text over images:
+`0 4px 20px rgba(0,0,0,0.85), 0 2px 8px rgba(0,0,0,0.6), 0 0 40px rgba(0,0,0,0.3)`
 
 ## Audio Layers
 
@@ -156,8 +183,9 @@ Audio is mixed into the composition at these volume levels:
 | Layer | Volume | Source |
 |-------|--------|--------|
 | Narration | 1.0 | TTS-generated WAV |
-| Background music | 0.12 | Ambient track, starts at intro scene |
-| SFX | 0.4 | Per-scene sound effects |
+| Background music | 0.20 | Ambient track, starts at intro scene |
+| Scene SFX | 0.40 | Per-scene sound effects |
+| Transition SFX | 0.25 | Plays on non-cut transitions |
 
 ## Composition Structure
 

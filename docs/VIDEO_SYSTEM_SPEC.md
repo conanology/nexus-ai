@@ -33,12 +33,19 @@
 | Component | Status |
 |---|---|
 | Implementation Phases 0-10 | COMPLETE |
-| Scene Types (14/14) | BUILT — intro, chapter-break, narration-default, text-emphasis, full-screen-text, stat-callout, comparison, diagram, logo-showcase, timeline, quote, list-reveal, code-block, outro |
-| Director Agent | OPERATIONAL — LLM-powered scene classification via Gemini |
+| Scene Types (16/16) | BUILT — intro, chapter-break, narration-default, text-emphasis, full-screen-text, stat-callout, comparison, diagram, logo-showcase, timeline, quote, list-reveal, code-block, meme-reaction, map-animation, outro |
+| Director Agent | OPERATIONAL — LLM-powered scene classification via Gemini 2.5 Flash |
 | Audio Bug Fix | APPLIED — WAV header channel count corrected |
 | Theme Migration | COMPLETE — Cyan primary (#00d4ff), violet secondary (#8b5cf6) |
 | Docker Build | UPDATED — fonts (Inter + JetBrains Mono), GEMINI_API_KEY support |
-| Production Readiness | READY (pending first full production render) |
+| Handwritten Annotations | COMPLETE — 4 SVG annotation types (circle, arrow, underline, x-mark) |
+| Map Animations | COMPLETE — 50-country SVG world map with 3 animation styles |
+| Local Pipeline | COMPLETE — `pnpm run pipeline:local "topic"` (11-step production pipeline) |
+| Visual Enrichment | COMPLETE — 12-stage pipeline (logos, audio, geo, screenshots, stock, concept fallback, AI images, overlays, annotations, memes) |
+| Fireship-Style Overhaul | COMPLETE — pacing halved, kinetic transitions (7 types), sticker typography, terminal aesthetic, physics/bounce animations |
+| Quality Polish (FQ2) | COMPLETE — concept extraction fix, faster animations, annotation speed, typography boost, transition SFX |
+| Transition System | 7 kinetic types (cut, slide-left, slam, wipe-down, split, zoom-in, pop-in) with per-transition SFX |
+| Production Readiness | READY — verified via full end-to-end pipeline renders |
 
 ---
 

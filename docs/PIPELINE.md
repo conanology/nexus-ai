@@ -145,30 +145,42 @@ See [Enrichment Sub-Pipeline](#enrichment-sub-pipeline) below.
 
 ## Enrichment Sub-Pipeline
 
-Step 9 runs 10 enrichment stages in this fixed order:
+Step 9 runs 12 enrichment stages in this fixed order:
 
 | # | Stage | External Service | Env Var | What It Does |
 |---|-------|-----------------|---------|--------------|
 | 1 | **Logos** | Clearbit, Google | — | Fetches company logos → `scene.visualData.logos[].src` |
 | 2 | **Audio** | — | — | Assigns SFX + music track per scene type |
 | 3 | **Geo** | — | — | Resolves country names → ISO codes, sets animation style |
-| 4 | **AI Images** | Gemini | `NEXUS_GEMINI_API_KEY` | Generates background images → `scene.backgroundImage` |
-| 5 | **Source Screenshots** | Playwright | — | Screenshots of source article → `scene.screenshotImage` (max 8) |
+| 4 | **Source Screenshots** | Playwright | — | Screenshots of source article → `scene.screenshotImage` (max 25) |
+| 5 | **Content Screenshots** | Playwright | — | Screenshots of mentioned companies/platforms (max 50) |
 | 6 | **Company Screenshots** | Playwright | — | Screenshots of company websites |
 | 7 | **Stock Photos** | Pexels | `PEXELS_API_KEY` | Stock photos → `scene.backgroundImage` (max 5) |
-| 8 | **Overlays** | — | — | Grid, scanlines, vignette, branding overlays |
-| 9 | **Annotations** | — | — | Handwritten circles, arrows, underlines |
-| 10 | **Memes** | Giphy | `GIPHY_API_KEY` | Meme GIFs → may insert `meme-reaction` scenes |
+| 8 | **Concept Fallback** | Playwright, Gemini | `NEXUS_GEMINI_API_KEY` | Wikipedia screenshots for key concepts (max 15); uses Gemini to validate tech relevance |
+| 9 | **AI Images** | Gemini | `NEXUS_GEMINI_API_KEY` | Generates background images → `scene.backgroundImage` (max 2) |
+| 10 | **Overlays** | — | — | KeyPhrase, SourceBadge, branding overlays |
+| 11 | **Annotations** | — | — | Handwritten circles, arrows, underlines |
+| 12 | **Memes** | Giphy | `GIPHY_API_KEY` | Meme GIFs → may insert `meme-reaction` scenes |
+
+### Concept Fallback Enricher
+
+For scenes without any visual after stages 4-7, the concept fallback enricher:
+1. **Extracts concepts** from narration text — bigrams first (e.g., "Raspberry Pi"), then CamelCase compounds ("OpenAI"), then acronyms ("GGML"), then single words as fallback
+2. **Gemini pre-filter** — validates extracted concepts via `gemini-2.5-flash` to reject non-tech terms and suggest better URLs (GitHub, official docs)
+3. **Builds Wikipedia URLs** — tech-ambiguous words (python, rust, go, etc.) try `_(programming_language)` first
+4. **Captures screenshots** via Playwright (max 15 per video)
 
 ### Visual Priority
 
 When multiple visual sources are available, the first match wins:
 
 1. Source screenshot (Playwright, from article URL)
-2. Company screenshot (Playwright, from company site)
-3. Stock photo (Pexels API)
-4. AI-generated image (Gemini)
-5. Gradient fallback (no image)
+2. Content screenshot (Playwright, from mentioned company/platform)
+3. Company screenshot (Playwright, from company site)
+4. Stock photo (Pexels API)
+5. Concept fallback (Wikipedia screenshot, Gemini-validated)
+6. AI-generated image (Gemini)
+7. Gradient fallback (no image)
 
 ## Cloud Orchestrator
 
