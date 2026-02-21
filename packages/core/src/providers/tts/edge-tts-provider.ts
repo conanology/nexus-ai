@@ -157,7 +157,7 @@ export class EdgeTTSProvider implements TTSProvider {
   }
 
   private resolveVoice(voice?: string): string {
-    if (!voice) return EDGE_VOICES['default-female'];
+    if (!voice) return EDGE_VOICES['default-male'];
 
     // If it looks like an edge-tts voice name, use directly
     if (voice.includes('Neural')) return voice;
@@ -166,7 +166,7 @@ export class EdgeTTSProvider implements TTSProvider {
     if (voice.includes('Female') || voice.includes('-F')) return EDGE_VOICES['default-female'];
     if (voice.includes('Male') || voice.includes('-M')) return EDGE_VOICES['default-male'];
 
-    return EDGE_VOICES['default-female'];
+    return EDGE_VOICES['default-male'];
   }
 
   private async checkEdgeTts(): Promise<boolean> {

@@ -174,7 +174,7 @@ export class AIStudioTTSProvider implements TTSProvider {
    * Falls back to 'Kore' (clear, neutral voice) if no mapping found.
    */
   private resolveVoice(voice?: string): string {
-    if (!voice) return 'Kore';
+    if (!voice) return 'Puck';
 
     // If it's already a Gemini voice name, use it directly
     if (GEMINI_TTS_VOICES.includes(voice)) {
@@ -185,7 +185,7 @@ export class AIStudioTTSProvider implements TTSProvider {
     if (voice.includes('Female') || voice.includes('-F')) return 'Kore';
     if (voice.includes('Male') || voice.includes('-M')) return 'Puck';
 
-    return 'Kore';
+    return 'Puck';
   }
 
   /**
