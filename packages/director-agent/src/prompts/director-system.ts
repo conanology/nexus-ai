@@ -201,13 +201,13 @@ For each scene, assign a "pacing" value that controls the rhythm of the video:
 - **"dense"**: Use for INFORMATION-HEAVY MOMENTS. Comparisons, diagrams, lists, timelines, code blocks — scenes with lots of visual data that the viewer needs time to absorb.
 - **"normal"**: Default for everything else. Standard conversational pacing.
 
-### RHYTHM RULES:
-- Never place more than 2 "punch" scenes in a row — it becomes exhausting
-- After every 3-4 "normal" or "dense" scenes, insert a "breathe" to let the viewer rest
+### RHYTHM RULES — FAST-PACED Fireship-style. Every scene hits hard and gets out:
+- You CAN place up to 4 "punch" scenes in a row — sustained intensity is the goal
+- Only use "breathe" sparingly — maybe 1 or 2 per video, for truly dramatic pauses
 - Statistics and dramatic claims should ALWAYS be "punch"
-- Quotes should ALWAYS be "breathe"
-- The video should have a rhythm pattern like: normal → normal → punch → breathe → dense → normal → punch → breathe
-- Aim for approximately: 20% punch, 15% breathe, 25% dense, 40% normal
+- Quotes should be "normal" (not breathe — keep the energy up)
+- The video should have a rhythm pattern like: punch → punch → normal → punch → dense → punch → punch → normal
+- Aim for approximately: 40% punch, 5% breathe, 20% dense, 35% normal
 
 ## OUTPUT FORMAT
 

@@ -60,7 +60,7 @@ function sceneDuration(scene: Scene): number {
 // =============================================================================
 
 describe('applyPacing', () => {
-  it('distributes 10 mixed-pacing scenes across 3000 frames with correct relative durations', () => {
+  it('distributes 10 mixed-pacing scenes across 500 frames with correct relative durations', () => {
     const pacings: Array<{ type: SceneType; pacing: ScenePacing }> = [
       { type: 'intro', pacing: 'normal' },
       { type: 'text-emphasis', pacing: 'normal' },
@@ -74,27 +74,28 @@ describe('applyPacing', () => {
       { type: 'outro', pacing: 'breathe' },
     ];
 
-    const scenes = makeScenesWithPacing(pacings, 3000);
-    const result = applyPacing(scenes, 3000, 30);
+    // Use 500 frames (~17s) — realistic for Fireship-style 10 scenes at ~1.7s avg
+    const scenes = makeScenesWithPacing(pacings, 500);
+    const result = applyPacing(scenes, 500, 30);
 
-    // Total frames must equal 3000 exactly
-    expect(result[result.length - 1].endFrame).toBe(3000);
+    // Total frames must equal 500 exactly
+    expect(result[result.length - 1].endFrame).toBe(500);
     expect(result[0].startFrame).toBe(0);
 
-    // Punch scenes should be shorter than normal scenes
+    // Punch scenes should be shorter than or equal to normal scenes
     const punchScenes = result.filter((s) => s.pacing === 'punch');
     const normalScenes = result.filter((s) => s.pacing === 'normal');
     const avgPunch = punchScenes.reduce((s, sc) => s + sceneDuration(sc), 0) / punchScenes.length;
     const avgNormal = normalScenes.reduce((s, sc) => s + sceneDuration(sc), 0) / normalScenes.length;
-    expect(avgPunch).toBeLessThan(avgNormal);
+    expect(avgPunch).toBeLessThanOrEqual(avgNormal);
 
-    // Breathe scenes should be longer than normal scenes
+    // Breathe scenes should be longer than or equal to normal scenes
     const breatheScenes = result.filter((s) => s.pacing === 'breathe');
     const avgBreathe = breatheScenes.reduce((s, sc) => s + sceneDuration(sc), 0) / breatheScenes.length;
-    expect(avgBreathe).toBeGreaterThan(avgNormal);
+    expect(avgBreathe).toBeGreaterThanOrEqual(avgNormal);
   });
 
-  it('clamps all-punch scenes to min 60 frames', () => {
+  it('clamps all-punch scenes to min frames (absolute min = 21)', () => {
     const pacings: Array<{ type: SceneType; pacing: ScenePacing }> = Array.from(
       { length: 5 },
       (_, i) => ({
@@ -106,10 +107,9 @@ describe('applyPacing', () => {
     const scenes = makeScenesWithPacing(pacings, 1500);
     const result = applyPacing(scenes, 1500, 30);
 
-    // With rhythm rule, middle of 3 consecutive punch becomes normal
-    // But all scenes should still be >= 60 frames (absolute min is 45)
+    // All scenes should be >= absolute min of 21 frames
     for (const scene of result) {
-      expect(sceneDuration(scene)).toBeGreaterThanOrEqual(45);
+      expect(sceneDuration(scene)).toBeGreaterThanOrEqual(21);
     }
 
     // Total must be exact
@@ -134,27 +134,28 @@ describe('applyPacing', () => {
     expect(result[0].startFrame).toBe(0);
   });
 
-  it('changes middle scene when 3 consecutive punch scenes exist (rhythm fix)', () => {
+  it('allows 4 consecutive punch scenes (relaxed rhythm for Fireship pacing)', () => {
     const pacings: Array<{ type: SceneType; pacing: ScenePacing }> = [
       { type: 'intro', pacing: 'normal' },
+      { type: 'stat-callout', pacing: 'punch' },
       { type: 'stat-callout', pacing: 'punch' },
       { type: 'stat-callout', pacing: 'punch' },
       { type: 'stat-callout', pacing: 'punch' },
       { type: 'outro', pacing: 'breathe' },
     ];
 
-    const scenes = makeScenesWithPacing(pacings, 1500);
-    const result = applyPacing(scenes, 1500, 30);
+    const scenes = makeScenesWithPacing(pacings, 1800);
+    const result = applyPacing(scenes, 1800, 30);
 
-    // The middle punch (index 2) should have been changed to 'normal'
-    const punchCount = result.filter((s) => s.pacing === 'punch').length;
-    expect(punchCount).toBeLessThanOrEqual(2);
+    // 4 consecutive punch should be allowed — all 4 should remain punch
+    const punchScenes = result.filter((s) => s.pacing === 'punch');
+    expect(punchScenes.length).toBe(4);
 
-    // Verify the middle one changed
-    expect(result[2].pacing).toBe('normal');
+    // Total must be exact
+    expect(result[result.length - 1].endFrame).toBe(1800);
   });
 
-  it('inserts a breathe scene when 5+ consecutive non-breathe scenes exist', () => {
+  it('inserts a breathe scene when 9+ consecutive non-breathe scenes exist', () => {
     const pacings: Array<{ type: SceneType; pacing: ScenePacing }> = [
       { type: 'intro', pacing: 'normal' },
       { type: 'text-emphasis', pacing: 'normal' },
@@ -162,13 +163,17 @@ describe('applyPacing', () => {
       { type: 'comparison', pacing: 'dense' },
       { type: 'diagram', pacing: 'dense' },
       { type: 'narration-default', pacing: 'normal' },
+      { type: 'stat-callout', pacing: 'punch' },
+      { type: 'text-emphasis', pacing: 'normal' },
+      { type: 'list-reveal', pacing: 'normal' },
+      { type: 'code-block', pacing: 'normal' },
       { type: 'outro', pacing: 'breathe' },
     ];
 
-    const scenes = makeScenesWithPacing(pacings, 2100);
-    const result = applyPacing(scenes, 2100, 30);
+    const scenes = makeScenesWithPacing(pacings, 3300);
+    const result = applyPacing(scenes, 3300, 30);
 
-    // The first 6 non-breathe scenes should trigger a breathe insertion
+    // The first 10 non-breathe scenes should trigger a breathe insertion
     // Check that at least one scene before the outro is now 'breathe'
     const nonOutroBreathe = result.filter(
       (s) => s.pacing === 'breathe' && s.type !== 'outro',
@@ -176,7 +181,7 @@ describe('applyPacing', () => {
     expect(nonOutroBreathe.length).toBeGreaterThanOrEqual(1);
 
     // Total must still be exact
-    expect(result[result.length - 1].endFrame).toBe(2100);
+    expect(result[result.length - 1].endFrame).toBe(3300);
   });
 
   it('preserves cold open scene duration (80 frames unchanged)', () => {

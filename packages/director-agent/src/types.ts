@@ -47,24 +47,24 @@ export type ScenePacing = (typeof SCENE_PACING_VALUES)[number];
 
 export const ScenePacingSchema = z.enum(SCENE_PACING_VALUES);
 
-/** Default pacing per scene type when LLM doesn't specify one */
+/** Default pacing per scene type when LLM doesn't specify one — Fireship-style: mostly punch */
 export const DEFAULT_SCENE_PACING: Record<SceneType, ScenePacing> = {
   'stat-callout': 'punch',
-  'text-emphasis': 'normal',
-  'full-screen-text': 'normal',
-  comparison: 'dense',
-  diagram: 'dense',
+  'text-emphasis': 'punch',
+  'full-screen-text': 'punch',
+  comparison: 'normal',
+  diagram: 'normal',
   timeline: 'dense',
-  'list-reveal': 'dense',
-  'code-block': 'dense',
-  quote: 'breathe',
-  'chapter-break': 'breathe',
-  'logo-showcase': 'normal',
+  'list-reveal': 'normal',
+  'code-block': 'normal',
+  quote: 'normal',
+  'chapter-break': 'punch',
+  'logo-showcase': 'punch',
   'narration-default': 'normal',
   intro: 'normal',
-  outro: 'breathe',
-  'meme-reaction': 'normal',
-  'map-animation': 'dense',
+  outro: 'normal',
+  'meme-reaction': 'punch',
+  'map-animation': 'normal',
 };
 
 // =============================================================================
@@ -471,11 +471,12 @@ export interface Scene {
   content: string;
   visualData: AnyVisualData;
   pacing?: ScenePacing;
-  transition?: 'cut' | 'crossfade' | 'dissolve' | 'wipe-left' | 'slide-up';
+  transition?: 'cut' | 'slide-left' | 'slam' | 'wipe-down' | 'split' | 'zoom-in' | 'pop-in';
   sfx?: string[];
   musicTrack?: string;
   backgroundImage?: string;
   screenshotImage?: string;
+  screenshotDisplayMode?: 'background' | 'foreground';
   sourceUrl?: string;
   visualSource?: 'source-screenshot' | 'content-screenshot' | 'company-screenshot' | 'stock' | 'ai-generated' | 'programmatic' | 'gradient';
   overlays?: SceneOverlay[];

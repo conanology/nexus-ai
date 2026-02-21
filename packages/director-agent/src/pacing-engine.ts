@@ -13,25 +13,25 @@ import type { Scene, ScenePacing } from './types.js';
 // Constants
 // =============================================================================
 
-/** Pacing multipliers relative to baseDuration */
+/** Pacing multipliers relative to baseDuration — Fireship-style fast pacing */
 const PACING_MULTIPLIER: Record<ScenePacing, number> = {
-  punch: 0.6,
-  breathe: 1.5,
-  dense: 1.2,
-  normal: 1.0,
+  punch: 0.5,
+  breathe: 1.0,
+  dense: 0.9,
+  normal: 0.7,
 };
 
-/** Duration constraints per pacing type (in frames) — tighter for broadcast feel */
+/** Duration constraints per pacing type (in frames) — Fireship-style: avg scene ~1.3s */
 const PACING_CONSTRAINTS: Record<ScenePacing, { min: number; max: number }> = {
-  punch: { min: 45, max: 75 },     // 1.5-2.5s (snappier impact)
-  breathe: { min: 120, max: 200 },  // 4.0-6.7s (tighter breathing room)
-  dense: { min: 120, max: 200 },    // 4.0-6.7s (less lingering on data)
-  normal: { min: 75, max: 135 },    // 2.5-4.5s (faster conversational pace)
+  punch: { min: 24, max: 42 },     // 0.8-1.4s (hit hard, get out)
+  breathe: { min: 45, max: 75 },   // 1.5-2.5s (brief rest, not a vacation)
+  dense: { min: 36, max: 60 },     // 1.2-2.0s (show data fast)
+  normal: { min: 30, max: 54 },    // 1.0-1.8s (rapid conversational pace)
 };
 
 /** Absolute limits for any scene */
-const ABSOLUTE_MIN_FRAMES = 45; // 1.5 seconds at 30fps
-const ABSOLUTE_MAX_FRAMES = 210; // 7 seconds at 30fps (was 10s)
+const ABSOLUTE_MIN_FRAMES = 21; // 0.7 seconds at 30fps
+const ABSOLUTE_MAX_FRAMES = 90; // 3 seconds at 30fps (Fireship never lingers)
 
 // =============================================================================
 // Main Export
@@ -194,35 +194,39 @@ function recalculateFrames(scenes: Scene[], totalDurationFrames: number): Scene[
 
 /**
  * Enforces rhythm rules on pacing values (mutates scenes in place):
- * - No more than 2 consecutive 'punch' scenes → change middle to 'normal'
- * - No more than 4 consecutive non-'breathe' scenes → change one to 'breathe'
+ * - No more than 4 consecutive 'punch' scenes → change middle to 'normal'
+ * - No more than 8 consecutive non-'breathe' scenes → change one to 'breathe'
+ *
+ * Fireship rarely breathes — these are relaxed to allow sustained intensity.
  */
 function applyRhythmRules(scenes: Scene[]): void {
   const paced = scenes.filter(
     (s) => !s.isColdOpen && s.type !== 'meme-reaction',
   );
 
-  // Rule 1: No 3+ consecutive 'punch'
-  for (let i = 1; i < paced.length - 1; i++) {
+  // Rule 1: No 5+ consecutive 'punch' — allow 4 in a row
+  for (let i = 2; i < paced.length - 2; i++) {
     if (
+      paced[i - 2].pacing === 'punch' &&
       paced[i - 1].pacing === 'punch' &&
       paced[i].pacing === 'punch' &&
-      paced[i + 1].pacing === 'punch'
+      paced[i + 1].pacing === 'punch' &&
+      paced[i + 2]?.pacing === 'punch'
     ) {
       paced[i].pacing = 'normal';
     }
   }
 
-  // Rule 2: No 5+ consecutive non-'breathe'
+  // Rule 2: No 9+ consecutive non-'breathe' — Fireship rarely breathes
   let streak = 0;
   for (let i = 0; i < paced.length; i++) {
     if (paced[i].pacing === 'breathe') {
       streak = 0;
     } else {
       streak++;
-      if (streak >= 5) {
+      if (streak >= 9) {
         // Change the middle scene of the streak to 'breathe'
-        const midIndex = i - 2;
+        const midIndex = i - 4;
         if (midIndex >= 0) {
           paced[midIndex].pacing = 'breathe';
         }

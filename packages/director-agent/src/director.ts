@@ -20,6 +20,7 @@ import type {
   SceneType,
   ScenePacing,
   ClassifiedSegment,
+  WordTiming,
 } from './types.js';
 
 // =============================================================================
@@ -110,8 +111,11 @@ export async function generateSceneDirection(
   // Step 5: Apply pacing — adjusts durations based on pacing values
   scenes = applyPacing(scenes, input.totalDurationFrames, input.fps);
 
+  // Step 5b: Snap scene boundaries to word-timing boundaries (A/V sync correction)
+  snapToWordBoundaries(scenes, input.wordTimings, input.fps);
+
   // Step 6: Cold Open Hook extraction
-  const COLD_OPEN_FRAMES = 80; // ~2.7 seconds at 30fps
+  const COLD_OPEN_FRAMES = 54; // ~1.8 seconds at 30fps (Fireship-style: hit fast)
   const hook = extractColdOpenHook(input.script, scenes);
 
   if (hook) {
@@ -128,9 +132,9 @@ export async function generateSceneDirection(
       isColdOpen: true,
     };
 
-    // Cold-open → intro should dissolve through black
+    // Cold-open → intro: hard slam transition (Fireship-style, no soft dissolves)
     if (scenes.length > 0) {
-      scenes[0].transition = 'dissolve';
+      scenes[0].transition = 'slam';
     }
 
     // Shift all existing scenes forward by COLD_OPEN_FRAMES
@@ -157,16 +161,10 @@ export async function generateSceneDirection(
 // =============================================================================
 
 /**
- * Assigns a transition type based on scene type, pacing, and position.
+ * Assigns a kinetic transition type based on scene type, pacing, and position.
  *
- * Rules (ordered by specificity):
- * - First scene (intro) → 'cut' (clean start)
- * - 'punch' pacing → 'cut' (impactful, instant)
- * - meme-reaction → 'cut' (sharp in/out)
- * - chapter-break → 'dissolve' (fade through black)
- * - quote → 'crossfade' (soft entrance)
- * - 'breathe' pacing → 'crossfade' (gentle)
- * - Everything else → 'crossfade' (default smooth)
+ * Fireship-style: everything is fast and kinetic. Only quotes get soft dissolves.
+ * Default is slide-left for continuous motion feel.
  */
 function assignTransition(
   sceneType: SceneType,
@@ -176,20 +174,22 @@ function assignTransition(
   // First scene always cuts in clean
   if (index === 0) return 'cut';
 
+  // Scene-type overrides — Fireship-style: hard cuts for impact scenes, kinetic for structure
+  if (sceneType === 'stat-callout') return 'cut';     // component has built-in shake + scale-bounce
+  if (sceneType === 'text-emphasis') return 'cut';     // component has built-in scale-bounce
+  if (sceneType === 'chapter-break') return 'wipe-down';
+  if (sceneType === 'comparison') return 'slam';
+  if (sceneType === 'code-block') return 'slide-left';
+  if (sceneType === 'quote') return 'slide-left';
+  if (sceneType === 'meme-reaction') return 'cut';
+  if (sceneType === 'logo-showcase') return 'pop-in';
+  if (sceneType === 'outro') return 'wipe-down';
+
   // Punch pacing = instant cuts for impact
   if (pacing === 'punch') return 'cut';
 
-  // Scene-type overrides
-  if (sceneType === 'meme-reaction') return 'cut';
-  if (sceneType === 'chapter-break') return 'dissolve';
-  if (sceneType === 'quote') return 'crossfade';
-  if (sceneType === 'outro') return 'dissolve';
-
-  // Breathe pacing = gentle crossfade
-  if (pacing === 'breathe') return 'crossfade';
-
-  // Default: smooth crossfade for everything else
-  return 'crossfade';
+  // Default: kinetic slide for everything else
+  return 'slide-left';
 }
 
 /**
@@ -206,4 +206,95 @@ function buildIntroVisualData(
     data.episodeTitle = input.metadata.title;
   }
   return data;
+}
+
+// =============================================================================
+// A/V Sync — Word-Timing Snap Correction
+// =============================================================================
+
+/** Minimum scene duration in frames — prevents snap from creating degenerate scenes */
+const MIN_SCENE_FRAMES = 15;
+
+/** Maximum snap distance in frames (~167ms at 30fps) */
+const SNAP_TOLERANCE_FRAMES = 5;
+
+/**
+ * Snaps scene boundaries to the nearest word-timing boundary for tighter A/V sync.
+ *
+ * Character-weighted frame distribution drifts from actual speaking rate
+ * (e.g., "AI" = 2 chars but ~0.5s, "Kubernetes" = 10 chars but ~0.5s).
+ * This correction re-anchors scene end-frames to the nearest spoken-word
+ * boundary, eliminating drift within the snap tolerance.
+ *
+ * @param scenes - Scene array (mutated in place)
+ * @param wordTimings - Word-level timing data from STT or estimation
+ * @param fps - Frames per second
+ */
+function snapToWordBoundaries(
+  scenes: Scene[],
+  wordTimings: WordTiming[] | undefined,
+  fps: number,
+): void {
+  if (!wordTimings || wordTimings.length === 0 || scenes.length < 2) return;
+
+  // Build sorted array of word-end frames (natural sentence/word boundaries)
+  const wordEndFrames = wordTimings
+    .map((wt) => Math.round(wt.endTime * fps))
+    .sort((a, b) => a - b);
+
+  let snappedCount = 0;
+
+  // Snap all scene boundaries except the last scene's endFrame (must match totalDuration)
+  for (let i = 0; i < scenes.length - 1; i++) {
+    const scene = scenes[i];
+    const nextScene = scenes[i + 1];
+    const targetFrame = scene.endFrame;
+
+    // Binary search for nearest word boundary
+    const nearest = findNearestFrame(wordEndFrames, targetFrame);
+    const distance = Math.abs(nearest - targetFrame);
+
+    if (distance > 0 && distance <= SNAP_TOLERANCE_FRAMES) {
+      // Guard: ensure snap doesn't create a scene shorter than MIN_SCENE_FRAMES
+      const newDuration = nearest - scene.startFrame;
+      const nextNewDuration = nextScene.endFrame - nearest;
+
+      if (newDuration >= MIN_SCENE_FRAMES && nextNewDuration >= MIN_SCENE_FRAMES) {
+        scene.endFrame = nearest;
+        nextScene.startFrame = nearest;
+        snappedCount++;
+      }
+    }
+  }
+
+  if (snappedCount > 0) {
+    console.log(`  A/V sync: snapped ${snappedCount}/${scenes.length - 1} scene boundaries to word timings`);
+  }
+}
+
+/**
+ * Binary search for the frame in `sortedFrames` nearest to `target`.
+ */
+function findNearestFrame(sortedFrames: number[], target: number): number {
+  if (sortedFrames.length === 0) return target;
+
+  let lo = 0;
+  let hi = sortedFrames.length - 1;
+
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sortedFrames[mid] < target) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+
+  // lo is the first element >= target — check both lo and lo-1
+  const candidates = [sortedFrames[lo]];
+  if (lo > 0) candidates.push(sortedFrames[lo - 1]);
+
+  return candidates.reduce((best, frame) =>
+    Math.abs(frame - target) < Math.abs(best - target) ? frame : best,
+  );
 }
