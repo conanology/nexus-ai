@@ -458,7 +458,7 @@ async function generateAudio(
             responseModalities: ['AUDIO'],
             speechConfig: {
               voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: 'Kore' },
+                prebuiltVoiceConfig: { voiceName: 'Puck' },
               },
             },
           },
@@ -499,7 +499,7 @@ async function generateAudio(
 
     const tmpMp3 = path.join(os.tmpdir(), `nexus-tts-${Date.now()}.mp3`);
     execSync(
-      `edge-tts --voice en-US-JennyNeural --rate +0% --text "${ttsInput.replace(/"/g, '\\"')}" --write-media "${tmpMp3}"`,
+      `edge-tts --voice en-US-GuyNeural --rate +0% --text "${ttsInput.replace(/"/g, '\\"')}" --write-media "${tmpMp3}"`,
       { stdio: 'pipe', timeout: 120000 },
     );
 
@@ -638,6 +638,7 @@ async function runDirectorAgent(
   scriptText: string,
   durationSec: number,
   topic: string,
+  wordTimings?: Array<{ word: string; startTime: number; endTime: number; duration: number }>,
 ): Promise<{ scenes: any[]; warnings: string[] }> {
   header('Step 8: Director Agent (Scene Classification)');
 
@@ -655,6 +656,7 @@ async function runDirectorAgent(
       script: scriptText,
       totalDurationFrames: totalFrames,
       fps: FPS,
+      wordTimings,
       metadata: { topic, title: topic },
     });
 
@@ -769,6 +771,7 @@ async function renderVideo(
   audioUrl: string,
   totalFrames: number,
   outputPath: string,
+  impactWords?: Array<{ word: string; sceneId: string; frameOffset: number; intensity: string }>,
 ): Promise<{ durationSec: number; fileSize: number }> {
   header('Step 10: Remotion Render');
 
@@ -826,6 +829,7 @@ async function renderVideo(
     scenes,
     totalDurationFrames: totalFrames,
     audioUrl,
+    ...(impactWords && impactWords.length > 0 ? { impactWords } : {}),
     // wordTimings intentionally omitted — YouTube auto-captions are sufficient
   };
 
@@ -1247,7 +1251,7 @@ async function main() {
   }
 
   // Step 8: Director Agent
-  const { scenes, warnings } = await runDirectorAgent(scriptText, audioDuration, topic);
+  const { scenes, warnings } = await runDirectorAgent(scriptText, audioDuration, topic, wordTimings);
 
   // Save raw scenes
   const totalFrames = Math.ceil(audioDuration * FPS);
@@ -1261,6 +1265,20 @@ async function main() {
     JSON.stringify(rawPayload, null, 2),
   );
 
+  // Sync diagnostic: compare audio duration vs scene frame assignments
+  if (scenes.length > 0) {
+    const lastScene = scenes[scenes.length - 1];
+    const lastSceneEndSec = lastScene.endFrame / FPS;
+    const drift = lastSceneEndSec - audioDuration;
+    console.log(`\n  Audio sync diagnostic:`);
+    console.log(`    Audio duration:     ${audioDuration.toFixed(2)}s (${totalFrames} frames)`);
+    console.log(`    Last scene ends at: ${lastSceneEndSec.toFixed(2)}s (${lastScene.endFrame} frames)`);
+    console.log(`    Drift:              ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}s (${drift >= 0 ? '+' : ''}${Math.round(drift * FPS)} frames)`);
+    if (Math.abs(drift) > 1.0) {
+      console.log(`    WARNING: Significant audio/video drift detected (>${Math.abs(drift).toFixed(1)}s)`);
+    }
+  }
+
   // Step 9: Visual Enrichment
   // Build source URLs array from topic data for source screenshot enrichment
   const sourceUrls: Array<{ url: string; title: string }> = [];
@@ -1269,11 +1287,23 @@ async function main() {
   }
   const enrichedScenes = await enrichScenes(scenes, sourceUrls);
 
+  // Step 9b: Impact Word Detection (Gemini-powered visual punctuation)
+  let impactWords: Array<{ word: string; sceneId: string; frameOffset: number; intensity: string }> = [];
+  try {
+    const { detectImpactWords } = await import(
+      '../packages/visual-gen/src/impact-word-detector.js'
+    );
+    impactWords = await detectImpactWords(enrichedScenes, wordTimings, FPS);
+  } catch (err) {
+    console.log(`  Impact word detection skipped: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
   // Save enriched scenes
   const enrichedPayload = {
     version: 'v2-director',
     totalDurationFrames: totalFrames,
     scenes: enrichedScenes,
+    impactWords,
   };
   await fs.writeFile(
     path.join(localStorageDir, 'scenes-enriched.json'),
@@ -1310,6 +1340,7 @@ async function main() {
       audioUrl,
       totalFrames,
       videoPath,
+      impactWords,
     );
 
     // Step 11: Generate chapters
