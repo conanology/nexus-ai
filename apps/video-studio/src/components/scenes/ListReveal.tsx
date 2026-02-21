@@ -1,20 +1,21 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
 import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const TITLE_FADE_FRAMES = 15;
-const ITEM_STAGGER = 5;
-const ITEM_FADE_FRAMES = 10;
-const MARKER_LEAD = 3; // marker appears 3 frames before text
-const TITLE_OFFSET = 15; // items start after title
+const TITLE_FADE_FRAMES = 6;
+const ITEM_STAGGER = 3;
+const ITEM_FADE_FRAMES = 5;
+const MARKER_LEAD = 2; // marker appears 2 frames before text
+const TITLE_OFFSET = 6; // items start after title
 
 // ---------------------------------------------------------------------------
 // Marker renderers
@@ -78,14 +79,16 @@ function renderMarker(
 // ---------------------------------------------------------------------------
 
 export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) => {
-  const { visualData, motion, backgroundImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
 
   const { title, items, style } = visualData;
   const compact = items.length > 6;
-  const fontSize = compact ? 34 : 40;
+  const fontSize = compact ? 44 : 54;
   const itemSpacing = compact ? 60 : 80;
 
   // Title slide-up
@@ -106,7 +109,7 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
 
   return (
     <AbsoluteFill>
-      <BackgroundGradient variant="default" backgroundImage={backgroundImage} />
+      <BackgroundGradient variant="default" backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
 
       <div
         style={{
@@ -126,7 +129,7 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
         {title && (
           <div
             style={{
-              fontSize: 56,
+              fontSize: 72,
               fontFamily: THEME.fonts.heading,
               fontWeight: 700,
               color: COLORS.textPrimary,
@@ -161,7 +164,7 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
           const textSlideX = interpolate(
             frame,
             [itemStart, itemStart + ITEM_FADE_FRAMES],
-            [-40, 0],
+            [-60, 0],
             { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
           );
 
@@ -198,6 +201,18 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
           );
         })}
       </div>
+
+      {/* Per-item click SFX */}
+      {items.map((_, i) => {
+        const itemStart = baseStart + i * ITEM_STAGGER;
+        return (
+          <Sequence key={`sfx-${i}`} from={itemStart} durationInFrames={Math.max(1, durationInFrames - itemStart)}>
+            <Audio src={staticFile('audio/sfx/click.wav')} volume={0.35} />
+          </Sequence>
+        );
+      })}
+
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

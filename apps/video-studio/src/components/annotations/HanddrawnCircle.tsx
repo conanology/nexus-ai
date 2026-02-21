@@ -82,9 +82,9 @@ export const HanddrawnCircle: React.FC<HanddrawnCircleProps> = ({
   rx,
   ry,
   color = '#FF4444',
-  strokeWidth = 4,
+  strokeWidth = 5,
   delayFrames = 0,
-  drawDurationFrames = 30,
+  drawDurationFrames = 9,
   wobbleAmount = 4,
   rotation = -5,
 }) => {
@@ -121,7 +121,7 @@ export const HanddrawnCircle: React.FC<HanddrawnCircleProps> = ({
       strokeLinejoin="round"
       strokeDasharray={length}
       strokeDashoffset={drawProgress}
-      opacity={0.85}
+      opacity={1.0}
       transform={`rotate(${rotation} ${cx} ${cy})`}
     />
   );

@@ -54,18 +54,18 @@ export const THEME = {
   },
 
   fontSizes: {
-    xs: 12,
-    sm: 14,
-    base: 16,
-    lg: 18,
-    xl: 20,
-    '2xl': 24,
-    '3xl': 30,
-    '4xl': 36,
-    '5xl': 48,
-    '6xl': 60,
-    '7xl': 72,
-    '8xl': 96,
+    xs: 20,      // source citations
+    sm: 24,      // labels
+    base: 36,    // body base (was 32)
+    lg: 48,      // body lower (was 42)
+    xl: 64,      // body upper (was 54)
+    '2xl': 84,   // subheading (was 72)
+    '3xl': 96,   // heading (was 86)
+    '4xl': 120,  // large heading (was 96)
+    '5xl': 144,  // stats (was 120)
+    '6xl': 160,  // cold-open (was 140)
+    '7xl': 192,  // impact (was 160)
+    '8xl': 224,  // hero (was 192)
   },
 
   spacing: {

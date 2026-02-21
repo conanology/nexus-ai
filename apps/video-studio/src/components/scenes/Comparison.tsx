@@ -4,18 +4,19 @@ import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS, withOpacity } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 // ---------------------------------------------------------------------------
 // Animation timing constants
 // ---------------------------------------------------------------------------
 
-const DIVIDER_DURATION = 15;
-const TITLE_FADE_DURATION = 10;
-const ITEM_STAGGER = 8;
-const ITEM_FADE_DURATION = 10;
-const CROSS_PANEL_GAP = 15; // frames between left done and right start
-const LEFT_TITLE_START = 10;
+const DIVIDER_DURATION = 6;
+const TITLE_FADE_DURATION = 5;
+const ITEM_STAGGER = 3;
+const ITEM_FADE_DURATION = 5;
+const CROSS_PANEL_GAP = 6; // frames between left done and right start
+const LEFT_TITLE_START = 3;
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -86,7 +87,7 @@ const Panel: React.FC<PanelProps> = ({
       {/* Title */}
       <div
         style={{
-          fontSize: 40,
+          fontSize: 52,
           fontWeight: 700,
           fontFamily: THEME.fonts.heading,
           color: COLORS.textPrimary,
@@ -119,7 +120,7 @@ const Panel: React.FC<PanelProps> = ({
           <div
             key={i}
             style={{
-              fontSize: 32,
+              fontSize: 38,
               fontFamily: THEME.fonts.body,
               fontWeight: 400,
               color: COLORS.textPrimary,
@@ -144,7 +145,9 @@ const Panel: React.FC<PanelProps> = ({
 // ---------------------------------------------------------------------------
 
 export const Comparison: React.FC<SceneComponentProps<'comparison'>> = (props) => {
-  const { visualData, motion, backgroundImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
@@ -176,7 +179,7 @@ export const Comparison: React.FC<SceneComponentProps<'comparison'>> = (props) =
 
   return (
     <AbsoluteFill>
-      <BackgroundGradient variant="default" backgroundImage={backgroundImage} imageOverlay="gradient-bottom" />
+      <BackgroundGradient variant="default" backgroundImage={backgroundImage} screenshotImage={bgScreenshot} imageOverlay="gradient-bottom" />
 
       <div
         style={{
@@ -254,6 +257,7 @@ export const Comparison: React.FC<SceneComponentProps<'comparison'>> = (props) =
           fps={fps}
         />
       </div>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

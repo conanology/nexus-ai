@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, staticFile } from 'remotion';
 import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS, withOpacity } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import { DrawingLine } from '../shared/DrawingLine.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
@@ -17,9 +18,9 @@ const SAFE_ZONE = 80;
 const USABLE_W = FRAME_W - SAFE_ZONE * 2;
 const USABLE_H = FRAME_H - SAFE_ZONE * 2;
 
-const NODE_STAGGER = 8;
-const EDGE_STAGGER = 12;
-const EDGE_DRAW_DURATION = 20;
+const NODE_STAGGER = 4;   // faster node reveal
+const EDGE_STAGGER = 6;   // faster edge drawing
+const EDGE_DRAW_DURATION = 10;
 
 const BASE_NODE_W = 200;
 const BASE_NODE_H = 90;
@@ -141,7 +142,9 @@ function resolveEdgeEndpoints(
 // ---------------------------------------------------------------------------
 
 export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
-  const { visualData, motion, backgroundImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
@@ -181,7 +184,7 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
 
   return (
     <AbsoluteFill>
-      <BackgroundGradient variant="cool" grid gridOpacity={0.04} backgroundImage={backgroundImage} />
+      <BackgroundGradient variant="cool" grid gridOpacity={0.04} backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
 
       <div
         style={{
@@ -206,8 +209,8 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
                 key={`${edge.from}-${edge.to}`}
                 from={edge.endpoints.from}
                 to={edge.endpoints.to}
-                color={COLORS.accentPrimary}
-                glowColor={COLORS.accentPrimary}
+                color="#00FF88"
+                glowColor="#00FF88"
                 strokeWidth={2}
                 delayFrames={edgeStartFrame + j * EDGE_STAGGER}
                 durationFrames={EDGE_DRAW_DURATION}
@@ -245,9 +248,9 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
                 width: nodeW,
                 height: nodeH,
                 borderRadius: 12,
-                backgroundColor: COLORS.bgElevated,
-                border: `1px solid ${COLORS.accentPrimary}`,
-                boxShadow: `0 0 12px ${withOpacity(COLORS.accentPrimary, 0.15)}`,
+                backgroundColor: '#000000',
+                border: '2px solid #00FF88',
+                boxShadow: `0 0 12px ${withOpacity('#00FF88', 0.2)}`,
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
@@ -263,8 +266,8 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
               <span
                 style={{
                   fontSize: labelFontSize,
-                  fontFamily: THEME.fonts.heading,
-                  fontWeight: 500,
+                  fontFamily: THEME.fonts.mono,
+                  fontWeight: 700,
                   color: COLORS.textPrimary,
                   textAlign: 'center',
                   padding: '0 12px',
@@ -318,6 +321,16 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
           );
         })}
       </div>
+      {/* Per-node blip SFX */}
+      {nodes.map((_, i) => {
+        const nodeStart = i * NODE_STAGGER;
+        return (
+          <Sequence key={`sfx-${i}`} from={nodeStart} durationInFrames={Math.max(1, durationInFrames - nodeStart)}>
+            <Audio src={staticFile('audio/sfx/blip.wav')} volume={0.30} />
+          </Sequence>
+        );
+      })}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

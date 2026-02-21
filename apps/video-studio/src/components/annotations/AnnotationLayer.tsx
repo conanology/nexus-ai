@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, staticFile } from 'remotion';
 import { HanddrawnCircle } from './HanddrawnCircle.js';
 import { HanddrawnArrow } from './HanddrawnArrow.js';
 import { HanddrawnUnderline } from './HanddrawnUnderline.js';
@@ -13,11 +13,22 @@ export interface AnnotationLayerProps {
 
 export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
   annotations,
+  sceneDurationFrames,
 }) => {
   if (!annotations || annotations.length === 0) return null;
 
   return (
     <AbsoluteFill style={{ zIndex: 8, pointerEvents: 'none' }}>
+      {/* Per-annotation pen-scratch SFX */}
+      {annotations.map((annotation, index) => {
+        const startFrame = annotation.delayFrames ?? 0;
+        const remaining = Math.max(1, sceneDurationFrames - startFrame);
+        return (
+          <Sequence key={`pen-sfx-${index}`} from={startFrame} durationInFrames={remaining}>
+            <Audio src={staticFile('audio/sfx/pen-scratch.wav')} volume={0.25} />
+          </Sequence>
+        );
+      })}
       <svg
         viewBox="0 0 1920 1080"
         width="1920"

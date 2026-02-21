@@ -1,28 +1,38 @@
 import React from 'react';
-import { AbsoluteFill, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useVideoConfig, useCurrentFrame, interpolate } from 'remotion';
 import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS, withOpacity } from '../../utils/colors.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
 import { SlowZoom } from '../shared/SlowZoom.js';
 import { ParallaxContainer } from '../shared/ParallaxContainer.js';
 import { AnimatedText } from '../shared/AnimatedText.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 export const TextEmphasis: React.FC<SceneComponentProps<'text-emphasis'>> = (props) => {
-  const { visualData, motion, backgroundImage, pacing } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, pacing } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
+  const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
+
+  // Scale-bounce entrance: 1.06 → 1.0 in first 3 frames for impact on hard cut
+  const entranceBounce = interpolate(frame, [0, 3], [1.06, 1.0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
   const { phrase, highlightWords, style: rawStyle } = visualData;
   // Override to slam when pacing is punch for extra impact
   const style = (pacing === 'punch' && rawStyle === 'fade') ? 'slam' as const : rawStyle;
   const bgVariant = style === 'slam' ? 'intense' : 'cool';
-  const fontSize = phrase.length > 60 ? 72 : 96;
+  const fontSize = phrase.length > 60 ? 160 : 200;
 
   return (
     <AbsoluteFill>
       <ParallaxContainer layer="background">
-        <BackgroundGradient variant={bgVariant} backgroundImage={backgroundImage} />
+        <BackgroundGradient variant={bgVariant} backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
       </ParallaxContainer>
 
       <ParallaxContainer layer="foreground">
@@ -58,18 +68,23 @@ export const TextEmphasis: React.FC<SceneComponentProps<'text-emphasis'>> = (pro
               ...motionStyles.emphasisStyle,
             }}
           >
-            <AnimatedText
-              text={phrase}
-              highlightWords={highlightWords}
-              animationStyle={style}
-              fontSize={fontSize}
-              fontWeight={700}
-              textAlign="center"
-            />
+            <div style={{ transform: `scale(${entranceBounce})`, width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ textTransform: 'uppercase' as const }}>
+                <AnimatedText
+                  text={phrase}
+                  highlightWords={highlightWords}
+                  animationStyle={style}
+                  fontSize={fontSize}
+                  fontWeight={900}
+                  textAlign="center"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </SlowZoom>
       </ParallaxContainer>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

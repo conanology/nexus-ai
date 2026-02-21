@@ -2,24 +2,27 @@ import React from 'react';
 import { AbsoluteFill, useVideoConfig } from 'remotion';
 import { useMotion } from '../../hooks/useMotion.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import { SlowZoom } from '../shared/SlowZoom.js';
 import { ParallaxContainer } from '../shared/ParallaxContainer.js';
 import { AnimatedText } from '../shared/AnimatedText.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 export const FullScreenText: React.FC<SceneComponentProps<'full-screen-text'>> = (props) => {
-  const { visualData, motion, backgroundImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const { durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
 
   const { text, alignment } = visualData;
-  const fontSize = text.length > 100 ? 48 : 64;
+  const fontSize = text.length > 100 ? 108 : 140;
   const textAlign = alignment ?? 'center';
 
   return (
     <AbsoluteFill>
       <ParallaxContainer layer="background">
-        <BackgroundGradient variant="default" backgroundImage={backgroundImage} />
+        <BackgroundGradient variant="default" backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
 
         {/* Dark vignette overlay */}
         <div
@@ -56,12 +59,12 @@ export const FullScreenText: React.FC<SceneComponentProps<'full-screen-text'>> =
               ...motionStyles.emphasisStyle,
             }}
           >
-            <div style={{ width: '70%', maxWidth: '80%' }}>
+            <div style={{ width: '70%', maxWidth: '80%', textTransform: 'uppercase' as const }}>
               <AnimatedText
                 text={text}
                 animationStyle="stagger-words"
                 fontSize={fontSize}
-                fontWeight={700}
+                fontWeight={900}
                 textAlign={textAlign}
               />
             </div>
@@ -69,6 +72,7 @@ export const FullScreenText: React.FC<SceneComponentProps<'full-screen-text'>> =
         </div>
       </SlowZoom>
       </ParallaxContainer>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

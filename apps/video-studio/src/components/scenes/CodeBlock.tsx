@@ -10,25 +10,28 @@ import type { SceneComponentProps } from '../../types/scenes.js';
 // Constants
 // ---------------------------------------------------------------------------
 
-const WINDOW_ENTRANCE_FRAMES = 15;
-const LINE_STAGGER = 3;
-const LINE_FADE_FRAMES = 8;
-const MAX_DISPLAY_LINES = 15;
-const CURSOR_PERIOD = 30; // frames per blink cycle
+const WINDOW_ENTRANCE_FRAMES = 6;  // snap in fast
+const LINE_STAGGER = 1; // rapid typewriter reveal
+const LINE_FADE_FRAMES = 4;
+const MAX_DISPLAY_LINES = 8; // fewer lines, BIGGER code — max readability
+const CURSOR_PERIOD = 30;
 
-const EDITOR_BG = '#1e1e2e';
-const TITLE_BAR_BG = '#2d2d3d';
+// True terminal black
+const EDITOR_BG = '#000000';
+const TITLE_BAR_BG = '#1a1a1a';
 const DOT_RED = '#ff5f57';
 const DOT_YELLOW = '#febc2e';
 const DOT_GREEN = '#28c840';
 
-// Syntax colors
-const COLOR_KEYWORD = COLORS.accentSecondary; // #8b5cf6
-const COLOR_STRING = '#a5d6a7';
-const COLOR_NUMBER = '#f48fb1';
-const COLOR_COMMENT = COLORS.textMuted;
+// NEON syntax colors
+const COLOR_KEYWORD = '#FF6B9D';     // hot pink
+const COLOR_STRING = '#00D4FF';      // cyan
+const COLOR_NUMBER = '#00FF88';      // neon green
+const COLOR_COMMENT = '#6B7280';     // muted gray
 const COLOR_OPERATOR = COLORS.textSecondary;
 const COLOR_DEFAULT = COLORS.textPrimary;
+const COLOR_FUNCTION = '#FFB800';    // amber
+const COLOR_TYPE = '#C792EA';        // purple
 
 // ---------------------------------------------------------------------------
 // Syntax Highlighting
@@ -63,6 +66,16 @@ const TOKEN_REGEX = new RegExp(
   'g',
 );
 
+/** Check if a word is a function call (followed by '(' in remaining text) */
+function isFunctionCall(_word: string, remaining: string): boolean {
+  return /^\s*\(/.test(remaining);
+}
+
+/** Check if a word is a PascalCase type */
+function isTypeName(word: string): boolean {
+  return /^[A-Z][a-zA-Z0-9_$]+$/.test(word);
+}
+
 function tokenizeLine(line: string): Token[] {
   const trimmed = line.trimStart();
 
@@ -86,7 +99,15 @@ function tokenizeLine(line: string): Token[] {
     } else if (groups.operator !== undefined) {
       tokens.push({ text: groups.operator, color: COLOR_OPERATOR });
     } else if (groups.word !== undefined) {
-      tokens.push({ text: groups.word, color: COLOR_DEFAULT });
+      const word = groups.word;
+      const remaining = line.slice(TOKEN_REGEX.lastIndex);
+      if (isFunctionCall(word, remaining)) {
+        tokens.push({ text: word, color: COLOR_FUNCTION });
+      } else if (isTypeName(word)) {
+        tokens.push({ text: word, color: COLOR_TYPE });
+      } else {
+        tokens.push({ text: word, color: COLOR_DEFAULT });
+      }
     } else if (groups.space !== undefined) {
       tokens.push({ text: groups.space, color: COLOR_DEFAULT });
     } else {
@@ -124,6 +145,7 @@ interface CodeLineProps {
   fontSize: number;
   opacity: number;
   slideX: number;
+  focusBorderProgress: number;
 }
 
 const CodeLine: React.FC<CodeLineProps> = ({
@@ -133,51 +155,70 @@ const CodeLine: React.FC<CodeLineProps> = ({
   fontSize,
   opacity,
   slideX,
-}) => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'baseline',
-      opacity,
-      transform: `translateX(${slideX}px)`,
-      backgroundColor: highlighted ? withOpacity(COLORS.accentPrimary, 0.1) : 'transparent',
-      borderLeft: highlighted ? `3px solid ${COLORS.accentPrimary}` : '3px solid transparent',
-      paddingLeft: highlighted ? 5 : 8,
-      minHeight: fontSize * 1.6,
-    }}
-  >
-    {/* Line number */}
-    <span
+  focusBorderProgress,
+}) => {
+  // Draw-on border animation for highlighted lines
+  const borderWidth = highlighted ? interpolate(focusBorderProgress, [0, 1], [0, 4], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  }) : 0;
+
+  return (
+    <div
       style={{
-        width: 40,
-        textAlign: 'right',
-        fontSize,
-        fontFamily: THEME.fonts.mono,
-        color: COLORS.textMuted,
-        marginRight: 16,
-        flexShrink: 0,
-        userSelect: 'none',
+        display: 'flex',
+        alignItems: 'baseline',
+        opacity: highlighted ? opacity : opacity * 0.4,
+        transform: `translateX(${slideX}px)`,
+        backgroundColor: highlighted ? withOpacity(COLORS.accentPrimary, 0.08) : 'transparent',
+        borderLeft: highlighted
+          ? `${borderWidth}px solid ${COLORS.accentPrimary}`
+          : '4px solid transparent',
+        paddingLeft: highlighted ? Math.max(0, 8 - borderWidth) : 8,
+        minHeight: fontSize * 1.6,
+        boxShadow: highlighted
+          ? '0 0 12px rgba(0,212,255,0.5), 0 0 24px rgba(0,212,255,0.2)'
+          : 'none',
       }}
     >
-      {lineNumber}
-    </span>
+      {/* Line number */}
+      <span
+        style={{
+          width: 40,
+          textAlign: 'right',
+          fontSize,
+          fontFamily: THEME.fonts.mono,
+          color: COLORS.textMuted,
+          marginRight: 16,
+          flexShrink: 0,
+          userSelect: 'none',
+        }}
+      >
+        {lineNumber}
+      </span>
 
-    {/* Code tokens */}
-    <span style={{ fontSize, fontFamily: THEME.fonts.mono, whiteSpace: 'pre', textShadow: highlighted ? '0 0 8px rgba(0,212,255,0.3)' : 'none' }}>
-      {tokens.map((token, j) => (
-        <span
-          key={j}
-          style={{
-            color: token.color,
-            fontStyle: token.italic ? 'italic' : 'normal',
-          }}
-        >
-          {token.text}
-        </span>
-      ))}
-    </span>
-  </div>
-);
+      {/* Code tokens */}
+      <span style={{
+        fontSize,
+        fontFamily: THEME.fonts.mono,
+        whiteSpace: 'pre',
+        textShadow: highlighted ? '0 0 8px rgba(0,212,255,0.3)' : 'none',
+      }}>
+        {tokens.map((token, j) => (
+          <span
+            key={j}
+            style={{
+              color: token.color,
+              fontStyle: token.italic ? 'italic' : 'normal',
+            }}
+          >
+            {token.text}
+          </span>
+        ))}
+      </span>
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -201,13 +242,21 @@ export const CodeBlock: React.FC<SceneComponentProps<'code-block'>> = (props) =>
     truncated = true;
   }
 
-  // Font sizing based on line count — large enough to read at 1080p
+  // Font sizing — LARGE, readable at 1080p
   let fontSize = 42;
-  if (lines.length > 12) fontSize = 36;
-  if (truncated) fontSize = 32;
+  if (lines.length > 6) fontSize = 38;
+  if (truncated) fontSize = 34;
 
+  // For bash/shell: prefix first line with "$ " in green
+  const isBash = language && ['bash', 'shell', 'sh', 'zsh', 'terminal'].includes(language.toLowerCase());
   // Tokenize all lines
-  const tokenizedLines = lines.map((line) => tokenizeLine(line));
+  const tokenizedLines = lines.map((line, idx) => {
+    const tokens = tokenizeLine(line);
+    if (isBash && idx === 0 && !line.trimStart().startsWith('$')) {
+      tokens.unshift({ text: '$ ', color: COLOR_NUMBER }); // green prompt
+    }
+    return tokens;
+  });
 
   // Window entrance (0-15): scale + opacity via spring
   const windowProgress = spring({
@@ -234,17 +283,19 @@ export const CodeBlock: React.FC<SceneComponentProps<'code-block'>> = (props) =>
         style={{
           position: 'absolute',
           inset: 0,
-          padding: 120,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
           zIndex: 2,
           ...motionStyles.entranceStyle,
           ...motionStyles.exitStyle,
         }}
       >
-        {/* Editor window */}
+        {/* Editor window — 90% width, 75% height (fill the frame) */}
         <div
           style={{
-            width: '100%',
-            height: '100%',
+            width: '90%',
+            height: '75%',
             borderRadius: 12,
             backgroundColor: EDITOR_BG,
             overflow: 'hidden',
@@ -252,6 +303,7 @@ export const CodeBlock: React.FC<SceneComponentProps<'code-block'>> = (props) =>
             flexDirection: 'column',
             opacity: windowProgress,
             transform: `scale(${windowScale})`,
+            border: '1px solid rgba(0, 212, 255, 0.2)',
           }}
         >
           {/* Title bar */}
@@ -311,9 +363,19 @@ export const CodeBlock: React.FC<SceneComponentProps<'code-block'>> = (props) =>
                 { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
               );
 
-              // Dim non-highlighted lines when highlights exist
+              // Focus border draw-on animation (8 frames after line appears)
               const isHighlighted = highlightSet.has(i + 1);
-              const dimFactor = hasHighlights && !isHighlighted ? 0.5 : 1.0;
+              const focusBorderProgress = isHighlighted
+                ? interpolate(
+                    frame,
+                    [lineStart + LINE_FADE_FRAMES, lineStart + LINE_FADE_FRAMES + 8],
+                    [0, 1],
+                    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+                  )
+                : 0;
+
+              // Dim non-highlighted lines when highlights exist
+              const dimFactor = hasHighlights && !isHighlighted ? 1.0 : 1.0; // opacity handled in CodeLine
 
               return (
                 <CodeLine
@@ -324,6 +386,7 @@ export const CodeBlock: React.FC<SceneComponentProps<'code-block'>> = (props) =>
                   fontSize={fontSize}
                   opacity={lineOpacity * dimFactor}
                   slideX={lineSlideX}
+                  focusBorderProgress={focusBorderProgress}
                 />
               );
             })}

@@ -65,9 +65,9 @@ export const HanddrawnX: React.FC<HanddrawnXProps> = ({
   cy,
   size = 30,
   color = '#FF4444',
-  strokeWidth = 4,
+  strokeWidth = 5,
   delayFrames = 0,
-  drawDurationFrames = 20,
+  drawDurationFrames = 9,
 }) => {
   const frame = useCurrentFrame();
 
@@ -76,7 +76,7 @@ export const HanddrawnX: React.FC<HanddrawnXProps> = ({
   if (frame < delayFrames) return null;
 
   const lineDuration = Math.max(Math.floor(drawDurationFrames / 2), 3);
-  const secondLineDelay = 4; // second line starts 4 frames after first
+  const secondLineDelay = 2; // second line starts 2 frames after first
 
   return (
     <>
@@ -105,7 +105,7 @@ export const HanddrawnX: React.FC<HanddrawnXProps> = ({
             strokeLinecap="round"
             strokeDasharray={line.length}
             strokeDashoffset={offset}
-            opacity={0.85}
+            opacity={1.0}
           />
         );
       })}

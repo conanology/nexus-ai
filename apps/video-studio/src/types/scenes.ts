@@ -333,11 +333,12 @@ export interface Scene {
   content: string;
   visualData: AnyVisualData;
   pacing?: ScenePacing;
-  transition?: 'cut' | 'crossfade' | 'dissolve' | 'wipe-left' | 'slide-up';
+  transition?: 'cut' | 'slide-left' | 'slam' | 'wipe-down' | 'split' | 'zoom-in' | 'pop-in';
   sfx?: string[];
   musicTrack?: string;
   backgroundImage?: string;
   screenshotImage?: string;
+  screenshotDisplayMode?: 'background' | 'foreground';
   sourceUrl?: string;
   overlays?: SceneOverlay[];
   annotations?: SceneAnnotation[];
@@ -355,5 +356,6 @@ export interface SceneComponentProps<T extends SceneType = SceneType> {
   motion?: MotionConfig;
   backgroundImage?: string;
   screenshotImage?: string;
+  screenshotDisplayMode?: 'background' | 'foreground';
   pacing?: 'punch' | 'breathe' | 'dense' | 'normal';
 }

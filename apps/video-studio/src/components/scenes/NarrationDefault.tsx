@@ -4,6 +4,7 @@ import { useMotion } from '../../hooks/useMotion.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
 import { SlowZoom } from '../shared/SlowZoom.js';
 import { ParallaxContainer } from '../shared/ParallaxContainer.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 /**
@@ -13,7 +14,9 @@ import type { SceneComponentProps } from '../../types/scenes.js';
  * Supports three variants: gradient, particles (denser particle field), and grid.
  */
 export const NarrationDefault: React.FC<SceneComponentProps<'narration-default'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const { durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
 
@@ -32,7 +35,7 @@ export const NarrationDefault: React.FC<SceneComponentProps<'narration-default'>
           grid={showGrid}
           gridOpacity={0.04}
           backgroundImage={backgroundImage}
-          screenshotImage={screenshotImage}
+          screenshotImage={bgScreenshot}
         />
       </ParallaxContainer>
       <ParallaxContainer layer="foreground">
@@ -47,6 +50,7 @@ export const NarrationDefault: React.FC<SceneComponentProps<'narration-default'>
         />
       </SlowZoom>
       </ParallaxContainer>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

@@ -31,10 +31,10 @@ export const SlowZoom: React.FC<SlowZoomProps> = ({
     switch (direction) {
       case 'in':
         resolvedStart = 1.0;
-        resolvedEnd = 1.04;
+        resolvedEnd = 1.06;
         break;
       case 'out':
-        resolvedStart = 1.06;
+        resolvedStart = 1.10;
         resolvedEnd = 1.0;
         break;
       case 'pan-left':
@@ -61,9 +61,9 @@ export const SlowZoom: React.FC<SlowZoomProps> = ({
     { extrapolateRight: 'clamp' },
   );
 
-  // Reaction zoom: quick 5% pop on first 8 frames, settles back
+  // Reaction zoom: quick 8% pop on first 5 frames, settles back fast
   const reactionMult = reactionZoom
-    ? interpolate(frame, [0, 3, 8], [1.05, 1.03, 1.0], {
+    ? interpolate(frame, [0, 2, 5], [1.08, 1.04, 1.0], {
         extrapolateLeft: 'clamp',
         extrapolateRight: 'clamp',
       })

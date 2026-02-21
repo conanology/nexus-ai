@@ -24,15 +24,15 @@ export interface ColdOpenProps {
 // =============================================================================
 
 /** Frame when the cyan line starts drawing */
-const LINE_START = 5;
+const LINE_START = 2;
 /** Frame when the cyan line finishes drawing */
-const LINE_END = 15;
+const LINE_END = 8;
 /** Frame when content slams in */
-const CONTENT_APPEAR = 15;
+const CONTENT_APPEAR = 8;
 /** Number of frames for screen shake effect */
-const SHAKE_FRAMES = 8;
+const SHAKE_FRAMES = 10;
 /** Number of frames for the hard cut to black at the end */
-const EXIT_FRAMES = 5;
+const EXIT_FRAMES = 3;
 
 // =============================================================================
 // Component

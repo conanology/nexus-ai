@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCurrentFrame, useVideoConfig, spring, interpolate } from 'remotion';
-import { COLORS, textGlow, TEXT_CONTRAST_SHADOW } from '../../utils/colors.js';
-import { THEME } from '../../theme.js';
+import { COLORS, STICKER_OUTLINE, TEXT_CONTRAST_SHADOW, markerHighlight } from '../../utils/colors.js';
+import { getFontProps } from '../../fonts.js';
 
 export interface AnimatedTextProps {
   text: string;
@@ -56,15 +56,17 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
     (highlightWords ?? []).map((w) => w.toLowerCase()),
   );
 
+  const headlineFont = getFontProps('headline');
   const containerStyle: React.CSSProperties = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '0 0.3em',
     alignItems: 'baseline',
     justifyContent: textAlign === 'left' ? 'flex-start' : 'center',
-    fontFamily: THEME.fonts.heading,
+    fontFamily: headlineFont.fontFamily,
     fontSize,
-    fontWeight,
+    fontWeight: fontWeight >= 700 ? 900 : fontWeight,
+    letterSpacing: '-0.02em',
     lineHeight: 1.3,
   };
 
@@ -75,16 +77,24 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
 
   const getWordShadow = (word: string): string =>
     isHighlighted(word, highlightSet)
-      ? textGlow(COLORS.accentPrimary, 'subtle')
+      ? STICKER_OUTLINE
       : TEXT_CONTRAST_SHADOW;
 
+  const getWordTransform = (word: string): string | undefined =>
+    isHighlighted(word, highlightSet) ? 'scale(1.15) rotate(-2deg)' : undefined;
+
+  const getWordStyle = (word: string): React.CSSProperties =>
+    isHighlighted(word, highlightSet)
+      ? { display: 'inline-block', color: getWordColor(word), textShadow: getWordShadow(word), transform: getWordTransform(word), ...markerHighlight() }
+      : { display: 'inline-block', color: getWordColor(word), textShadow: getWordShadow(word) };
+
   if (animationStyle === 'fade') {
-    // Slide-up with spring — punchy entrance, not a gentle fade
+    // Slide-up with spring — punchy snap entrance
     const slideSpring = spring({
       frame: effectiveFrame,
       fps,
-      config: { damping: 14, mass: 0.6, stiffness: 180 },
-      durationInFrames: 12,
+      config: { damping: 16, mass: 0.5, stiffness: 250 },
+      durationInFrames: 8,
     });
     const translateY = interpolate(slideSpring, [0, 1], [30, 0]);
     const scale = interpolate(slideSpring, [0, 1], [0.95, 1.0]);
@@ -98,10 +108,7 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
         }}
       >
         {words.map((word, i) => (
-          <span
-            key={i}
-            style={{ display: 'inline-block', color: getWordColor(word), textShadow: getWordShadow(word) }}
-          >
+          <span key={i} style={getWordStyle(word)}>
             {word}
           </span>
         ))}
@@ -113,16 +120,16 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
     const slamProgress = spring({
       frame: effectiveFrame,
       fps,
-      config: { damping: 10, mass: 0.8, stiffness: 220 },
+      config: { damping: 12, mass: 0.5, stiffness: 300 },
     });
-    const scale = interpolate(slamProgress, [0, 1], [1.8, 1.0]);
+    const scale = interpolate(slamProgress, [0, 1], [2.2, 1.0]);
     const opacity = effectiveFrame > 0 ? 1 : 0;
 
     const shakeAmount =
-      effectiveFrame > 0 && effectiveFrame <= 8
+      effectiveFrame > 0 && effectiveFrame <= 5
         ? Math.sin(effectiveFrame * Math.PI * 2) *
-          6 *
-          (1 - effectiveFrame / 8)
+          8 *
+          (1 - effectiveFrame / 5)
         : 0;
 
     return (
@@ -134,10 +141,7 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
         }}
       >
         {words.map((word, i) => (
-          <span
-            key={i}
-            style={{ display: 'inline-block', color: getWordColor(word), textShadow: getWordShadow(word) }}
-          >
+          <span key={i} style={getWordStyle(word)}>
             {word}
           </span>
         ))}
@@ -197,27 +201,25 @@ export const AnimatedText: React.FC<AnimatedTextProps> = ({
   return (
     <div style={containerStyle}>
       {words.map((word, i) => {
-        const wordDelay = i * 5;
+        const wordDelay = i * 2;
         const wordFrame = Math.max(0, effectiveFrame - wordDelay);
 
         const wordProgress = spring({
           frame: wordFrame,
           fps,
-          config: { damping: 100, mass: 0.5, stiffness: 120 },
-          durationInFrames: 10,
+          config: { damping: 14, mass: 0.5, stiffness: 200 },
+          durationInFrames: 6,
         });
 
-        const translateY = interpolate(wordProgress, [0, 1], [15, 0]);
+        const translateY = interpolate(wordProgress, [0, 1], [20, 0]);
 
         return (
           <span
             key={i}
             style={{
-              display: 'inline-block',
+              ...getWordStyle(word),
               opacity: wordProgress,
-              transform: `translateY(${translateY}px)`,
-              color: getWordColor(word),
-              textShadow: getWordShadow(word),
+              transform: `translateY(${translateY}px)${isHighlighted(word, highlightSet) ? ' scale(1.15) rotate(-2deg)' : ''}`,
             }}
           >
             {word}

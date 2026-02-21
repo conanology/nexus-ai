@@ -8,6 +8,7 @@ import { SlowZoom } from '../shared/SlowZoom.js';
 import { ParallaxContainer } from '../shared/ParallaxContainer.js';
 import { CountUpNumber } from '../shared/CountUpNumber.js';
 import { GlowEffect } from '../shared/GlowEffect.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 /** Parse a stat string like "700", "2.3", "87.5" into a numeric value and decimal count */
@@ -20,10 +21,12 @@ function parseStatNumber(numStr: string): { numeric: number; decimals: number } 
 
 const COUNT_UP_DURATION = 30;
 const LABEL_FADE_DELAY = 10; // frames after count-up completes
-const SHAKE_FRAMES = 6; // screen shake after count-up
+const SHAKE_FRAMES = 10; // screen shake after count-up — bigger for impact
 
 export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
@@ -42,11 +45,17 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
     extrapolateRight: 'clamp',
   });
 
+  // Scale-bounce entrance: 1.05 → 1.0 in first 3 frames for impact on hard cut
+  const entranceBounce = interpolate(frame, [0, 3], [1.05, 1.0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
   // Screen shake when count-up completes
   const shakeStart = countUp ? countUpDuration : 0;
   const shakeFrame = frame - shakeStart;
   const shakeX = shakeFrame >= 0 && shakeFrame < SHAKE_FRAMES
-    ? Math.sin(shakeFrame * Math.PI * 2.5) * 4 * (1 - shakeFrame / SHAKE_FRAMES)
+    ? Math.sin(shakeFrame * Math.PI * 2.5) * 8 * (1 - shakeFrame / SHAKE_FRAMES)
     : 0;
 
   if (comparison) {
@@ -61,7 +70,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
     return (
       <AbsoluteFill>
         <ParallaxContainer layer="background">
-          <BackgroundGradient variant="intense" grid gridOpacity={0.05} backgroundImage={backgroundImage} screenshotImage={screenshotImage} />
+          <BackgroundGradient variant="intense" grid gridOpacity={0.05} backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
           <GlowEffect color={COLORS.accentPrimary} intensity="medium" size={300} position={{ x: 30, y: 45 }} />
           <GlowEffect color={COLORS.accentPrimary} intensity="subtle" size={250} position={{ x: 70, y: 45 }} />
         </ParallaxContainer>
@@ -81,24 +90,25 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
               ...motionStyles.exitStyle,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 60 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 60, transform: `scale(${entranceBounce})` }}>
               {/* Left stat (comparison / "before") — slightly dimmer */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.7 }}>
                 <CountUpNumber
                   targetNumber={compStat.numeric}
                   decimals={compStat.decimals}
-                  fontSize={120}
+                  fontSize={200}
                   durationFrames={countUpDuration}
                 />
                 <div
                   style={{
                     marginTop: 16,
-                    fontSize: 36,
+                    fontSize: 64,
                     fontFamily: THEME.fonts.heading,
-                    fontWeight: 400,
+                    fontWeight: 900,
                     color: COLORS.textSecondary,
                     opacity: labelOpacity,
                     textAlign: 'center',
+                    textTransform: 'uppercase',
                   }}
                 >
                   {comparison.label}
@@ -108,7 +118,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
               {/* Divider arrow */}
               <span
                 style={{
-                  fontSize: 48,
+                  fontSize: 54,
                   fontWeight: 700,
                   color: COLORS.accentPrimary,
                   opacity: labelOpacity,
@@ -124,19 +134,20 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
                   prefix={prefix}
                   suffix={suffix}
                   decimals={mainStat.decimals}
-                  fontSize={120}
+                  fontSize={200}
                   durationFrames={countUpDuration}
                   delayFrames={countUp ? 10 : 0}
                 />
                 <div
                   style={{
                     marginTop: 16,
-                    fontSize: 36,
+                    fontSize: 64,
                     fontFamily: THEME.fonts.heading,
-                    fontWeight: 400,
+                    fontWeight: 900,
                     color: COLORS.textSecondary,
                     opacity: compLabelOpacity,
                     textAlign: 'center',
+                    textTransform: 'uppercase',
                   }}
                 >
                   {label}
@@ -146,6 +157,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
           </div>
         </SlowZoom>
         </ParallaxContainer>
+        {isForeground && <ForegroundScreenshot src={screenshotImage} />}
       </AbsoluteFill>
     );
   }
@@ -154,7 +166,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
   return (
     <AbsoluteFill>
       <ParallaxContainer layer="background">
-        <BackgroundGradient variant="intense" grid gridOpacity={0.05} backgroundImage={backgroundImage} screenshotImage={screenshotImage} />
+        <BackgroundGradient variant="intense" grid gridOpacity={0.05} backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
         <GlowEffect color={COLORS.accentPrimary} intensity="medium" size={300} />
       </ParallaxContainer>
 
@@ -174,13 +186,13 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
             ...motionStyles.exitStyle,
           }}
         >
-          <div style={{ transform: `translateX(${shakeX}px)` }}>
+          <div style={{ transform: `scale(${entranceBounce}) translateX(${shakeX}px)` }}>
             <CountUpNumber
               targetNumber={mainStat.numeric}
               prefix={prefix}
               suffix={suffix}
               decimals={mainStat.decimals}
-              fontSize={160}
+              fontSize={300}
               durationFrames={countUpDuration}
             />
           </div>
@@ -188,13 +200,14 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
           <div
             style={{
               marginTop: 24,
-              fontSize: 40,
+              fontSize: 64,
               fontFamily: THEME.fonts.heading,
-              fontWeight: 400,
+              fontWeight: 900,
               color: COLORS.textSecondary,
               opacity: labelOpacity,
               transform: `translateY(${labelSlideY}px) translateX(${shakeX}px)`,
               textAlign: 'center',
+              textTransform: 'uppercase',
             }}
           >
             {label}
@@ -202,6 +215,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
         </div>
       </SlowZoom>
       </ParallaxContainer>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

@@ -4,6 +4,7 @@ import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS, withOpacity } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import { SlowZoom } from '../shared/SlowZoom.js';
 import { ParallaxContainer } from '../shared/ParallaxContainer.js';
 import { AnimatedText } from '../shared/AnimatedText.js';
@@ -20,7 +21,9 @@ const ATTRIBUTION_START = 35;
 const ROLE_START = 45;
 
 export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
-  const { visualData, motion, backgroundImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
@@ -67,7 +70,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
   return (
     <AbsoluteFill>
       <ParallaxContainer layer="background">
-        <BackgroundGradient variant="default" backgroundImage={backgroundImage} imageOverlay="vignette" />
+        <BackgroundGradient variant="default" backgroundImage={backgroundImage} screenshotImage={bgScreenshot} imageOverlay="vignette" />
       </ParallaxContainer>
 
       <ParallaxContainer layer="foreground">
@@ -79,7 +82,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
             top: 80,
             left: 120,
             fontSize: 200,
-            fontFamily: 'Georgia, serif',
+            fontFamily: THEME.fonts.heading,
             fontWeight: 700,
             color: withOpacity(COLORS.accentPrimary, quoteMarkOpacity),
             lineHeight: 1,
@@ -175,6 +178,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
         </div>
       </SlowZoom>
       </ParallaxContainer>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

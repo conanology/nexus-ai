@@ -49,16 +49,23 @@ const ScenesSchema = z.object({
       endFrame: z.number(),
       content: z.string(),
       visualData: z.record(z.unknown()),
-      transition: z.enum(['cut', 'crossfade', 'dissolve', 'wipe-left', 'slide-up']),
+      transition: z.enum(['cut', 'slide-left', 'slam', 'wipe-down', 'split', 'zoom-in', 'pop-in']),
     }).passthrough()
   ),
   totalDurationFrames: z.number(),
   audioUrl: z.string(),
+  audioOffsetFrames: z.number().optional(),
   wordTimings: z.array(z.object({
     word: z.string(),
     startTime: z.number(),
     endTime: z.number(),
     confidence: z.number().optional(),
+  })).optional(),
+  impactWords: z.array(z.object({
+    word: z.string(),
+    sceneId: z.string(),
+    frameOffset: z.number(),
+    intensity: z.enum(['low', 'medium', 'high']),
   })).optional(),
 });
 
@@ -206,12 +213,16 @@ export const TechExplainer: React.FC<TechExplainerProps> = (props) => {
 
   // V2-Director scenes mode: Scene[] directly from Director Agent
   if ('scenes' in validated && Array.isArray(validated.scenes)) {
+    const audioOffset = 'audioOffsetFrames' in validated ? (validated.audioOffsetFrames ?? 0) : 0;
+    const impactWords = 'impactWords' in validated ? validated.impactWords : undefined;
     return (
       <ColorGrade>
         <SceneRouter
           scenes={validated.scenes as Scene[]}
           audioUrl={validated.audioUrl}
+          audioOffsetFrames={audioOffset}
           wordTimings={('wordTimings' in validated ? validated.wordTimings : undefined) as WordTiming[] | undefined}
+          impactWords={impactWords}
         />
       </ColorGrade>
     );

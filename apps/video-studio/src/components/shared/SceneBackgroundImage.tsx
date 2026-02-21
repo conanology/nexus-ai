@@ -5,7 +5,7 @@ import { Img, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
 // Types
 // ---------------------------------------------------------------------------
 
-export type OverlayMode = 'cinematic' | 'dark' | 'vignette' | 'gradient-bottom' | 'screenshot';
+export type OverlayMode = 'cinematic' | 'dark' | 'vignette' | 'gradient-bottom' | 'screenshot' | 'hero';
 
 export interface SceneBackgroundImageProps {
   src: string;
@@ -138,6 +138,33 @@ const ScreenshotOverlay: React.FC = () => {
   );
 };
 
+/**
+ * Hero overlay — screenshots dominate the frame. No darkening, just a
+ * bottom gradient for text legibility and a subtle edge vignette.
+ */
+const HeroOverlay: React.FC = () => (
+  <>
+    {/* Bottom gradient for text legibility */}
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background:
+          'linear-gradient(to bottom, transparent 40%, rgba(10, 14, 26, 0.85) 100%)',
+      }}
+    />
+    {/* Very slight edge vignette */}
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background:
+          'radial-gradient(ellipse 85% 80% at 50% 50%, transparent 60%, rgba(10, 14, 26, 0.3) 100%)',
+      }}
+    />
+  </>
+);
+
 function renderOverlay(mode: OverlayMode): React.ReactNode {
   switch (mode) {
     case 'cinematic':
@@ -150,6 +177,8 @@ function renderOverlay(mode: OverlayMode): React.ReactNode {
       return <GradientBottomOverlay />;
     case 'screenshot':
       return <ScreenshotOverlay />;
+    case 'hero':
+      return <HeroOverlay />;
   }
 }
 

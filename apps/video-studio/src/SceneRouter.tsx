@@ -53,19 +53,21 @@ export const SCENE_REGISTRY: Record<SceneType, React.FC<SceneComponentProps<any>
 
 type TransitionType = NonNullable<Scene['transition']>;
 
-/** Number of frames each transition type uses for entrance/exit animations. */
+/** Number of frames each transition type uses for entrance animations — near-instant for Fireship pacing. */
 const TRANSITION_FRAMES: Record<TransitionType, number> = {
   'cut':        0,
-  'crossfade':  8,   // ~0.27s at 30fps — quick dissolve through black
-  'dissolve':   20,  // ~0.67s at 30fps — deliberate fade through black
-  'wipe-left':  10,  // ~0.33s
-  'slide-up':   10,  // ~0.33s
+  'slide-left': 3,
+  'slam':       2,
+  'wipe-down':  3,
+  'split':      3,
+  'zoom-in':    3,
+  'pop-in':     3,
 };
 
 const CLAMP = { extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const };
 
 // -----------------------------------------------------------------------------
-// SceneEnvelope — applies entrance/exit transitions to scene content
+// SceneEnvelope — applies kinetic entrance/exit transitions to scene content
 // -----------------------------------------------------------------------------
 
 interface SceneEnvelopeProps {
@@ -76,25 +78,25 @@ interface SceneEnvelopeProps {
 }
 
 /**
- * Wraps scene content with entrance/exit transition animations.
+ * Wraps scene content with kinetic entrance/exit transition animations.
  *
- * - crossfade / dissolve: opacity fade in/out (dissolve is longer, more deliberate)
- * - wipe-left: clipPath reveals content from left to right on entrance
- * - slide-up: content slides up from below on entrance
+ * - slide-left: translateX(100% → 0) with ease-out cubic
+ * - slam: scale(1.15→1.0) + sine shake over 4 frames
+ * - wipe-down: clipPath inset reveal from top
+ * - split: opacity fade (Comparison handles internal panel slide)
+ * - zoom-in: opacity fade (CodeBlock handles internal zoom)
+ * - pop-in: spring overshoot 0→1.2→1.0 + opacity
+ * - dissolve: REMOVED — all transitions are kinetic or hard cut
  * - cut: no animation
  *
- * Exit animations mirror entrance: opacity fade out for crossfade/dissolve,
- * no exit animation for wipe/slide (the incoming scene covers the outgoing one).
+ * Exit: all transitions use hard cuts — the incoming scene covers the outgoing one.
  */
 const SceneEnvelope: React.FC<SceneEnvelopeProps> = ({
   enterTransition,
-  exitTransition,
-  durationFrames,
   children,
 }) => {
   const frame = useCurrentFrame();
   const enterFrames = TRANSITION_FRAMES[enterTransition];
-  const exitFrames = TRANSITION_FRAMES[exitTransition];
 
   let opacity = 1;
   let transform: string | undefined;
@@ -105,38 +107,47 @@ const SceneEnvelope: React.FC<SceneEnvelopeProps> = ({
     const t = interpolate(frame, [0, enterFrames], [0, 1], CLAMP);
 
     switch (enterTransition) {
-      case 'crossfade':
-      case 'dissolve':
+      case 'slide-left': {
+        // Ease-out quartic: 1 - (1-t)^4 — snappier deceleration for kinetic feel
+        const eased = 1 - Math.pow(1 - t, 4);
+        transform = `translateX(${(1 - eased) * 100}%)`;
+        break;
+      }
+      case 'slam': {
+        // Scale down from 1.15 to 1.0 + sine shake
+        const scale = 1.15 - 0.15 * t;
+        const shake = Math.sin(frame * Math.PI * 2.5) * 6 * (1 - t);
+        transform = `scale(${scale}) translateX(${shake}px)`;
+        break;
+      }
+      case 'wipe-down':
+        // Reveal from top: inset(X% 0 0 0) where X goes 100→0
+        clipPath = `inset(${(1 - t) * 100}% 0 0 0)`;
+        break;
+      case 'split':
+      case 'zoom-in':
+        // Simple opacity fade — the component handles its own internal animation
         opacity = t;
         break;
-      case 'wipe-left':
-        // Reveal from left: inset(0 X% 0 0) where X goes 100→0
-        clipPath = `inset(0 ${(1 - t) * 100}% 0 0)`;
+      case 'pop-in': {
+        // Spring overshoot: 0→1.2→1.0
+        const popT = t < 0.25
+          ? interpolate(t, [0, 0.25], [0, 1], CLAMP)
+          : 1;
+        opacity = popT;
+        const scaleVal = t < 0.6
+          ? interpolate(t, [0, 0.6], [0, 1.2], CLAMP)
+          : interpolate(t, [0.6, 1], [1.2, 1.0], CLAMP);
+        transform = `scale(${scaleVal})`;
         break;
-      case 'slide-up':
-        opacity = t;
-        transform = `translateY(${(1 - t) * 8}%)`;
-        break;
+      }
+      // dissolve removed — all transitions are kinetic or hard cut
     }
   }
 
-  // --- Exit animations (only for opacity-based transitions) ---
-  if (exitFrames > 0 && frame > durationFrames - exitFrames) {
-    const t = interpolate(
-      frame,
-      [durationFrames - exitFrames, durationFrames],
-      [1, 0],
-      CLAMP,
-    );
-
-    switch (exitTransition) {
-      case 'crossfade':
-      case 'dissolve':
-        opacity *= t;
-        break;
-      // wipe-left and slide-up: the incoming scene covers us, no exit animation needed
-    }
-  }
+  // --- Exit animations ---
+  // All transitions use hard cuts on exit — incoming scene covers outgoing.
+  // No dissolve fade-out needed (dissolve eliminated).
 
   const style: React.CSSProperties = { opacity };
   if (transform) style.transform = transform;
@@ -149,17 +160,70 @@ const SceneEnvelope: React.FC<SceneEnvelopeProps> = ({
 // SceneRouter
 // -----------------------------------------------------------------------------
 
+export interface ImpactWord {
+  word: string;
+  sceneId: string;
+  frameOffset: number;
+  intensity: 'low' | 'medium' | 'high';
+}
+
 export interface SceneRouterProps {
   scenes: Scene[];
   audioUrl: string;
+  audioOffsetFrames?: number;
   wordTimings?: WordTiming[];
+  impactWords?: ImpactWord[];
 }
 
-/** SFX volume (present but not overpowering) */
-const SFX_VOLUME = 0.45;
+// -----------------------------------------------------------------------------
+// ImpactFlash — 2-frame white flash overlay triggered by impact words
+// -----------------------------------------------------------------------------
+
+const FLASH_INTENSITY: Record<ImpactWord['intensity'], number> = {
+  low: 0.08,
+  medium: 0.12,
+  high: 0.15,
+};
+
+const ImpactFlash: React.FC<{ intensity: ImpactWord['intensity'] }> = ({ intensity }) => {
+  const frame = useCurrentFrame();
+  const maxOpacity = FLASH_INTENSITY[intensity];
+  // 2-frame flash: peak at frame 0, fade by frame 2
+  const opacity = interpolate(frame, [0, 1, 2], [maxOpacity, maxOpacity * 0.5, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: 'white',
+        opacity,
+        zIndex: 100,
+        pointerEvents: 'none',
+      }}
+    />
+  );
+};
+
+/** SFX volume (~-8dB — punchy but not overpowering) */
+const SFX_VOLUME = 0.40;
+
+/** Transition SFX volume (~-12dB — subtler than scene SFX, just marks the cut) */
+const TRANSITION_SFX_VOLUME = 0.25;
 
 /** Background music volume (subtle but audible under narration) */
 const MUSIC_VOLUME = 0.20;
+
+/** Map transitions to their characteristic SFX */
+const TRANSITION_SFX: Partial<Record<TransitionType, string>> = {
+  'slide-left': 'whoosh-in',
+  'slam':       'impact-hard',
+  'wipe-down':  'transition',
+  'pop-in':     'whoosh-in',
+  'split':      'whoosh-in',
+  'zoom-in':    'reveal',
+};
 
 function sfxUrl(name: string): string {
   return staticFile(`audio/sfx/${name}.wav`);
@@ -169,7 +233,7 @@ function musicUrl(name: string): string {
   return staticFile(`audio/music/${name}.wav`);
 }
 
-export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl }) => {
+export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl, audioOffsetFrames = 0, impactWords }) => {
   const { fps } = useVideoConfig();
   const totalDurationFrames = scenes.length > 0
     ? Math.max(...scenes.map((s) => s.endFrame))
@@ -182,8 +246,8 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl }) =>
 
   return (
     <>
-      {/* Root-level narration audio */}
-      <Audio src={audioUrl} />
+      {/* Root-level narration audio (offset compensates for systematic timing drift) */}
+      <Audio src={audioUrl} startFrom={audioOffsetFrames} />
 
       {/* Background music — starts at intro scene, not during cold open */}
       {musicTrack && musicDuration > 0 && (
@@ -243,6 +307,7 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl }) =>
                 content={scene.content}
                 backgroundImage={scene.backgroundImage}
                 screenshotImage={scene.screenshotImage}
+                screenshotDisplayMode={scene.screenshotDisplayMode}
                 pacing={scene.pacing}
               />
               {scene.type !== 'meme-reaction' && scene.type !== 'map-animation' && scene.annotations && scene.annotations.length > 0 && (
@@ -268,6 +333,42 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl }) =>
           </Sequence>
         )),
       )}
+
+      {/* Transition SFX — plays when a scene enters with a non-cut transition.
+          Skipped if the scene already has the same SFX in its own sfx array. */}
+      {scenes.map((scene) => {
+        const trans: TransitionType = scene.transition ?? 'cut';
+        const transSfx = TRANSITION_SFX[trans];
+        if (!transSfx) return null;
+        // Avoid double-play: skip if scene already has this SFX
+        if (scene.sfx?.includes(transSfx)) return null;
+        const dur = scene.endFrame - scene.startFrame;
+        return (
+          <Sequence
+            key={`trans-sfx-${scene.id}`}
+            from={scene.startFrame}
+            durationInFrames={dur}
+          >
+            <Audio src={sfxUrl(transSfx)} volume={TRANSITION_SFX_VOLUME} />
+          </Sequence>
+        );
+      })}
+
+      {/* Impact word flashes — 2-frame white flash overlays at key dramatic moments */}
+      {impactWords?.map((iw) => {
+        const scene = scenes.find((s) => s.id === iw.sceneId);
+        if (!scene) return null;
+        const absoluteFrame = scene.startFrame + iw.frameOffset;
+        return (
+          <Sequence
+            key={`impact-${iw.sceneId}-${iw.frameOffset}`}
+            from={absoluteFrame}
+            durationInFrames={3}
+          >
+            <ImpactFlash intensity={iw.intensity} />
+          </Sequence>
+        );
+      })}
 
       {/* Baked-in captions DISABLED — YouTube auto-generates captions that viewers
          can toggle on/off. Baked-in captions competed with overlays, annotations,

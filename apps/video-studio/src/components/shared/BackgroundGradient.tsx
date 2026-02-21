@@ -134,9 +134,9 @@ export const BackgroundGradient: React.FC<BackgroundGradientProps> = ({
         }}
       />
 
-      {/* Layer 2: Background image — screenshot takes priority over AI-generated */}
+      {/* Layer 2: Background image — screenshot as HERO visual, AI images as atmosphere */}
       {screenshotImage ? (
-        <SceneBackgroundImage src={screenshotImage} overlay="screenshot" opacity={0.28} />
+        <SceneBackgroundImage src={screenshotImage} overlay="hero" opacity={0.85} />
       ) : backgroundImage ? (
         <SceneBackgroundImage src={backgroundImage} overlay={imageOverlay} />
       ) : null}

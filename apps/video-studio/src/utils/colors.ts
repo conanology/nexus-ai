@@ -1,3 +1,5 @@
+import type React from 'react';
+
 /**
  * Target Color Palette — Nexus AI Brand
  *
@@ -83,4 +85,26 @@ export function textGlow(color: string, intensity: 'subtle' | 'medium' | 'strong
 }
 
 /** Base dark text shadow for readability on all text over images. */
-export const TEXT_CONTRAST_SHADOW = '0 2px 4px rgba(0,0,0,0.8)';
+export const TEXT_CONTRAST_SHADOW = '0 4px 20px rgba(0,0,0,0.85), 0 2px 8px rgba(0,0,0,0.6), 0 0 40px rgba(0,0,0,0.3)';
+
+/** White sticker outline — multi-direction text-shadow for bold "sticker" aesthetic */
+export const STICKER_OUTLINE =
+  '-3px -3px 0 rgba(255,255,255,0.95), ' +
+  ' 3px -3px 0 rgba(255,255,255,0.95), ' +
+  '-3px  3px 0 rgba(255,255,255,0.95), ' +
+  ' 3px  3px 0 rgba(255,255,255,0.95), ' +
+  ' 0 0 10px rgba(0,0,0,0.6)';
+
+/**
+ * Marker highlight — returns CSS for a colored background rectangle behind keywords.
+ * Use as `background` on a span with padding.
+ */
+export function markerHighlight(color: string = COLORS.accentPrimary): React.CSSProperties {
+  return {
+    backgroundColor: withOpacity(color, 0.25),
+    borderRadius: 4,
+    padding: '2px 6px',
+    marginLeft: -6,
+    marginRight: -6,
+  };
+}

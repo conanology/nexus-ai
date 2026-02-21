@@ -4,6 +4,7 @@ import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 // ---------------------------------------------------------------------------
@@ -148,7 +149,9 @@ const EventMarker: React.FC<EventMarkerProps> = ({
 // ---------------------------------------------------------------------------
 
 export const Timeline: React.FC<SceneComponentProps<'timeline'>> = (props) => {
-  const { visualData, motion, backgroundImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
@@ -173,7 +176,7 @@ export const Timeline: React.FC<SceneComponentProps<'timeline'>> = (props) => {
 
   return (
     <AbsoluteFill>
-      <BackgroundGradient variant="cool" grid gridOpacity={0.03} backgroundImage={backgroundImage} />
+      <BackgroundGradient variant="cool" grid gridOpacity={0.03} backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
 
       <div
         style={{
@@ -217,6 +220,7 @@ export const Timeline: React.FC<SceneComponentProps<'timeline'>> = (props) => {
           );
         })}
       </div>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

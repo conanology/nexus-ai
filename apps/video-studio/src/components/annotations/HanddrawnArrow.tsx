@@ -128,9 +128,9 @@ export const HanddrawnArrow: React.FC<HanddrawnArrowProps> = ({
   toX,
   toY,
   color = '#FF4444',
-  strokeWidth = 4,
+  strokeWidth = 5,
   delayFrames = 0,
-  drawDurationFrames = 28,
+  drawDurationFrames = 9,
   wobbleAmount = 3,
   curved = true,
   headSize = 14,
@@ -145,8 +145,8 @@ export const HanddrawnArrow: React.FC<HanddrawnArrowProps> = ({
   if (!bodyD || bodyLength === 0) return null;
   if (frame < delayFrames) return null;
 
-  // Body draws first (0 to drawDuration - 5)
-  const bodyDrawDuration = Math.max(drawDurationFrames - 5, 5);
+  // Body draws first (0 to drawDuration - 3)
+  const bodyDrawDuration = Math.max(drawDurationFrames - 3, 3);
   const bodyOffset = interpolate(
     frame,
     [delayFrames, delayFrames + bodyDrawDuration],
@@ -158,11 +158,11 @@ export const HanddrawnArrow: React.FC<HanddrawnArrowProps> = ({
     },
   );
 
-  // Arrowhead appears in last 5 frames of the animation
+  // Arrowhead appears in last 3 frames of the animation
   const headStart = delayFrames + bodyDrawDuration;
   const headOffset = interpolate(
     frame,
-    [headStart, headStart + 5],
+    [headStart, headStart + 3],
     [headLength, 0],
     {
       extrapolateLeft: 'clamp',
@@ -182,7 +182,7 @@ export const HanddrawnArrow: React.FC<HanddrawnArrowProps> = ({
         strokeLinejoin="round"
         strokeDasharray={bodyLength}
         strokeDashoffset={bodyOffset}
-        opacity={0.85}
+        opacity={1.0}
       />
       <path
         d={headD}
@@ -193,7 +193,7 @@ export const HanddrawnArrow: React.FC<HanddrawnArrowProps> = ({
         strokeLinejoin="round"
         strokeDasharray={headLength}
         strokeDashoffset={headOffset}
-        opacity={0.85}
+        opacity={1.0}
       />
     </>
   );

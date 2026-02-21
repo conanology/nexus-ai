@@ -90,9 +90,9 @@ export const HanddrawnUnderline: React.FC<HanddrawnUnderlineProps> = ({
   y,
   width,
   color = '#FF4444',
-  strokeWidth = 4,
+  strokeWidth = 5,
   delayFrames = 0,
-  drawDurationFrames = 24,
+  drawDurationFrames = 9,
   wobbleAmount = 2,
   style = 'single',
 }) => {
@@ -148,7 +148,7 @@ export const HanddrawnUnderline: React.FC<HanddrawnUnderlineProps> = ({
             strokeLinejoin="round"
             strokeDasharray={path.length}
             strokeDashoffset={offset}
-            opacity={0.85}
+            opacity={1.0}
           />
         );
       })}

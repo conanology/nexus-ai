@@ -4,6 +4,7 @@ import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS, withOpacity } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import { GlowEffect } from '../shared/GlowEffect.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 import { getLogoEntry } from '@nexus-ai/asset-library';
@@ -12,9 +13,9 @@ import { getLogoEntry } from '@nexus-ai/asset-library';
 // Constants
 // ---------------------------------------------------------------------------
 
-const CARD_STAGGER = 6; // frames between each card's entrance
+const CARD_STAGGER = 3; // frames between each card's entrance (fast stagger)
 const GLOW_PULSE_DURATION = 20; // frames for the glow pulse after card appears
-const SEQUENTIAL_FADE_FRAMES = 10;
+const SEQUENTIAL_FADE_FRAMES = 5;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,6 +34,39 @@ function isValidImageSrc(src?: string): boolean {
   return src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:');
 }
 
+/** Deterministic hash → palette color for unknown companies */
+const FALLBACK_PALETTE = [
+  '#00D4FF', '#FF6B6B', '#00FF88', '#FFD93D', '#C084FC',
+  '#FF8C42', '#22D3EE', '#F472B6', '#A3E635', '#FB923C',
+];
+
+function hashColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) {
+    h = ((h << 5) - h + name.charCodeAt(i)) | 0;
+  }
+  return FALLBACK_PALETTE[Math.abs(h) % FALLBACK_PALETTE.length];
+}
+
+/** Smart abbreviation: "GPT-4" → "G4", "OpenAI" → "OA", "Piper" → "PI" */
+function smartAbbreviation(name: string): string {
+  // Multi-word: take initials (max 3)
+  const words = name.split(/[\s\-_]+/).filter(Boolean);
+  if (words.length >= 2) {
+    return words
+      .map((w) => w.charAt(0).toUpperCase())
+      .slice(0, 3)
+      .join('');
+  }
+  // CamelCase: extract capitals
+  const caps = name.replace(/[^A-Z]/g, '');
+  if (caps.length >= 2) {
+    return caps.slice(0, 3);
+  }
+  // Single word: first 2 chars uppercase
+  return name.slice(0, 2).toUpperCase();
+}
+
 function resolveLogo(logoName: string, src?: string): ResolvedLogo {
   // Only pass through src if it's a valid URL — bare filenames like "logo.png"
   // resolve to the Remotion dev server and crash the render.
@@ -43,8 +77,8 @@ function resolveLogo(logoName: string, src?: string): ResolvedLogo {
   }
   return {
     name: logoName,
-    abbreviation: logoName.charAt(0).toUpperCase(),
-    color: COLORS.accentPrimary,
+    abbreviation: smartAbbreviation(logoName),
+    color: hashColor(logoName),
     src: safeSrc,
   };
 }
@@ -66,9 +100,13 @@ const LogoCard: React.FC<LogoCardProps> = ({ logo, startFrame, frame, fps }) => 
   const scale = spring({
     frame: relativeFrame,
     fps,
-    config: { damping: 12, stiffness: 200, mass: 0.8 },
+    config: { damping: 8, stiffness: 300, mass: 0.6 },
     durationInFrames: 20,
   });
+
+  // Rotation: start tilted ±8deg, spring to 0
+  const rotateSign = startFrame % 2 === 0 ? 1 : -1;
+  const rotation = interpolate(scale, [0, 1], [rotateSign * 8, 0]);
 
   // Brief glow pulse that peaks shortly after card appears
   const glowProgress = relativeFrame - 10; // starts 10 frames after card entrance
@@ -87,15 +125,16 @@ const LogoCard: React.FC<LogoCardProps> = ({ logo, startFrame, frame, fps }) => 
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: COLORS.bgElevated,
-        border: `1px solid ${logo.color}`,
+        border: '3px solid #ffffff',
         borderRadius: 16,
         padding: hasImage ? '20px 24px' : '32px 24px',
         minWidth: hasImage ? 160 : 180,
         height: hasImage ? 140 : undefined,
-        transform: `scale(${scale})`,
+        transform: `scale(${scale}) rotate(${rotation}deg)`,
         boxShadow: glowOpacity > 0
           ? `0 0 30px ${withOpacity(logo.color, glowOpacity)}, 0 0 60px ${withOpacity(logo.color, glowOpacity * 0.4)}`
           : 'none',
+        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))',
       }}
     >
       {hasImage ? (
@@ -114,8 +153,8 @@ const LogoCard: React.FC<LogoCardProps> = ({ logo, startFrame, frame, fps }) => 
             <Img
               src={logo.src!}
               style={{
-                maxWidth: 80,
-                maxHeight: 80,
+                maxWidth: 100,
+                maxHeight: 100,
                 objectFit: 'contain',
               }}
             />
@@ -173,9 +212,10 @@ const LogoCard: React.FC<LogoCardProps> = ({ logo, startFrame, frame, fps }) => 
 interface SequentialLogoProps {
   logo: ResolvedLogo;
   opacity: number;
+  slamScale: number;
 }
 
-const SequentialLogo: React.FC<SequentialLogoProps> = ({ logo, opacity }) => {
+const SequentialLogo: React.FC<SequentialLogoProps> = ({ logo, opacity, slamScale }) => {
   const hasImage = !!logo.src;
 
   return (
@@ -188,6 +228,7 @@ const SequentialLogo: React.FC<SequentialLogoProps> = ({ logo, opacity }) => {
         justifyContent: 'center',
         alignItems: 'center',
         opacity,
+        transform: `scale(${slamScale})`,
         zIndex: 3,
       }}
     >
@@ -207,9 +248,10 @@ const SequentialLogo: React.FC<SequentialLogoProps> = ({ logo, opacity }) => {
             <Img
               src={logo.src!}
               style={{
-                maxWidth: 120,
-                maxHeight: 120,
+                maxWidth: 140,
+                maxHeight: 140,
                 objectFit: 'contain',
+                filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.8))',
               }}
             />
           </div>
@@ -262,7 +304,9 @@ const SequentialLogo: React.FC<SequentialLogoProps> = ({ logo, opacity }) => {
 // ---------------------------------------------------------------------------
 
 export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (props) => {
-  const { visualData, motion, screenshotImage } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
+  const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
   const motionStyles = useMotion(motion, durationInFrames);
@@ -276,7 +320,7 @@ export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (pro
 
     return (
       <AbsoluteFill>
-        <BackgroundGradient variant="default" screenshotImage={screenshotImage} />
+        <BackgroundGradient variant="default" backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
 
         <div
           style={{
@@ -306,6 +350,16 @@ export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (pro
             );
             const opacity = Math.min(fadeIn, fadeOut);
 
+            // Slam spring: scale 1.6→1.0 on entrance (elastic overshoot)
+            const slamFrame = Math.max(0, frame - logoStart);
+            const slamSpring = spring({
+              frame: slamFrame,
+              fps,
+              config: { damping: 7, stiffness: 280, mass: 0.6 },
+              durationInFrames: 12,
+            });
+            const slamScale = interpolate(slamSpring, [0, 1], [1.6, 1.0]);
+
             return (
               <React.Fragment key={i}>
                 {opacity > 0 && (
@@ -316,11 +370,12 @@ export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (pro
                     pulse={false}
                   />
                 )}
-                <SequentialLogo logo={logo} opacity={opacity} />
+                <SequentialLogo logo={logo} opacity={opacity} slamScale={slamScale} />
               </React.Fragment>
             );
           })}
         </div>
+        {isForeground && <ForegroundScreenshot src={screenshotImage} />}
       </AbsoluteFill>
     );
   }
@@ -331,7 +386,7 @@ export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (pro
 
   return (
     <AbsoluteFill>
-      <BackgroundGradient variant="default" screenshotImage={screenshotImage} />
+      <BackgroundGradient variant="default" backgroundImage={backgroundImage} screenshotImage={bgScreenshot} />
 
       <div
         style={{
@@ -366,6 +421,7 @@ export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (pro
           ))}
         </div>
       </div>
+      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
     </AbsoluteFill>
   );
 };

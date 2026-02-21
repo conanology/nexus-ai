@@ -105,7 +105,8 @@ export const CountUpNumber: React.FC<CountUpNumberProps> = ({
         style={{
           fontSize,
           fontFamily,
-          fontWeight: 700,
+          fontWeight: 900,
+          letterSpacing: '-0.02em',
           color,
           fontVariantNumeric: 'tabular-nums',
           textShadow: textGlow(COLORS.accentPrimary, 'medium'),
