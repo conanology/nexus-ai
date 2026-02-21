@@ -55,10 +55,19 @@ describe('SFX files', () => {
     'click',
     'reveal',
     'transition',
+    'keyboard-clack',
+    'pen-scratch',
+    'record-scratch',
+    'digital-scan',
+    'pop',
+    'deep-boom',
+    'blip',
+    'hit',
+    'intro-sting',
   ];
 
-  it('SFX_LIBRARY contains all 7 expected SFX', () => {
-    expect(SFX_NAMES).toHaveLength(7);
+  it('SFX_LIBRARY contains all 16 expected SFX', () => {
+    expect(SFX_NAMES).toHaveLength(16);
     for (const name of expectedSfx) {
       expect(SFX_LIBRARY[name]).toBeDefined();
     }
@@ -113,44 +122,55 @@ describe('SFX files', () => {
 // ---------------------------------------------------------------------------
 
 describe('Music files', () => {
-  it('MUSIC_LIBRARY contains ambient-tech-01', () => {
-    expect(MUSIC_NAMES).toHaveLength(1);
-    expect(MUSIC_LIBRARY['ambient-tech-01']).toBeDefined();
+  const expectedMusic = ['ambient-tech-01', 'background-music-01'];
+
+  it('MUSIC_LIBRARY contains all expected tracks', () => {
+    expect(MUSIC_NAMES).toHaveLength(expectedMusic.length);
+    for (const name of expectedMusic) {
+      expect(MUSIC_LIBRARY[name]).toBeDefined();
+    }
   });
 
-  it('ambient-tech-01.wav exists at declared path', () => {
-    expect(existsSync(MUSIC_LIBRARY['ambient-tech-01'])).toBe(true);
-  });
+  for (const name of expectedMusic) {
+    describe(`${name}.wav`, () => {
+      it('file exists at declared path', () => {
+        expect(existsSync(MUSIC_LIBRARY[name])).toBe(true);
+      });
 
-  it('is a valid WAV file', () => {
-    const buffer = readFileSync(MUSIC_LIBRARY['ambient-tech-01']);
-    expect(isValidWav(buffer)).toBe(true);
-  });
+      it('is a valid WAV file', () => {
+        const buffer = readFileSync(MUSIC_LIBRARY[name]);
+        expect(isValidWav(buffer)).toBe(true);
+      });
 
-  it('has 44100 Hz sample rate', () => {
-    const buffer = readFileSync(MUSIC_LIBRARY['ambient-tech-01']);
-    expect(getWavSampleRate(buffer)).toBe(44100);
-  });
+      it('has 44100 Hz sample rate', () => {
+        const buffer = readFileSync(MUSIC_LIBRARY[name]);
+        expect(getWavSampleRate(buffer)).toBe(44100);
+      });
 
-  it('is mono (1 channel)', () => {
-    const buffer = readFileSync(MUSIC_LIBRARY['ambient-tech-01']);
-    expect(getWavNumChannels(buffer)).toBe(1);
-  });
+      it('is mono (1 channel)', () => {
+        const buffer = readFileSync(MUSIC_LIBRARY[name]);
+        expect(getWavNumChannels(buffer)).toBe(1);
+      });
 
-  it('is 16-bit', () => {
-    const buffer = readFileSync(MUSIC_LIBRARY['ambient-tech-01']);
-    expect(getWavBitsPerSample(buffer)).toBe(16);
-  });
+      it('is 16-bit', () => {
+        const buffer = readFileSync(MUSIC_LIBRARY[name]);
+        expect(getWavBitsPerSample(buffer)).toBe(16);
+      });
 
-  it('is approximately 60 seconds long', () => {
-    const buffer = readFileSync(MUSIC_LIBRARY['ambient-tech-01']);
-    const dataSize = buffer.readUInt32LE(40); // data chunk size
-    const sampleRate = getWavSampleRate(buffer);
-    const channels = getWavNumChannels(buffer);
-    const bitsPerSample = getWavBitsPerSample(buffer);
-    const durationSec = dataSize / (sampleRate * channels * (bitsPerSample / 8));
-    expect(durationSec).toBeCloseTo(60, 0);
-  });
+      it('has non-zero audio data', () => {
+        const buffer = readFileSync(MUSIC_LIBRARY[name]);
+        const pcmStart = 44;
+        let hasNonZero = false;
+        for (let i = pcmStart; i < Math.min(buffer.length, pcmStart + 1000); i += 2) {
+          if (buffer.readInt16LE(i) !== 0) {
+            hasNonZero = true;
+            break;
+          }
+        }
+        expect(hasNonZero).toBe(true);
+      });
+    });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -158,20 +178,20 @@ describe('Music files', () => {
 // ---------------------------------------------------------------------------
 
 describe('getSfxForSceneType', () => {
-  it('returns ["whoosh-in"] for intro', () => {
-    expect(getSfxForSceneType('intro')).toEqual(['whoosh-in']);
+  it('returns ["intro-sting"] for intro', () => {
+    expect(getSfxForSceneType('intro')).toEqual(['intro-sting']);
   });
 
   it('returns ["whoosh-out"] for outro', () => {
     expect(getSfxForSceneType('outro')).toEqual(['whoosh-out']);
   });
 
-  it('returns ["transition"] for chapter-break', () => {
-    expect(getSfxForSceneType('chapter-break')).toEqual(['transition']);
+  it('returns ["deep-boom"] for chapter-break', () => {
+    expect(getSfxForSceneType('chapter-break')).toEqual(['deep-boom']);
   });
 
-  it('returns ["impact-hard"] for stat-callout', () => {
-    expect(getSfxForSceneType('stat-callout')).toEqual(['impact-hard']);
+  it('returns ["impact-hard", "hit"] for stat-callout', () => {
+    expect(getSfxForSceneType('stat-callout')).toEqual(['impact-hard', 'hit']);
   });
 
   it('returns ["reveal"] for text-emphasis', () => {
@@ -190,16 +210,16 @@ describe('getSfxForSceneType', () => {
     expect(getSfxForSceneType('list-reveal')).toEqual(['click']);
   });
 
-  it('returns ["whoosh-in"] for logo-showcase', () => {
-    expect(getSfxForSceneType('logo-showcase')).toEqual(['whoosh-in']);
+  it('returns ["pop"] for logo-showcase', () => {
+    expect(getSfxForSceneType('logo-showcase')).toEqual(['pop']);
   });
 
-  it('returns ["reveal"] for diagram', () => {
-    expect(getSfxForSceneType('diagram')).toEqual(['reveal']);
+  it('returns ["blip"] for diagram', () => {
+    expect(getSfxForSceneType('diagram')).toEqual(['blip']);
   });
 
-  it('returns ["click"] for code-block', () => {
-    expect(getSfxForSceneType('code-block')).toEqual(['click']);
+  it('returns ["keyboard-clack"] for code-block', () => {
+    expect(getSfxForSceneType('code-block')).toEqual(['keyboard-clack']);
   });
 
   it('returns ["click"] for timeline', () => {

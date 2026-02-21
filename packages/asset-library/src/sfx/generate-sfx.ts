@@ -23,6 +23,7 @@ import {
   applyFade,
   applyExpDecay,
   mix,
+  bandpassFilter,
 } from '../wav-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -188,6 +189,105 @@ function generateTransition(): Float64Array {
 }
 
 // ---------------------------------------------------------------------------
+// New SFX — Fireship-quality sound density
+// ---------------------------------------------------------------------------
+
+/**
+ * keyboard-clack.wav — 0.08s
+ * 3500Hz click transient + bandpass-filtered noise (2kHz), exp decay 30
+ */
+function generateKeyboardClack(): Float64Array {
+  const duration = 0.08;
+  const click = applyExpDecay(sine(3500, duration, 0.6), 30);
+  const noise = applyExpDecay(bandpassFilter(whiteNoise(duration, 0.4), 2000, 2), 30);
+  return mix(click, noise);
+}
+
+/**
+ * pen-scratch.wav — 0.3s
+ * Bandpass noise (1.8kHz, Q=1.5) + amplitude modulation for friction
+ */
+function generatePenScratch(): Float64Array {
+  const duration = 0.3;
+  const noise = bandpassFilter(whiteNoise(duration, 0.5), 1800, 1.5);
+  const numSamples = noise.length;
+  const result = new Float64Array(numSamples);
+  for (let i = 0; i < numSamples; i++) {
+    // Amplitude modulation: tremolo at 25Hz for scratchy friction
+    const mod = 0.5 + 0.5 * Math.sin((2 * Math.PI * 25 * i) / SAMPLE_RATE);
+    result[i] = noise[i] * mod;
+  }
+  return applyFade(applyExpDecay(result, 5), 0.005, 0.05);
+}
+
+/**
+ * record-scratch.wav — 0.2s
+ * Sweep 180→80Hz + bandpass noise (400Hz)
+ */
+function generateRecordScratch(): Float64Array {
+  const duration = 0.2;
+  const swp = applyExpDecay(sweep(180, 80, duration, 0.6), 8);
+  const noise = applyExpDecay(bandpassFilter(whiteNoise(duration, 0.3), 400, 1.2), 10);
+  return mix(swp, noise);
+}
+
+/**
+ * digital-scan.wav — 0.2s
+ * Sweep 800→2400Hz + quantized noise
+ */
+function generateDigitalScan(): Float64Array {
+  const duration = 0.2;
+  const swp = applyExpDecay(sweep(800, 2400, duration, 0.5), 8);
+  const noise = whiteNoise(duration, 0.2);
+  // Quantize noise for digital artifacts
+  const numSamples = noise.length;
+  const quantized = new Float64Array(numSamples);
+  const stepSize = 4; // quantize to every 4 samples for stepped effect
+  for (let i = 0; i < numSamples; i++) {
+    quantized[i] = noise[Math.floor(i / stepSize) * stepSize];
+  }
+  return applyFade(mix(swp, applyExpDecay(quantized, 12)), 0.005, 0.03);
+}
+
+/**
+ * pop.wav — 0.1s
+ * 800Hz sine burst, exp decay 25
+ */
+function generatePop(): Float64Array {
+  return applyExpDecay(sine(800, 0.1, 0.6), 25);
+}
+
+/**
+ * deep-boom.wav — 0.3s
+ * 40Hz + 80Hz sub-bass, exp decay 5
+ */
+function generateDeepBoom(): Float64Array {
+  const duration = 0.3;
+  const sub1 = applyExpDecay(sine(40, duration, 0.7), 5);
+  const sub2 = applyExpDecay(sine(80, duration, 0.5), 5);
+  return applyFade(mix(sub1, sub2), 0.001, 0.05);
+}
+
+/**
+ * blip.wav — 0.1s
+ * 1200Hz sine, exp decay 30
+ */
+function generateBlip(): Float64Array {
+  return applyExpDecay(sine(1200, 0.1, 0.5), 30);
+}
+
+/**
+ * hit.wav — 0.1s
+ * 150Hz sine + noise burst, exp decay 20
+ */
+function generateHit(): Float64Array {
+  const duration = 0.1;
+  const bass = applyExpDecay(sine(150, duration, 0.6), 20);
+  const noise = applyExpDecay(whiteNoise(duration, 0.3), 20);
+  return mix(bass, noise);
+}
+
+// ---------------------------------------------------------------------------
 // Generate all SFX
 // ---------------------------------------------------------------------------
 
@@ -199,6 +299,14 @@ const sfxMap: Record<string, () => Float64Array> = {
   'click': generateClick,
   'reveal': generateReveal,
   'transition': generateTransition,
+  'keyboard-clack': generateKeyboardClack,
+  'pen-scratch': generatePenScratch,
+  'record-scratch': generateRecordScratch,
+  'digital-scan': generateDigitalScan,
+  'pop': generatePop,
+  'deep-boom': generateDeepBoom,
+  'blip': generateBlip,
+  'hit': generateHit,
 };
 
 console.log('Generating SFX...\n');
@@ -220,4 +328,4 @@ for (const [name, generator] of Object.entries(sfxMap)) {
   console.log(`  ${name}.wav: ${wav.length} bytes (${durationSec}s)`);
 }
 
-console.log(`\nAll 7 SFX generated in:\n  ${sfxDir}\n  ${publicSfxDir}`);
+console.log(`\nAll ${Object.keys(sfxMap).length} SFX generated in:\n  ${sfxDir}\n  ${publicSfxDir}`);

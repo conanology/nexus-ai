@@ -39,6 +39,15 @@ export const SFX_LIBRARY: Record<string, string> = {
   'click': safeJoin(__dirname_resolved, '../sfx/click.wav'),
   'reveal': safeJoin(__dirname_resolved, '../sfx/reveal.wav'),
   'transition': safeJoin(__dirname_resolved, '../sfx/transition.wav'),
+  'keyboard-clack': safeJoin(__dirname_resolved, '../sfx/keyboard-clack.wav'),
+  'pen-scratch': safeJoin(__dirname_resolved, '../sfx/pen-scratch.wav'),
+  'record-scratch': safeJoin(__dirname_resolved, '../sfx/record-scratch.wav'),
+  'digital-scan': safeJoin(__dirname_resolved, '../sfx/digital-scan.wav'),
+  'pop': safeJoin(__dirname_resolved, '../sfx/pop.wav'),
+  'deep-boom': safeJoin(__dirname_resolved, '../sfx/deep-boom.wav'),
+  'blip': safeJoin(__dirname_resolved, '../sfx/blip.wav'),
+  'hit': safeJoin(__dirname_resolved, '../sfx/hit.wav'),
+  'intro-sting': safeJoin(__dirname_resolved, '../sfx/intro-sting.wav'),
 };
 
 /** All valid SFX names. */
@@ -51,6 +60,7 @@ export const SFX_NAMES = Object.keys(SFX_LIBRARY);
 /** Maps music track names to their file paths within the asset-library package. */
 export const MUSIC_LIBRARY: Record<string, string> = {
   'ambient-tech-01': safeJoin(__dirname_resolved, '../music/ambient-tech-01.wav'),
+  'background-music-01': safeJoin(__dirname_resolved, '../music/background-music-01.wav'),
 };
 
 /** All valid music track names. */
@@ -68,21 +78,21 @@ export const MUSIC_NAMES = Object.keys(MUSIC_LIBRARY);
  * should handle that themselves — this returns the base SFX set.
  */
 const SCENE_SFX_MAP: Record<string, string[]> = {
-  'intro': ['whoosh-in'],
+  'intro': ['intro-sting'],
   'outro': ['whoosh-out'],
-  'chapter-break': ['transition'],
-  'stat-callout': ['impact-hard'],
+  'chapter-break': ['deep-boom'],
+  'stat-callout': ['impact-hard', 'hit'],
   'text-emphasis': ['reveal'],
   'full-screen-text': ['reveal'],
   'comparison': ['whoosh-in'],
   'list-reveal': ['click'],
-  'logo-showcase': ['whoosh-in'],
-  'diagram': ['reveal'],
-  'code-block': ['click'],
+  'logo-showcase': ['pop'],
+  'diagram': ['blip'],
+  'code-block': ['keyboard-clack'],
   'timeline': ['click'],
   'quote': ['impact-soft'],
-  'meme-reaction': ['whoosh-in'],
-  'map-animation': ['reveal'],
+  'meme-reaction': ['record-scratch'],
+  'map-animation': ['reveal', 'digital-scan'],
   'narration-default': ['whoosh-in'],
 };
 
