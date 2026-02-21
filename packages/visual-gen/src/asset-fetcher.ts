@@ -28,6 +28,8 @@ import type { SourceUrl } from './source-screenshot-enricher.js';
 import { enrichScenesWithContentScreenshots } from './content-screenshot-enricher.js';
 import { enrichScenesWithStock } from './stock-enricher.js';
 import { enrichScenesWithGeoData } from './geo-enricher.js';
+import { enrichScenesWithConceptFallback } from './concept-fallback-enricher.js';
+import { enrichScenesWithCodeSnippets } from './code-snippet-generator.js';
 
 interface LogoShowcaseVisualData {
   logos: Array<{ name: string; src?: string }>;
@@ -96,6 +98,9 @@ export async function enrichScenesWithAssets(
   // --- Audio enrichment ---
   enrichScenesWithAudio(scenes);
 
+  // --- Code snippet generation (Gemini satirical code for bare narration scenes) ---
+  await enrichScenesWithCodeSnippets(scenes);
+
   // --- Geo enrichment (before images — map scenes should NOT get AI background images) ---
   enrichScenesWithGeoData(scenes);
 
@@ -116,6 +121,9 @@ export async function enrichScenesWithAssets(
     await enrichScenesWithStock(scenes, pexelsApiKey, 'technology');
   }
 
+  // --- Concept fallback enrichment (Wikipedia screenshots for bare scenes) ---
+  await enrichScenesWithConceptFallback(scenes);
+
   // --- AI Image enrichment (LAST visual source — only for scenes still without visuals, max 4) ---
   await enrichScenesWithImages(scenes, 'technology');
 
@@ -128,6 +136,9 @@ export async function enrichScenesWithAssets(
   // --- Meme enrichment (LAST — modifies scene timing and inserts new scenes) ---
   const giphyApiKey = process.env.GIPHY_API_KEY;
   const enrichedScenes = await enrichScenesWithMemes(scenes, giphyApiKey);
+
+  // --- Visual source metrics ---
+  logVisualSourceMetrics(enrichedScenes);
 
   return enrichedScenes;
 }
@@ -183,6 +194,9 @@ export async function enrichScenesWithAssetsFull(
   // --- Audio enrichment ---
   enrichScenesWithAudio(scenes);
 
+  // --- Code snippet generation (Gemini satirical code for bare narration scenes) ---
+  await enrichScenesWithCodeSnippets(scenes);
+
   // --- Geo enrichment (before images — map scenes should NOT get AI background images) ---
   enrichScenesWithGeoData(scenes);
 
@@ -203,6 +217,9 @@ export async function enrichScenesWithAssetsFull(
     await enrichScenesWithStock(scenes, pexelsKey, topic);
   }
 
+  // --- Concept fallback enrichment (Wikipedia screenshots for bare scenes) ---
+  await enrichScenesWithConceptFallback(scenes);
+
   // --- AI Image enrichment (LAST visual source — only for scenes still without visuals, max 4) ---
   await enrichScenesWithImages(scenes, topic);
 
@@ -215,6 +232,9 @@ export async function enrichScenesWithAssetsFull(
   // --- Meme enrichment (LAST — modifies scene timing and inserts new scenes) ---
   const giphyKey = process.env.GIPHY_API_KEY;
   const enrichedScenes = await enrichScenesWithMemes(scenes, giphyKey);
+
+  // --- Visual source metrics ---
+  logVisualSourceMetrics(enrichedScenes);
 
   return enrichedScenes;
 }
@@ -251,7 +271,7 @@ export function enrichScenesWithAudio(scenes: Scene[]): void {
 
     // Set background music on the first scene
     if (i === 0) {
-      scene.musicTrack = 'ambient-tech-01';
+      scene.musicTrack = 'background-music-01';
     }
   }
 
@@ -268,7 +288,7 @@ export function enrichScenesWithAudio(scenes: Scene[]): void {
  * GEMINI_API_KEY is not set.
  */
 /** Max AI-generated images per video — screenshots and stock are preferred */
-const MAX_AI_IMAGES = 4;
+const MAX_AI_IMAGES = 2;
 
 export async function enrichScenesWithImages(
   scenes: Scene[],
@@ -330,4 +350,28 @@ export async function enrichScenesWithImages(
   console.log(
     `Image enrichment: ${successCount}/${cappedRequests.length} scenes received AI images`,
   );
+}
+
+/**
+ * Log visual source breakdown for the final enriched scene list.
+ */
+function logVisualSourceMetrics(scenes: Scene[]): void {
+  const counts: Record<string, number> = {};
+  let gradientOnly = 0;
+
+  for (const scene of scenes) {
+    const source = scene.visualSource ?? (scene.screenshotImage || scene.backgroundImage ? 'unknown' : 'gradient');
+    counts[source] = (counts[source] || 0) + 1;
+    if (source === 'gradient') gradientOnly++;
+  }
+
+  const total = scenes.length;
+  const pct = total > 0 ? ((gradientOnly / total) * 100).toFixed(1) : '0';
+
+  console.log('\n=== Visual Source Breakdown ===');
+  for (const [source, count] of Object.entries(counts).sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${source}: ${count} (${((count / total) * 100).toFixed(1)}%)`);
+  }
+  console.log(`  gradient-only: ${gradientOnly}/${total} (${pct}%) — target: <15%`);
+  console.log('==============================\n');
 }

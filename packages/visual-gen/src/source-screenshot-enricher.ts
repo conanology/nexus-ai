@@ -24,7 +24,7 @@ import type { Scene } from '@nexus-ai/director-agent';
 // ---------------------------------------------------------------------------
 
 /** Max source screenshots per video (generous — these are the most valuable visuals) */
-const MAX_SOURCE_SCREENSHOTS = 12;
+const MAX_SOURCE_SCREENSHOTS = 20;
 
 /** Scene types that should NEVER get source screenshots */
 const EXCLUDED_SCENE_TYPES = new Set([
@@ -232,6 +232,7 @@ export async function enrichScenesWithSourceScreenshots(
           scene.screenshotImage = dataUri;
           scene.sourceUrl = source.url;
           scene.visualSource = 'source-screenshot';
+          scene.screenshotDisplayMode = 'foreground';
 
           successCount++;
           console.log(`  OK: scene ${sceneIndex} (${scene.type})`);

@@ -160,16 +160,29 @@ export function enrichScenesWithAnnotations(scenes: Scene[]): Scene[] {
 
     switch (scene.type) {
       case 'stat-callout': {
-        // Circle around the main number (centered, above mid)
+        // StatCallout layout: number at center (~960, ~500) with fontSize 200
+        // Comparison mode: two stats side-by-side, circle the main (right) stat
+        const vd = scene.visualData as Record<string, unknown>;
+        const numStr = (vd.number as string) || '';
+        const isComparison = !!vd.comparison;
+
+        // Dynamic circle width based on digit count
+        const rx = Math.max(140, numStr.length * 60 + 40);
+        const ry = 90;
+        // Comparison mode: right stat centered ~1200px; normal: centered at 960
+        const cx = isComparison ? 1200 : 960;
+        // Number is vertically centered (540) minus slight offset for text baseline
+        const cy = 480;
+
         const circle: CircleAnnotation = {
           type: 'circle',
-          cx: 960,
-          cy: 420,
-          rx: 200,
-          ry: 80,
+          cx,
+          cy,
+          rx,
+          ry,
           color: colorForSentiment(sentiment),
-          delayFrames: 25,
-          drawDurationFrames: 30,
+          delayFrames: 8,
+          drawDurationFrames: 12,
           rotation: -5,
         };
         annotations.push(circle);
@@ -177,30 +190,33 @@ export function enrichScenesWithAnnotations(scenes: Scene[]): Scene[] {
       }
 
       case 'comparison': {
-        // Arrow from old (left) to new (right)
+        // Comparison layout: two panels side-by-side
+        // Left panel: left 80 to ~48%, right panel: ~52% to right-80
+        // Left center ~480, right center ~1440
+        // Titles at top (~120px from top), items below
         const arrow: ArrowAnnotation = {
           type: 'arrow',
-          fromX: 400,
+          fromX: 480,
           fromY: 540,
-          toX: 1520,
+          toX: 1440,
           toY: 540,
           color: ANNOTATION_COLORS.brand,
-          delayFrames: 35,
-          drawDurationFrames: 28,
+          delayFrames: 10,
+          drawDurationFrames: 12,
           curved: true,
         };
         annotations.push(arrow);
 
-        // X-mark on old side if replacement language
+        // X-mark over left panel title if replacement language
         if (hasReplacementLanguage(text)) {
           const xMark: XMarkAnnotation = {
             type: 'x-mark',
-            cx: 400,
-            cy: 300,
+            cx: 480,
+            cy: 160,
             size: 30,
             color: ANNOTATION_COLORS.warning,
-            delayFrames: 50,
-            drawDurationFrames: 20,
+            delayFrames: 18,
+            drawDurationFrames: 8,
           };
           annotations.push(xMark);
         }
@@ -208,33 +224,69 @@ export function enrichScenesWithAnnotations(scenes: Scene[]): Scene[] {
       }
 
       case 'text-emphasis': {
-        // Underline under the emphasized text
+        // TextEmphasis layout: centered at (960, 540), padding 80, maxWidth 70%
+        // fontSize: phrase > 60 chars → 96, else 128
+        const vd = scene.visualData as Record<string, unknown>;
+        const phrase = (vd.phrase as string) || '';
+        const fs = phrase.length > 60 ? 96 : 128;
+        const charWidth = fs * 0.5;
+        const estimatedWidth = Math.min(phrase.length * charWidth, 1344); // 70% of 1920
+        const x = 960 - estimatedWidth / 2;
+        const y = 540 + fs * 0.35; // just below text baseline
+
         const underlineStyle = sentiment === 'dramatic' ? 'squiggly' as const : 'single' as const;
         const underline: UnderlineAnnotation = {
           type: 'underline',
-          x: 460,
-          y: 620,
-          width: 1000,
+          x,
+          y,
+          width: estimatedWidth,
           color: colorForSentiment(sentiment),
-          delayFrames: 20,
-          drawDurationFrames: 24,
+          delayFrames: 6,
+          drawDurationFrames: 10,
           style: underlineStyle,
         };
         annotations.push(underline);
         break;
       }
 
+      case 'full-screen-text': {
+        // FullScreenText layout: centered at (960, 540), width 70%, padding 80
+        // fontSize: text > 100 chars → 64, else 84
+        const vd = scene.visualData as Record<string, unknown>;
+        const fsText = (vd.text as string) || '';
+        const fs = fsText.length > 100 ? 64 : 84;
+        const charWidth = fs * 0.5;
+        const maxWidth = 1344; // 70% of 1920
+        const estimatedWidth = Math.min(fsText.length * charWidth, maxWidth);
+        const x = 960 - estimatedWidth / 2;
+        const y = 540 + fs * 0.35;
+
+        const underline: UnderlineAnnotation = {
+          type: 'underline',
+          x,
+          y,
+          width: estimatedWidth,
+          color: colorForSentiment(sentiment),
+          delayFrames: 6,
+          drawDurationFrames: 10,
+          style: sentiment === 'dramatic' ? 'squiggly' : 'single',
+        };
+        annotations.push(underline);
+        break;
+      }
+
       case 'list-reveal': {
-        // Arrow pointing to the first list item
+        // ListReveal layout: paddingLeft 20% (384px), centered vertically
+        // Arrow from margin into content area, pointing at first item
         const arrow: ArrowAnnotation = {
           type: 'arrow',
-          fromX: 200,
-          fromY: 300,
-          toX: 350,
-          toY: 350,
+          fromX: 280,
+          fromY: 340,
+          toX: 384,
+          toY: 400,
           color: ANNOTATION_COLORS.brand,
-          delayFrames: 30,
-          drawDurationFrames: 24,
+          delayFrames: 8,
+          drawDurationFrames: 10,
           curved: true,
         };
         annotations.push(arrow);
@@ -242,7 +294,10 @@ export function enrichScenesWithAnnotations(scenes: Scene[]): Scene[] {
       }
 
       case 'narration-default': {
-        // Underline when content contains a number or emphasis word
+        // Only annotate if scene has a foreground screenshot (otherwise underline floats on gradient)
+        const ssDM = (scene as unknown as Record<string, unknown>).screenshotDisplayMode;
+        if (ssDM !== 'foreground') break;
+
         const hasNumber = /\d+/.test(text);
         const hasEmphasis = /\b(critical|important|key|major|significant|massive|huge|revolutionary)\b/i.test(text);
         if (hasNumber || hasEmphasis) {
@@ -253,15 +308,15 @@ export function enrichScenesWithAnnotations(scenes: Scene[]): Scene[] {
             width: 1100,
             style: hasEmphasis ? 'squiggly' : 'single',
             color: sentiment === 'positive' ? ANNOTATION_COLORS.success : ANNOTATION_COLORS.brand,
-            delayFrames: 20,
-            drawDurationFrames: 24,
+            delayFrames: 6,
+            drawDurationFrames: 10,
           };
           annotations.push(underline);
         }
         break;
       }
 
-      // quote, full-screen-text, diagram, timeline, logo-showcase: no annotations
+      // quote, diagram, timeline, logo-showcase: no annotations
       default:
         break;
     }

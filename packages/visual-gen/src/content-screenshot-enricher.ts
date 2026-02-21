@@ -21,7 +21,7 @@ import type { Scene } from '@nexus-ai/director-agent';
 // ---------------------------------------------------------------------------
 
 /** Max content screenshots per video */
-const MAX_CONTENT_SCREENSHOTS = 20;
+const MAX_CONTENT_SCREENSHOTS = 50;
 
 /** Scene types that should NEVER get content screenshots */
 const EXCLUDED_SCENE_TYPES = new Set([
@@ -203,6 +203,80 @@ const CONTENT_URL_MAP: Record<string, string> = {
   'the verge': 'https://theverge.com',
   'ars technica': 'https://arstechnica.com',
   'wired': 'https://wired.com',
+
+  // AI infrastructure / inference
+  'openrouter': 'https://openrouter.ai',
+  'anyscale': 'https://anyscale.com',
+  'modal': 'https://modal.com',
+  'runpod': 'https://runpod.io',
+  'fal.ai': 'https://fal.ai',
+  'fal': 'https://fal.ai',
+  'cerebrium': 'https://cerebrium.ai',
+  'deepinfra': 'https://deepinfra.com',
+  'fireworks ai': 'https://fireworks.ai',
+  'fireworks': 'https://fireworks.ai',
+  'baseten': 'https://baseten.co',
+  'banana': 'https://banana.dev',
+  'ollama': 'https://ollama.com',
+  'lmstudio': 'https://lmstudio.ai',
+  'vllm': 'https://docs.vllm.ai',
+  'llama': 'https://llama.meta.com',
+  'deepseek': 'https://deepseek.com',
+  'qwen': 'https://qwenlm.github.io',
+  'phi': 'https://azure.microsoft.com/en-us/products/phi',
+
+  // Dev tools / editors
+  'cursor': 'https://cursor.com',
+  'replit': 'https://replit.com',
+  'stackblitz': 'https://stackblitz.com',
+  'codesandbox': 'https://codesandbox.io',
+  'codepen': 'https://codepen.io',
+  'postman': 'https://postman.com',
+  'jetbrains': 'https://jetbrains.com',
+  'zed': 'https://zed.dev',
+  'neovim': 'https://neovim.io',
+  'vscode': 'https://code.visualstudio.com',
+  'visual studio code': 'https://code.visualstudio.com',
+  'warp': 'https://warp.dev',
+  'raycast': 'https://raycast.com',
+  'insomnia': 'https://insomnia.rest',
+  'turborepo': 'https://turbo.build',
+
+  // Cloud / hosting
+  'ovh': 'https://ovhcloud.com',
+  'scaleway': 'https://scaleway.com',
+  'vultr': 'https://vultr.com',
+  'civo': 'https://civo.com',
+  'lambda labs': 'https://lambdalabs.com',
+  'lambda cloud': 'https://lambdalabs.com',
+  'paperspace': 'https://paperspace.com',
+  'upstash': 'https://upstash.com',
+  'neon': 'https://neon.tech',
+  'planetscale': 'https://planetscale.com',
+  'turso': 'https://turso.tech',
+
+  // Data / analytics
+  'tableau': 'https://tableau.com',
+  'metabase': 'https://metabase.com',
+  'amplitude': 'https://amplitude.com',
+  'mixpanel': 'https://mixpanel.com',
+  'segment': 'https://segment.com',
+  'posthog': 'https://posthog.com',
+  'plausible': 'https://plausible.io',
+  'apache spark': 'https://spark.apache.org',
+  'airflow': 'https://airflow.apache.org',
+  'dbt': 'https://getdbt.com',
+
+  // Academic / research
+  'nature': 'https://nature.com',
+  'science': 'https://science.org',
+  'ieee': 'https://ieee.org',
+  'acm': 'https://acm.org',
+  'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
+  'biorxiv': 'https://biorxiv.org',
+  'semantic scholar': 'https://semanticscholar.org',
+  'google scholar': 'https://scholar.google.com',
+  'papers with code': 'https://paperswithcode.com',
 };
 
 // Sort keys longest-first to match "hugging face" before "face"
@@ -224,6 +298,16 @@ function isScreenshottable(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Determine whether a screenshot should be foreground (floating window) or background.
+ * If the matched entity appears in the first 60 chars → foreground (scene is ABOUT it).
+ * Otherwise → background (scene just mentions it).
+ */
+function determineDisplayMode(content: string, matchName: string): 'foreground' | 'background' {
+  const first60 = content.toLowerCase().slice(0, 60);
+  return first60.includes(matchName.toLowerCase()) ? 'foreground' : 'background';
 }
 
 /**
@@ -334,9 +418,10 @@ export async function enrichScenesWithContentScreenshots(
 
           scene.screenshotImage = dataUri;
           scene.visualSource = 'content-screenshot';
+          scene.screenshotDisplayMode = determineDisplayMode(scene.content, name);
 
           successCount++;
-          console.log(`  OK: scene ${index} (${scene.type}) — ${name}`);
+          console.log(`  OK: scene ${index} (${scene.type}) — ${name} [${scene.screenshotDisplayMode}]`);
         } else if (result.status === 'fulfilled') {
           console.log(`  FAILED: ${result.value.url} — keeping existing background`);
         } else {

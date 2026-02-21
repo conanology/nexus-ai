@@ -95,7 +95,7 @@ export async function searchMeme(query: string, apiKey: string): Promise<MemeRes
     const params = new URLSearchParams({
       q: query,
       api_key: apiKey,
-      limit: '5',
+      limit: '8',
       rating: 'pg-13',
       lang: 'en',
     });

@@ -25,3 +25,6 @@ export { enrichScenesWithGeoData } from './geo-enricher.js';
 export { enrichScenesWithSourceScreenshots } from './source-screenshot-enricher.js';
 export type { SourceUrl } from './source-screenshot-enricher.js';
 export { enrichScenesWithStock } from './stock-enricher.js';
+export { enrichScenesWithCodeSnippets } from './code-snippet-generator.js';
+export { detectImpactWords } from './impact-word-detector.js';
+export type { ImpactWord } from './impact-word-detector.js';

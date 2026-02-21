@@ -22,8 +22,8 @@ import type { Scene } from '@nexus-ai/director-agent';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Max screenshots per video — screenshots are a PRIMARY visual source */
-const MAX_SCREENSHOTS_PER_VIDEO = 10;
+/** Max screenshots per video — screenshots are the HERO visual source */
+const MAX_SCREENSHOTS_PER_VIDEO = 25;
 
 /** Scene types that should NEVER get screenshots */
 const EXCLUDED_SCENE_TYPES = new Set([
@@ -52,6 +52,31 @@ const KNOWN_NAMES = [
 interface CompanyMatch {
   name: string;
   urlEntry: UrlEntry;
+}
+
+/** Scene types that get foreground screenshots when a specific entity is mentioned */
+const FOREGROUND_SCENE_TYPES = new Set([
+  'narration-default',
+  'text-emphasis',
+  'full-screen-text',
+  'stat-callout',
+  'logo-showcase',
+  'comparison',
+  'quote',
+]);
+
+/**
+ * Determine whether a screenshot should be foreground or background.
+ * Fireship-style: screenshots dominate the frame, foreground for most scene types.
+ */
+function determineDisplayMode(content: string, companyName: string, sceneType?: string): 'foreground' | 'background' {
+  // Source screenshots: always foreground
+  if (!companyName) return 'foreground';
+  // Most scene types get foreground when an entity is mentioned
+  if (sceneType && FOREGROUND_SCENE_TYPES.has(sceneType)) return 'foreground';
+  // Fallback: check if company is mentioned early in content
+  const first60 = content.toLowerCase().slice(0, 60);
+  return first60.includes(companyName.toLowerCase()) ? 'foreground' : 'background';
 }
 
 /**
@@ -169,14 +194,17 @@ export async function enrichScenesWithScreenshots(
         }),
       );
 
-      for (const result of results) {
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
         if (result.status === 'fulfilled' && result.value.buffer) {
           const { sceneIndex, buffer } = result.value;
           const dataUri = screenshotToDataUri(buffer);
           const scene = scenes[sceneIndex];
+          const matchName = batch[j].match.name;
 
           scene.screenshotImage = dataUri;
           scene.visualSource = 'company-screenshot';
+          scene.screenshotDisplayMode = determineDisplayMode(scene.content, matchName, scene.type);
 
           successCount++;
         }

@@ -28,6 +28,7 @@
   "author": "Cryptology",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.16.0",
     "@nexus-ai/asset-library": "workspace:*",
     "@nexus-ai/audio-mixer": "workspace:*",
     "@nexus-ai/core": "workspace:*",

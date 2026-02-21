@@ -82,9 +82,133 @@ const COOKIE_SELECTORS = [
   '.cc-accept',
   '[aria-label="Accept cookies"]',
   '[aria-label="Accept all cookies"]',
+  '.js-consent-banner button',
+  '[data-cookiebanner="accept_button"]',
+  '.cky-btn-accept',
 ];
 
-const COOKIE_BUTTON_TEXTS = ['Accept', 'Accept All', 'Accept all', 'OK', 'Got it', 'I agree', 'Allow all'];
+const COOKIE_BUTTON_TEXTS = [
+  'Accept', 'Accept All', 'Accept all', 'OK', 'Got it', 'I agree', 'Allow all',
+  'Accept & Continue', 'Agree', 'Consent', 'Close',
+];
+
+// ---------------------------------------------------------------------------
+// User-Agent (realistic Chrome)
+// ---------------------------------------------------------------------------
+
+const REALISTIC_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+// ---------------------------------------------------------------------------
+// Page validation — reject Cloudflare challenges, error pages, disambiguation
+// ---------------------------------------------------------------------------
+
+const BAD_PAGE_PATTERNS = [
+  // Cloudflare / bot detection
+  'verify you are human',
+  'security verification',
+  'challenge-platform',
+  'checking your browser',
+  'just a moment',
+  'enable javascript and cookies',
+  // Error pages
+  'application error',
+  '404 not found',
+  'page not found',
+  '500 internal server',
+  '403 forbidden',
+  'access denied',
+  // Wikipedia disambiguation
+  'may refer to',
+  'disambiguation',
+];
+
+/**
+ * Check if the page body text indicates a bad/useless page.
+ * Returns null if the page should be skipped (invalid), the bodyText otherwise.
+ */
+async function validatePage(page: import('playwright-core').Page): Promise<string | null> {
+  try {
+    const bodyText = await page.evaluate('document.body?.innerText ?? ""') as string;
+    if (bodyText.length < 50) return null;
+
+    const lower = bodyText.toLowerCase();
+    for (const pattern of BAD_PAGE_PATTERNS) {
+      if (lower.includes(pattern)) return null;
+    }
+    return bodyText;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Smart scroll to content (past headers/hero images)
+// ---------------------------------------------------------------------------
+
+const CONTENT_SELECTORS = ['main', 'article', '#content', '[role="main"]', '.entry-content'];
+
+async function scrollToContent(page: import('playwright-core').Page): Promise<void> {
+  for (const selector of CONTENT_SELECTORS) {
+    try {
+      const el = await page.$(selector);
+      if (el) {
+        await el.scrollIntoViewIfNeeded();
+        // Add a small top margin so it's not flush against top
+        await page.evaluate('window.scrollBy(0, -60)');
+        await page.waitForTimeout(500);
+        return;
+      }
+    } catch {
+      // try next
+    }
+  }
+  // Fallback: scroll past typical header area
+  await page.evaluate('window.scrollTo(0, 200)');
+  await page.waitForTimeout(500);
+}
+
+// ---------------------------------------------------------------------------
+// CSS injection — hide cookie/consent banners via style override
+// ---------------------------------------------------------------------------
+
+/** CSS selectors targeting major cookie consent frameworks and common patterns */
+const COOKIE_HIDE_CSS = `
+  [class*="cookie" i], [id*="cookie" i],
+  [class*="consent" i], [id*="consent" i],
+  [class*="gdpr" i], [id*="gdpr" i],
+  [class*="ccpa" i], [id*="ccpa" i],
+  .onetrust-consent-sdk, #onetrust-banner-sdk, #onetrust-pc-sdk,
+  .cc-window, .cc-banner, .cc-compliance,
+  [class*="CookieConsent"], [class*="cookie-banner"],
+  [class*="cookie-notice"], [class*="privacy-notice"],
+  [role="dialog"][aria-label*="cookie" i],
+  [role="dialog"][aria-label*="consent" i],
+  .cky-consent-container, .cky-modal,
+  #CybotCookiebotDialog, .CybotCookiebotDialogActive,
+  #cookie-law-info-bar, .cli-modal,
+  [data-nosnippet][class*="banner"],
+  .fc-consent-root, .fc-dialog-container
+  { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }
+`.trim();
+
+/**
+ * Inject CSS to proactively hide cookie/consent banners.
+ * Belt-and-suspenders with the click-based dismissCookieConsent().
+ */
+async function injectCookieHideCSS(
+  page: import('playwright-core').Page,
+): Promise<void> {
+  try {
+    await page.addStyleTag({ content: COOKIE_HIDE_CSS });
+  } catch {
+    // Non-fatal — click-based handler will still try
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cookie consent click dismissal
+// ---------------------------------------------------------------------------
 
 async function dismissCookieConsent(
   page: import('playwright-core').Page,
@@ -151,6 +275,7 @@ export async function captureWebsiteScreenshot(
       viewport: { width, height },
       colorScheme: darkMode ? 'dark' : 'light',
       locale: 'en-US',
+      userAgent: REALISTIC_USER_AGENT,
       // Block unnecessary resources to speed up capture
       bypassCSP: true,
     });
@@ -169,8 +294,21 @@ export async function captureWebsiteScreenshot(
     // Wait for additional rendering
     await page.waitForTimeout(waitMs);
 
-    // Try to dismiss cookie consent banners
+    // CSS injection to hide cookie/consent banners (belt-and-suspenders)
+    await injectCookieHideCSS(page);
+
+    // Validate page content (reject Cloudflare, error pages, disambiguation)
+    const validated = await validatePage(page);
+    if (validated === null) {
+      console.log(`Screenshot skipped (bad page): ${url}`);
+      return null;
+    }
+
+    // Try to click-dismiss cookie consent banners (secondary layer)
     await dismissCookieConsent(page);
+
+    // Scroll to main content (past headers/hero banners)
+    await scrollToContent(page);
 
     // Wait for specific selector if provided
     if (waitForSelector) {
