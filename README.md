@@ -1,70 +1,86 @@
 # Nexus-AI
 
-Automated AI video production pipeline that discovers trending tech topics, researches them, writes narration scripts, and renders broadcast-quality videos — comparable to channels like Fireship, ColdFusion, and Two Minute Papers.
+Automated AI video production pipeline that discovers trending tech topics, researches them, writes narration scripts, and renders broadcast-quality videos.
 
-## Features
+## What this repository contains
 
-- **Autonomous topic discovery** from Hacker News, HuggingFace, and arXiv
-- **Multi-agent script generation** with writer, critic, and optimizer stages
-- **AI-powered scene classification** via Gemini (16 scene types)
-- **Visual enrichment pipeline** — AI images, screenshots, stock photos, maps, memes, annotations
-- **Professional rendering** with Remotion (1920x1080, 30fps, h264+aac)
-- **12-layer visual stack** with film grain, particles, transitions, and color grading
-- **Dual storage** — runs locally or on GCP Cloud Run
+Nexus-AI is a pnpm monorepo with 4 apps and 17 packages.
 
-## Quick Start
+### Apps
+- `apps/orchestrator` — HTTP orchestration service (Cloud Run friendly)
+- `apps/render-service` — async render API and job tracking
+- `apps/video-studio` — Remotion composition app
+- `apps/operator-cli` — operator/developer CLI
+
+### Pipeline packages
+- `news-sourcing`, `research`, `script-gen`, `pronunciation`, `tts`, `timestamp-extraction`, `visual-gen`, `thumbnail`, `youtube`, `twitter`, `notifications`
+
+### Shared platform packages
+- `core`, `asset-library`, `audio-mixer`, `broll-engine`, `director-agent`, `config`
+
+## Quick start
 
 ```bash
-# 1. Install
-pnpm install
-
-# 2. Configure (only NEXUS_GEMINI_API_KEY is required)
+pnpm install --frozen-lockfile
 cp .env.local.example .env.local
-
-# 3. Run
 pnpm run pipeline:local "AI is disrupting the SaaS industry"
 ```
 
 Output: `./output/{topic-slug}/video.mp4`
 
-## Architecture
+## Runtime flow (code-accurate)
 
+The orchestrator stage order is:
+1. news-sourcing
+2. research
+3. script-gen
+4. pronunciation
+5. tts
+6. timestamp-extraction
+7. visual-gen (includes render-service integration)
+8. thumbnail
+9. youtube
+10. twitter
+11. notifications
+
+Source of truth: `apps/orchestrator/src/stages.ts`.
+
+## Validation commands (standard gate)
+
+```bash
+pnpm install --frozen-lockfile
+pnpm -r --if-present run build
+pnpm -r --if-present run lint
+pnpm -r --if-present run type-check
+pnpm -r --if-present run check-types
+pnpm run test:ci
 ```
-  Topic Discovery ─► Research ─► Script Gen ─► TTS Audio
-                                                   │
-                    Chapters ◄── Render ◄── Enrichment ◄── Director
+
+### Integration test policy
+
+By default, CI and local baseline test runs skip external-network/cloud integration assertions.
+To include integration tests explicitly:
+
+```bash
+RUN_INTEGRATION_TESTS=true pnpm run test:ci
 ```
 
-**Monorepo**: 4 apps + 17 packages, managed with pnpm workspaces and Turborepo.
+## Security notes
 
-| Layer | Packages |
-|-------|----------|
-| **Apps** | `orchestrator` (cloud), `render-service`, `video-studio` (Remotion), `operator-cli` |
-| **Pipeline** | `news-sourcing`, `research`, `script-gen`, `tts`, `timestamp-extraction` |
-| **Video** | `director-agent`, `visual-gen`, `asset-library`, `audio-mixer`, `broll-engine` |
-| **Platform** | `core` (storage, secrets), `pronunciation`, `thumbnail`, `youtube`, `twitter`, `notifications` |
-
-## Tech Stack
-
-- **Runtime**: Node.js 20+, TypeScript (strict ESM), pnpm 10.27
-- **AI**: Google Gemini (LLM, image gen, TTS, scene classification)
-- **Video**: Remotion 4.x (React-based video rendering)
-- **Build**: Turborepo, Vitest
-- **Cloud**: GCP Cloud Run, Cloud Storage, Firestore (optional)
+- Never commit real credentials or tokens.
+- Use `.env.local` for local secrets and cloud secret management for deployments.
+- Manual trigger and render auth are protected by `NEXUS_SECRET` (production requires it).
+- Run secret scanning: `pnpm run scan:secrets`.
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | System overview, dependency graph, package reference |
-| [Pipeline](docs/PIPELINE.md) | 11-step pipeline flow with inputs/outputs |
-| [Scene Types](docs/SCENE-TYPES.md) | All 16 scene types with visual data shapes |
-| [Visual Layers](docs/VISUAL-LAYERS.md) | 12-layer rendering stack, transitions, colors |
-| [API Keys](docs/API-KEYS.md) | External services, env vars, authentication |
-| [Contributing](docs/CONTRIBUTING.md) | Dev setup, conventions, adding scenes/packages |
-| [Local Mode](docs/LOCAL_MODE.md) | Running without GCP |
-| [Video System Spec](docs/VIDEO_SYSTEM_SPEC.md) | Detailed technical specification |
-| [User Guide](docs/NEXUS-AI-USER-GUIDE.md) | Operator CLI and cloud deployment |
+- [Architecture](docs/ARCHITECTURE.md)
+- [Pipeline](docs/PIPELINE.md)
+- [API Keys](docs/API-KEYS.md)
+- [Contributing](docs/CONTRIBUTING.md)
+- [Local Mode](docs/LOCAL_MODE.md)
+- [System Map](SYSTEM_MAP.md)
+- [Audit Report](AUDIT_REPORT.md)
 
 ## License
 

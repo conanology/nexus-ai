@@ -1,101 +1,41 @@
 # API Keys & External Services
 
-All API keys are stored in `.env.local` (never committed). See `.env.local.example` for a template.
+Store local secrets in `.env.local` only. Do not commit real values.
 
-## Required Services
+## Required core key
 
-### Google AI Studio (Gemini)
+### Gemini
+- Primary env: `NEXUS_GEMINI_API_KEY`
+- Fallback env: `GEMINI_API_KEY`
+- Used by research/script/director/visual/TTS flows
 
-| | |
+## Security/auth variables
+
+| Variable | Used by | Notes |
+|---|---|---|
+| `NEXUS_SECRET` | orchestrator manual/resume trigger + render-service auth | Required in production for protected routes |
+| `RENDER_SERVICE_URL` | visual-gen/orchestrator render calls | Cloud/local render endpoint |
+| `GOOGLE_APPLICATION_CREDENTIALS` | cloud integrations + optional integration tests | Path to service account JSON |
+| `RUN_INTEGRATION_TESTS` | test suite | Set `true` to run network/cloud integration tests |
+
+## Optional service keys
+
+| Variable | Service | Purpose |
+|---|---|---|
+| `PEXELS_API_KEY` | Pexels | Stock image enrichment |
+| `GIPHY_API_KEY` | Giphy | Meme reaction enrichment |
+| `NEXUS_DISCORD_WEBHOOK_URL` | Discord | notifications package |
+
+## Cloud deployment variables
+
+| Variable | Purpose |
 |---|---|
-| **Env var** | `NEXUS_GEMINI_API_KEY` |
-| **Fallback var** | `GEMINI_API_KEY` |
-| **Get a key** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
-| **Free tier** | Yes (rate-limited) |
-| **Used by** | research, script-gen, director-agent, visual-gen (image gen), tts |
+| `NEXUS_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` | GCP project identity |
+| `NEXUS_BUCKET_NAME` | artifact storage bucket |
 
-This single key powers all AI services:
+## Security policy
 
-| Service | Model | Package |
-|---------|-------|---------|
-| LLM (research briefs) | `gemini-3.1-pro-preview` | `@nexus-ai/research` |
-| LLM (script generation) | `gemini-3.1-pro-preview` | `@nexus-ai/script-gen` |
-| Scene classification | `gemini-2.5-flash` | `@nexus-ai/director-agent` |
-| Image generation | `gemini-*` via `@google/generative-ai` | `@nexus-ai/visual-gen` |
-| Text-to-speech | `gemini-2.5-flash-preview-tts` | TTS in `scripts/run-local.ts` |
-| Health checks | `gemini-2.0-flash` | `@nexus-ai/core` |
-
-## Optional Services
-
-### Giphy (Meme GIFs)
-
-| | |
-|---|---|
-| **Env var** | `GIPHY_API_KEY` |
-| **Get a key** | [developers.giphy.com](https://developers.giphy.com/) |
-| **Free tier** | Yes |
-| **Used by** | `@nexus-ai/visual-gen` (meme enricher) |
-| **Fallback** | Meme scenes skipped — no `meme-reaction` scenes inserted |
-| **Notes** | Rating filter: pg-13. Prefers `downsized_medium` format. |
-
-### Pexels (Stock Photos/Videos)
-
-| | |
-|---|---|
-| **Env var** | `PEXELS_API_KEY` |
-| **Get a key** | [pexels.com/api](https://www.pexels.com/api/) |
-| **Free tier** | Yes (200 requests/hour) |
-| **Used by** | `@nexus-ai/visual-gen` (stock enricher) |
-| **Fallback** | Stock enrichment skipped — AI images or gradients used instead |
-| **Notes** | Max 5 stock images per video |
-
-## Cloud-Only Services
-
-These are only needed when deploying to GCP (not required for local mode):
-
-| Env Var | Service | Purpose |
-|---------|---------|---------|
-| `NEXUS_BUCKET_NAME` | Google Cloud Storage | Artifact storage |
-| `NEXUS_PROJECT_ID` | GCP Project | Project identifier |
-| `GOOGLE_APPLICATION_CREDENTIALS` | GCP Service Account | Auth for all GCP services |
-| `GOOGLE_CLOUD_PROJECT` | GCP Project | Alternative project env |
-| `NEXUS_SECRET` | — | Render service auth token |
-| `RENDER_SERVICE_URL` | Cloud Run | Render service endpoint |
-| `NEXUS_DISCORD_WEBHOOK_URL` | Discord | Pipeline notifications |
-
-## No-Auth Services
-
-These external services don't require API keys:
-
-| Service | Used By | Purpose |
-|---------|---------|---------|
-| Hacker News API | `@nexus-ai/news-sourcing` | Topic discovery |
-| HuggingFace API | `@nexus-ai/news-sourcing` | Topic discovery |
-| arXiv API | `@nexus-ai/news-sourcing` | Topic discovery |
-| Clearbit Logo API | `@nexus-ai/visual-gen` | Company logo fetching |
-| Google Favicon API | `@nexus-ai/visual-gen` | Fallback logo fetching |
-
-## Key Resolution Order
-
-Most code checks environment variables in this order:
-
-```typescript
-const apiKey = process.env.NEXUS_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-```
-
-The `getSecret()` function in `@nexus-ai/core` checks:
-1. Environment variable `NEXUS_GEMINI_API_KEY`
-2. GCP Secret Manager (cloud mode only)
-
-## Security
-
-- Never commit `.env.local` or any file containing API keys
-- `.env.local` is in `.gitignore`
-- In cloud mode, keys are stored in GCP Secret Manager
-- The `client_secret*.json` pattern is also gitignored
-
-## Related Documentation
-
-- [Setup](../docs/LOCAL_MODE.md) — Local mode configuration
-- [Pipeline](PIPELINE.md) — Which steps use which services
-- [Architecture](ARCHITECTURE.md) — System overview
+- Never keep live credentials in docs or source files.
+- Keep `client_secret*.json` out of git.
+- Use secret manager in cloud deployments.
+- Run secret checks before push: `pnpm run scan:secrets`.

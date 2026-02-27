@@ -472,6 +472,7 @@ describe('executePipeline - Error Handling', () => {
         ),
         markComplete: vi.fn(),
         markFailed: vi.fn(),
+        markSkipped: vi.fn(),
         updateQualityContext: vi.fn(),
         updateRetryAttempts: vi.fn(),
         persistStageOutput: vi.fn(),

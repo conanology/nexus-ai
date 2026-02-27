@@ -49,8 +49,8 @@ describe('ArxivRSSSource', () => {
         await source.fetch('test-pipeline');
 
         expect(global.fetch).toHaveBeenCalledTimes(2);
-        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('cs.AI'));
-        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('cs.LG'));
+        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('cs.AI'), expect.any(Object));
+        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('cs.LG'), expect.any(Object));
     });
 
     it('should parse and return news items from XML', async () => {

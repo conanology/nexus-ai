@@ -1,0 +1,11 @@
+# Default ownership
+* @conanology
+
+# Platform and infra
+/infrastructure/ @conanology
+/cloudbuild*.yaml @conanology
+
+# Core pipeline
+/apps/orchestrator/ @conanology
+/apps/render-service/ @conanology
+/packages/core/ @conanology

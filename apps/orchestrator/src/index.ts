@@ -7,6 +7,29 @@ import { handleManualTrigger, handleResumeTrigger } from './handlers/manual.js';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
+function manualAuthMiddleware(req: express.Request, res: express.Response, next: express.NextFunction): void {
+  const secret = process.env.NEXUS_SECRET;
+  const provided = req.headers['x-nexus-secret'];
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      logger.error({ path: req.path }, 'NEXUS_SECRET missing in production for manual trigger endpoint');
+      res.status(503).json({ error: 'Manual trigger auth not configured' });
+      return;
+    }
+    next();
+    return;
+  }
+
+  if (provided !== secret) {
+    logger.warn({ path: req.path, ip: req.ip }, 'Unauthorized manual trigger attempt');
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  next();
+}
+
 /**
  * Creates and configures the Express HTTP server
  */
@@ -29,12 +52,12 @@ export function createServer(): express.Application {
   // Routes
   app.get('/health', handleHealthCheck);
   app.post('/trigger/scheduled', handleScheduledTrigger);
-  app.post('/trigger/manual', handleManualTrigger);
-  app.post('/trigger/resume', handleResumeTrigger);
+  app.post('/trigger/manual', manualAuthMiddleware, handleManualTrigger);
+  app.post('/trigger/resume', manualAuthMiddleware, handleResumeTrigger);
 
   // Backwards-compatible route: /trigger -> /trigger/manual
   // This supports older CLI versions or direct API calls
-  app.post('/trigger', (req, res) => {
+  app.post('/trigger', manualAuthMiddleware, (req, res) => {
     logger.info({
       deprecation: 'Using /trigger is deprecated, use /trigger/manual instead',
     }, 'Deprecated trigger endpoint used');

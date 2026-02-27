@@ -15,11 +15,18 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint . --ext .ts",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "check-types": "pnpm run type-check"
   },
-  "keywords": ["nexus-ai", "broll", "b-roll", "code-renderer", "browser-demo"],
+  "keywords": [
+    "nexus-ai",
+    "broll",
+    "b-roll",
+    "code-renderer",
+    "browser-demo"
+  ],
   "author": "Cryptology",
   "license": "MIT",
   "dependencies": {

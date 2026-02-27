@@ -15,15 +15,16 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint . --ext .ts",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "check-types": "pnpm run type-check"
   },
   "author": "Cryptology",
   "license": "MIT",
   "dependencies": {
     "@nexus-ai/core": "workspace:*",
-    "fast-xml-parser": "^5.3.3"
+    "fast-xml-parser": "^5.3.8"
   },
   "devDependencies": {
     "typescript": "^5.3.0",

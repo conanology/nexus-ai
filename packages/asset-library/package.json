@@ -15,9 +15,10 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint . --ext .ts",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "check-types": "pnpm run type-check"
   },
   "author": "Cryptology",
   "license": "MIT",

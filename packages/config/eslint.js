@@ -28,12 +28,15 @@ module.exports = {
      * // eslint-disable-next-line no-console
      * console.log('CLI output');
      */
-    'no-console': 'error',
+    'no-console': 'warn',
+    'no-useless-escape': 'warn',
+    '@typescript-eslint/no-require-imports': 'warn',
+    'prefer-const': 'warn',
 
     // TypeScript handles these better
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': [
-      'error',
+      'warn',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
 

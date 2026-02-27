@@ -16,6 +16,7 @@ import {
 
 // Generous timeout for network requests
 const NETWORK_TIMEOUT = 30_000;
+const runIntegration = process.env.RUN_INTEGRATION_TESTS === 'true';
 
 describe('getLogoDomain', () => {
   it('returns domain for known company (lowercase)', () => {
@@ -76,7 +77,7 @@ describe('logoBufferToDataUri', () => {
   });
 });
 
-describe('fetchLogo (network)', () => {
+describe.skipIf(!runIntegration)('fetchLogo (network)', () => {
   it('fetches a logo for google.com', async () => {
     const buffer = await fetchLogo('google.com');
     expect(buffer).not.toBeNull();
@@ -89,7 +90,7 @@ describe('fetchLogo (network)', () => {
   }, NETWORK_TIMEOUT);
 });
 
-describe('fetchLogosForScene (network)', () => {
+describe.skipIf(!runIntegration)('fetchLogosForScene (network)', () => {
   it('fetches logos for multiple companies including unknown ones', async () => {
     const results = await fetchLogosForScene(['Google', 'OpenAI', 'NonexistentCompany123']);
 

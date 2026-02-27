@@ -389,7 +389,7 @@ describe('Audio File Format Validation', () => {
   });
 });
 
-describe.skipIf(!process.env.GOOGLE_APPLICATION_CREDENTIALS)(
+describe.skipIf(process.env.RUN_INTEGRATION_TESTS !== 'true' || !process.env.GOOGLE_APPLICATION_CREDENTIALS)(
   'STT Accuracy Validation (Integration - Real STT)',
   () => {
     // This test requires Google Cloud credentials and will call real STT API
@@ -401,6 +401,7 @@ describe.skipIf(!process.env.GOOGLE_APPLICATION_CREDENTIALS)(
 
     it('should achieve >= 95% accuracy with real STT for test-audio-01', async () => {
       // Dynamic import to avoid mock interference - these are real calls
+      vi.doUnmock('@google-cloud/speech');
       const { SpeechClient } = await import('@google-cloud/speech');
       const client = new SpeechClient();
 

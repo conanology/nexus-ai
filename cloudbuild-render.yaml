@@ -1,4 +1,12 @@
 steps:
+  # Fail fast on secret leaks before build/push.
+  - name: 'zricethezav/gitleaks:8.24.2'
+    args:
+      - 'detect'
+      - '--source=.'
+      - '--redact'
+      - '--exit-code=1'
+
   # Build Docker image for render-service
   - name: 'gcr.io/cloud-builders/docker'
     args:

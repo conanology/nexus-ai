@@ -4,7 +4,7 @@ import { RenderService } from './render.js';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 
-const app = express();
+const app: express.Express = express();
 app.use(express.json());
 
 // Startup validation: check for GEMINI_API_KEY (required for V2 Director Agent)
@@ -14,6 +14,10 @@ if (!geminiKeyAvailable) {
     'GEMINI_API_KEY not set — V2 Director Agent unavailable, falling back to legacy SceneMapper mode. ' +
     'Set GEMINI_API_KEY or NEXUS_GEMINI_API_KEY to enable V2 Director rendering.'
   );
+}
+
+if (process.env.NODE_ENV === 'production' && !process.env.NEXUS_SECRET) {
+  throw new Error('NEXUS_SECRET is required in production for render-service authentication');
 }
 
 const renderService = new RenderService();

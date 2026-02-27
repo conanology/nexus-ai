@@ -65,3 +65,6 @@ Desktop.ini
 *.swp
 *.swo
 *~
+
+# OAuth desktop/web client exports
+client_secret*.json

@@ -1,4 +1,11 @@
 steps:
+  - name: 'zricethezav/gitleaks:8.24.2'
+    args:
+      - 'detect'
+      - '--source=.'
+      - '--redact'
+      - '--exit-code=1'
+
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'

@@ -10,11 +10,12 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
+    "scan:secrets": "bash scripts/scan-secrets.sh",
     "test": "vitest run --workspace vitest.workspace.ts",
     "test:watch": "vitest --workspace vitest.workspace.ts",
     "test:ci": "vitest run --workspace vitest.workspace.ts --reporter=verbose",
     "test:coverage": "vitest run --workspace vitest.workspace.ts --coverage",
-    "check-types": "turbo check-types",
+    "check-types": "turbo run type-check",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
@@ -31,13 +32,25 @@
     "tsx": "^4.21.0",
     "turbo": "^2.3.5",
     "typescript": "^5.3.0",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^1.0.0"
   },
   "packageManager": "pnpm@10.27.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3"
-    ]
+    ],
+    "overrides": {
+      "fast-xml-parser@<4.5.4": "4.5.4",
+      "fast-xml-parser@>=5.0.0 <5.3.8": "5.3.8",
+      "axios@>=1.0.0 <=1.13.4": "1.13.5",
+      "ajv@<6.14.0": "6.14.0",
+      "ajv@>=7.0.0-alpha.0 <8.18.0": "8.18.0",
+      "webpack@>=5.49.0 <5.104.1": "5.104.1",
+      "qs@>=6.7.0 <=6.14.1": "6.14.2",
+      "remotion": "4.0.421",
+      "@remotion/*": "4.0.421"
+    }
   },
   "engines": {
     "node": ">=20.0.0"

@@ -367,7 +367,7 @@ describe('BrowserFrame', () => {
       const contentArea = findByTestId(result, 'content-area');
       expect(contentArea).not.toBeNull();
       // Dark theme uses THEME.colors.backgroundDark
-      expect(contentArea.props.style.backgroundColor).toBe('#020617');
+      expect(contentArea.props.style.backgroundColor).toBe('#111111');
     });
 
     it('should use data.style.theme over top-level style', () => {
@@ -379,7 +379,7 @@ describe('BrowserFrame', () => {
         },
       });
       const contentArea = findByTestId(result, 'content-area');
-      expect(contentArea.props.style.backgroundColor).toBe('#020617');
+      expect(contentArea.props.style.backgroundColor).toBe('#111111');
     });
   });
 

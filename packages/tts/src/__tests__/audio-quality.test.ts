@@ -19,7 +19,7 @@ describe('Audio Quality Validation', () => {
       const buffer = Buffer.alloc(1000);
       for (let i = 0; i < buffer.length; i += 2) {
         // Write moderate amplitude samples (-10000 to 10000)
-        buffer.writeInt16LE(Math.floor(Math.random() * 20000 - 10000), i);
+        buffer.writeInt16LE(i % 4 === 0 ? 12000 : -12000, i);
       }
 
       const result = detectSilence(buffer, 44100);
@@ -48,7 +48,7 @@ describe('Audio Quality Validation', () => {
       // Create a buffer with normal audio
       const buffer = Buffer.alloc(1000);
       for (let i = 0; i < buffer.length; i += 2) {
-        buffer.writeInt16LE(Math.floor(Math.random() * 20000 - 10000), i);
+        buffer.writeInt16LE(i % 4 === 0 ? 12000 : -12000, i);
       }
 
       const result = detectClipping(buffer);
@@ -136,7 +136,7 @@ describe('Audio Quality Validation', () => {
       // Create a buffer with good quality audio
       const buffer = Buffer.alloc(1000);
       for (let i = 0; i < buffer.length; i += 2) {
-        buffer.writeInt16LE(Math.floor(Math.random() * 20000 - 10000), i);
+        buffer.writeInt16LE(i % 4 === 0 ? 12000 : -12000, i);
       }
 
       // For 140 words at 140 words/min, expected duration is 60 seconds

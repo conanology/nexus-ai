@@ -1,6 +1,22 @@
 import { defineConfig } from 'vitest/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+
+const workspaceRoot = fileURLToPath(new URL('../../', import.meta.url));
+const nexusAlias = [
+  {
+    find: /^@nexus-ai\/([^/]+)$/,
+    replacement: `${workspaceRoot}packages/$1/src/index.ts`,
+  },
+  {
+    find: /^@nexus-ai\/([^/]+)\/(.*)$/,
+    replacement: `${workspaceRoot}packages/$1/src/$2`,
+  },
+];
 
 export default defineConfig({
+  resolve: { alias: nexusAlias },
   test: {
     globals: true,
     environment: 'node',
@@ -15,14 +31,6 @@ export default defineConfig({
         lines: 60,
         statements: 60,
       },
-    },
-  },
-  resolve: {
-    alias: {
-      '@nexus-ai/core': new URL('../../packages/core/src/index.ts', import.meta.url).pathname,
-      '@nexus-ai/broll-engine': new URL('../../packages/broll-engine/src/index.ts', import.meta.url).pathname,
-      '@nexus-ai/script-gen': new URL('../../packages/script-gen/src/index.ts', import.meta.url).pathname,
-      '@nexus-ai/visual-gen': new URL('../../packages/visual-gen/src/index.ts', import.meta.url).pathname,
     },
   },
 });

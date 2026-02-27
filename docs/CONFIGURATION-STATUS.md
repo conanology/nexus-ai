@@ -113,45 +113,8 @@ All secrets are stored in GCP Secret Manager.
 
 ### Secret Values Reference
 
-#### Gemini API Key
-```
-Secret: nexus-gemini-api-key
-Value: AIzaSyCMCnsYkdE6lR2ubA7IcG2uqtIUxBDi1EA
-```
-
-#### YouTube OAuth (JSON)
-```json
-{
-  "client_id": "408744545530-t1002u4eispl44eisqcbi87lup7vr776.apps.googleusercontent.com",
-  "client_secret": "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",
-  "refresh_token": "1//04cFgQuy_9gGXCgYIARAAGAQSNwF-L9IrcmsqSr2JoIZ9-P4rngNzzczW2SX-Rs5QfZ1KoV32NteDJb5gn7MEUaLe8G-VOgfFbg0",
-  "access_token": "ya29.a0AUMWg_JVOkRd240...",
-  "token_type": "Bearer",
-  "expiry_date": 1737590443000
-}
-```
-
-#### GitHub Token
-```
-Secret: nexus-github-token
-Value: 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
-```
-
-#### Discord Webhook
-```
-Secret: nexus-discord-webhook
-Value: https://discordapp.com/api/webhooks/1463961888047108364/ZW3ruwlQt--ak8gveCzokIAFux1WL3ppwkTrFQzFof9p0XYSKvwGRUU9ISCpgjzR3Wfr
-```
-
-#### Twitter OAuth (JSON)
-```json
-{
-  "appKey": "BUO53C0qiCTiBDASOHL4NglWD",
-  "appSecret": "dOA4naZTGWIAAQvE3gukSNPIE6k0jCzjTXgvZXQVfuwRdM2z3N",
-  "accessToken": "2013015186655866880-qMh0rvwwwRVOatPxL5A4V8IM2K2OB9",
-  "accessSecret": "LrH7q7ikVBt2XkTkN3sqI8RMZ9uetKEdKqvhfhCXgPDuw"
-}
-```
+> ⚠️ Redacted. Do not store live credentials/tokens in repository documentation.
+> Use Secret Manager references and rotation records only.
 
 ---
 
