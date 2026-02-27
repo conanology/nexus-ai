@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NexusError } from '@nexus-ai/core';
-import type { SpeechSegment, DuckingConfig } from '../types.js';
+import type { SpeechSegment, DuckingConfig, SilenceDrop } from '../types.js';
 
 // Mock child_process and ffmpeg-static before importing ducking module
 vi.mock('child_process', () => ({
@@ -193,6 +193,143 @@ describe('generateDuckingCurve', () => {
     // Release end would be 10.2, should clamp to 10
     result.forEach((p) => expect(p.timeSec).toBeLessThanOrEqual(10));
     expect(result[result.length - 1].timeSec).toBe(10);
+  });
+});
+
+describe('generateDuckingCurve with silenceDrops', () => {
+  const config: DuckingConfig = {
+    speechLevel: -20,
+    silenceLevel: -12,
+    attackMs: 50,
+    releaseMs: 300,
+  };
+
+  const SILENCE_DROP_DB = -96;
+
+  it('inserts silence drop gain points into the curve', () => {
+    const segments: SpeechSegment[] = [{ startSec: 1, endSec: 3 }];
+    const drops: SilenceDrop[] = [
+      { timeSec: 5, durationSec: 1, fadeBackMs: 300 },
+    ];
+    const result = generateDuckingCurve(segments, config, 10, drops);
+
+    // Should contain a point at t=5 with -96 dB (hard cut)
+    const dropStart = result.find(
+      (p) => Math.abs(p.timeSec - 5) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(dropStart).toBeDefined();
+
+    // Should contain a point at t=6 (hold end) still at -96 dB
+    const holdEnd = result.find(
+      (p) => Math.abs(p.timeSec - 6) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(holdEnd).toBeDefined();
+
+    // Should contain a fade-back point at t=6.3 at silenceLevel
+    const fadeBack = result.find(
+      (p) => Math.abs(p.timeSec - 6.3) < 0.001 && p.gainDb === config.silenceLevel
+    );
+    expect(fadeBack).toBeDefined();
+  });
+
+  it('clamps silence drop at time 0 — no negative times', () => {
+    const segments: SpeechSegment[] = [];
+    const drops: SilenceDrop[] = [
+      { timeSec: -0.5, durationSec: 1, fadeBackMs: 300 },
+    ];
+    const result = generateDuckingCurve(segments, config, 10, drops);
+
+    // All times must be >= 0
+    result.forEach((p) => expect(p.timeSec).toBeGreaterThanOrEqual(0));
+
+    // Drop start clamped to 0 — should have -96 dB at t=0
+    const dropAtZero = result.find(
+      (p) => Math.abs(p.timeSec) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(dropAtZero).toBeDefined();
+
+    // Hold end at t=0.5 (max(0, -0.5) + 1.0 = 1.0, but clamped start is 0 so holdEnd = 0 + 1.0 = 1.0)
+    const holdEnd = result.find(
+      (p) => Math.abs(p.timeSec - 1.0) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(holdEnd).toBeDefined();
+  });
+
+  it('applies multiple silence drops', () => {
+    const segments: SpeechSegment[] = [{ startSec: 1, endSec: 2 }];
+    const drops: SilenceDrop[] = [
+      { timeSec: 4, durationSec: 1, fadeBackMs: 300 },
+      { timeSec: 7, durationSec: 1, fadeBackMs: 300 },
+    ];
+    const result = generateDuckingCurve(segments, config, 10, drops);
+
+    // First drop: hard cut at t=4
+    const drop1Start = result.find(
+      (p) => Math.abs(p.timeSec - 4) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(drop1Start).toBeDefined();
+
+    // First drop: hold end at t=5
+    const drop1HoldEnd = result.find(
+      (p) => Math.abs(p.timeSec - 5) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(drop1HoldEnd).toBeDefined();
+
+    // First drop: fade back at t=5.3
+    const drop1Fade = result.find(
+      (p) => Math.abs(p.timeSec - 5.3) < 0.001 && p.gainDb === config.silenceLevel
+    );
+    expect(drop1Fade).toBeDefined();
+
+    // Second drop: hard cut at t=7
+    const drop2Start = result.find(
+      (p) => Math.abs(p.timeSec - 7) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(drop2Start).toBeDefined();
+
+    // Second drop: hold end at t=8
+    const drop2HoldEnd = result.find(
+      (p) => Math.abs(p.timeSec - 8) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(drop2HoldEnd).toBeDefined();
+
+    // Second drop: fade back at t=8.3
+    const drop2Fade = result.find(
+      (p) => Math.abs(p.timeSec - 8.3) < 0.001 && p.gainDb === config.silenceLevel
+    );
+    expect(drop2Fade).toBeDefined();
+  });
+
+  it('respects fadeBack duration in the curve', () => {
+    const segments: SpeechSegment[] = [];
+    const drops: SilenceDrop[] = [
+      { timeSec: 3, durationSec: 1, fadeBackMs: 500 },
+    ];
+    const result = generateDuckingCurve(segments, config, 10, drops);
+
+    // Hold end at t=4 still -96 dB
+    const holdEnd = result.find(
+      (p) => Math.abs(p.timeSec - 4) < 0.001 && p.gainDb === SILENCE_DROP_DB
+    );
+    expect(holdEnd).toBeDefined();
+
+    // Fade back at t=4.5 (4 + 500/1000) at silenceLevel
+    const fadeBack = result.find(
+      (p) => Math.abs(p.timeSec - 4.5) < 0.001 && p.gainDb === config.silenceLevel
+    );
+    expect(fadeBack).toBeDefined();
+  });
+
+  it('produces same result as no silenceDrops when array is empty', () => {
+    const segments: SpeechSegment[] = [
+      { startSec: 2, endSec: 4 },
+      { startSec: 6, endSec: 8 },
+    ];
+
+    const withoutDrops = generateDuckingCurve(segments, config, 10);
+    const withEmptyDrops = generateDuckingCurve(segments, config, 10, []);
+
+    expect(withEmptyDrops).toEqual(withoutDrops);
   });
 });
 

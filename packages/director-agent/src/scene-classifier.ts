@@ -27,6 +27,7 @@ import type {
   SceneType,
   ScenePacing,
   LLMSceneEntry,
+  VisualLayer,
 } from './types.js';
 import { DIRECTOR_SYSTEM_PROMPT } from './prompts/director-system.js';
 import { buildDirectorUserPrompt } from './prompts/director-user.js';
@@ -124,6 +125,15 @@ function defaultVisualData(sceneType: SceneType, segmentText: string): Record<st
       return { gifSrc: '', reactionType: 'shocked', description: 'Reaction meme' };
     case 'map-animation':
       return { mapType: 'world', highlightedCountries: [], animationStyle: 'simultaneous' };
+    case 'scrolling-capture':
+      return { fullPageImageUrl: '', scrollSpeedPxPerSec: 500, label: segmentText.slice(0, 60) };
+    case 'dynamic-chart':
+      return {
+        chartType: 'bar',
+        title: segmentText.slice(0, 60),
+        data: [{ label: 'A', value: 100 }, { label: 'B', value: 200 }],
+        animationStyle: 'sequential',
+      };
     default:
       return { backgroundVariant: 'gradient' };
   }
@@ -155,7 +165,14 @@ function validateEntry(
       ? entry.pacing
       : DEFAULT_SCENE_PACING[sceneType];
 
-  return { ...segment, sceneType, visualData, pacing };
+  return {
+    ...segment,
+    sceneType,
+    visualData,
+    pacing,
+    ...(entry.cssSelector ? { cssSelector: entry.cssSelector } : {}),
+    ...(entry.highlightText ? { highlightText: entry.highlightText } : {}),
+  };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -402,7 +419,35 @@ function classifyByContent(segment: ScriptSegment): ClassifiedSegment {
     };
   }
 
-  // 4. Comparison language
+  // 4a. Chart/benchmark data — multiple numeric values with comparison context
+  if (
+    /\bbenchmark\b|\blatency\b|\bthroughput\b|\bfps\b/i.test(text) &&
+    (text.match(/\b\d+(\.\d+)?\s*(%|ms|fps|GB|MB|s|x)\b/gi)?.length ?? 0) >= 2
+  ) {
+    const dataPoints: Array<{ label: string; value: number }> = [];
+    const dpRegex = /([A-Z][a-zA-Z0-9.+-]*(?:\s+[A-Z0-9][a-zA-Z0-9.+-]*){0,2})\s*[:\-–—]?\s*([\d,.]+)\s*(%|ms|fps|GB|MB|s|x)?/g;
+    let m: RegExpExecArray | null;
+    while ((m = dpRegex.exec(text)) !== null) {
+      dataPoints.push({ label: m[1].trim(), value: parseFloat(m[2].replace(/,/g, '')) });
+    }
+    if (dataPoints.length >= 2) {
+      const unitMatch = text.match(/\b(ms|fps|GB\/s|MB\/s|%|x)\b/i);
+      return {
+        ...segment,
+        sceneType: 'dynamic-chart',
+        visualData: {
+          chartType: 'bar' as const,
+          title: text.slice(0, 60),
+          data: dataPoints.slice(0, 12),
+          ...(unitMatch ? { unit: unitMatch[1] } : {}),
+          animationStyle: 'sequential' as const,
+        },
+        pacing: 'dense',
+      };
+    }
+  }
+
+  // 4b. Comparison language
   if (
     /\bvs\.?\b|\bversus\b|\bcompared\s+to\b|\bbefore\s+and\s+after\b|\bon\s+the\s+other\s+hand\b/i.test(
       text,
@@ -761,6 +806,92 @@ export async function classifyScenes(
   }
 
   return allClassified;
+}
+
+// =============================================================================
+// Visual Layer Assignment (T029)
+// =============================================================================
+
+/** Content-aware layer hints per scene type */
+const LAYER_HINTS: Partial<Record<SceneType, VisualLayer>> = {
+  'code-block': 'showcase-scroll',
+  diagram: 'showcase-scroll',
+  'logo-showcase': 'evidence-screenshot',
+  'stat-callout': 'abstract-concept',
+  'full-screen-text': 'abstract-concept',
+  'text-emphasis': 'abstract-concept',
+  quote: 'abstract-concept',
+  'meme-reaction': 'abstract-concept',
+  'map-animation': 'abstract-concept',
+  'dynamic-chart': 'showcase-scroll',
+};
+
+const VISUAL_LAYERS: VisualLayer[] = ['abstract-concept', 'evidence-screenshot', 'showcase-scroll'];
+
+/**
+ * Assigns a `visualLayer` to each classified segment using round-robin
+ * with content-aware overrides and max-3-consecutive enforcement.
+ *
+ * Rules:
+ * 1. Scenes with company names / URLs → evidence-screenshot
+ * 2. Scenes with code/diagrams → showcase-scroll
+ * 3. Abstract/stat/opinion scenes → abstract-concept
+ * 4. Otherwise round-robin from the VISUAL_LAYERS cycle
+ * 5. Max 3 consecutive same layer — forced rotation on 4th
+ */
+export function assignVisualLayers(segments: ClassifiedSegment[]): ClassifiedSegment[] {
+  let roundRobinIdx = 0;
+  let consecutiveCount = 0;
+  let lastLayer: VisualLayer | null = null;
+
+  for (const seg of segments) {
+    // Skip intro/outro — they don't get visual layers
+    if (seg.sceneType === 'intro' || seg.sceneType === 'outro') {
+      continue;
+    }
+
+    // Content-aware detection
+    let layer: VisualLayer;
+
+    // Check scene type hints first
+    const hint = LAYER_HINTS[seg.sceneType];
+    if (hint) {
+      layer = hint;
+    } else if (hasCompanyOrUrl(seg.text)) {
+      layer = 'evidence-screenshot';
+    } else {
+      // Round-robin
+      layer = VISUAL_LAYERS[roundRobinIdx % VISUAL_LAYERS.length];
+      roundRobinIdx++;
+    }
+
+    // Max 3 consecutive enforcement
+    if (layer === lastLayer) {
+      consecutiveCount++;
+      if (consecutiveCount >= 3) {
+        // Force rotation to next different layer
+        const currentIdx = VISUAL_LAYERS.indexOf(layer);
+        layer = VISUAL_LAYERS[(currentIdx + 1) % VISUAL_LAYERS.length];
+        consecutiveCount = 1;
+      }
+    } else {
+      consecutiveCount = 1;
+    }
+
+    lastLayer = layer;
+    seg.visualLayer = layer;
+  }
+
+  return segments;
+}
+
+/** Check if text contains company names or URLs */
+function hasCompanyOrUrl(text: string): boolean {
+  if (/https?:\/\//.test(text)) return true;
+  for (const { pattern } of COMPANY_PATTERNS) {
+    if (pattern.test(text)) return true;
+  }
+  return false;
 }
 
 // =============================================================================

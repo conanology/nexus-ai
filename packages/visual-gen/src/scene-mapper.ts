@@ -65,7 +65,7 @@ export class SceneMapper {
   private llmProvider: GeminiLLMProvider;
 
   constructor() {
-    this.llmProvider = new GeminiLLMProvider('gemini-3-pro-preview');
+    this.llmProvider = new GeminiLLMProvider('gemini-3.1-pro-preview');
   }
 
   /**

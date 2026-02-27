@@ -25,10 +25,11 @@ const MAX_AMPLITUDE = 32767; // for 16-bit PCM
 /** Expected words per minute for speech */
 const WORDS_PER_MINUTE = 140;
 
-/** PCM data extracted from a WAV buffer along with its channel count */
+/** PCM data extracted from a WAV buffer along with its channel count and sample rate */
 interface ExtractedPCM {
   pcmData: Buffer;
   numChannels: number;
+  sampleRate: number;
 }
 
 /** Duration tolerance (±20%) */
@@ -344,10 +345,11 @@ export function stitchAudio(
   const extracted = sorted.map((segment) => extractPCMData(segment.audioBuffer));
   const pcmBuffers = extracted.map((e) => e.pcmData);
 
-  // Determine channel count from first segment (TTS providers return mono)
+  // Determine channel count and sample rate from first segment
   const numChannels = extracted[0]?.numChannels ?? 1;
+  const sampleRate = extracted[0]?.sampleRate ?? 44100;
 
-  // Validate all segments have the same channel count
+  // Validate all segments have the same channel count and sample rate
   for (let i = 1; i < extracted.length; i++) {
     if (extracted[i].numChannels !== numChannels) {
       logger.warn({
@@ -356,13 +358,19 @@ export function stitchAudio(
         actualChannels: extracted[i].numChannels,
       }, 'Channel count mismatch between segments, using first segment channel count');
     }
+    if (extracted[i].sampleRate !== sampleRate) {
+      logger.warn({
+        segmentIndex: i,
+        expectedSampleRate: sampleRate,
+        actualSampleRate: extracted[i].sampleRate,
+      }, 'Sample rate mismatch between segments, using first segment sample rate');
+    }
   }
 
   // Normalize audio levels across all segments
   const normalized = normalizeAudioLevels(pcmBuffers);
 
-  // Generate silence padding with matching channel count
-  const sampleRate = 44100;
+  // Generate silence padding with matching channel count and sample rate
   const silenceBuffer = generateSilence(silenceDurationMs, sampleRate, numChannels);
 
   // Concatenate segments with silence padding
@@ -406,19 +414,19 @@ function extractPCMData(wavBuffer: Buffer): ExtractedPCM {
     logger.warn({
       bufferSize: wavBuffer.length,
     }, 'WAV buffer too small, returning as-is (assuming mono)');
-    return { pcmData: wavBuffer, numChannels: 1 };
+    return { pcmData: wavBuffer, numChannels: 1, sampleRate: 44100 };
   }
 
   // Verify RIFF header
   if (wavBuffer.toString('utf8', 0, 4) !== 'RIFF') {
-    logger.warn('Invalid WAV header: missing RIFF, returning as-is (assuming mono)');
-    return { pcmData: wavBuffer, numChannels: 1 };
+    logger.warn('Invalid WAV header: missing RIFF, returning as-is (assuming mono, 44100 Hz)');
+    return { pcmData: wavBuffer, numChannels: 1, sampleRate: 44100 };
   }
 
   // Verify WAVE format
   if (wavBuffer.toString('utf8', 8, 12) !== 'WAVE') {
-    logger.warn('Invalid WAV header: missing WAVE, returning as-is (assuming mono)');
-    return { pcmData: wavBuffer, numChannels: 1 };
+    logger.warn('Invalid WAV header: missing WAVE, returning as-is (assuming mono, 44100 Hz)');
+    return { pcmData: wavBuffer, numChannels: 1, sampleRate: 44100 };
   }
 
   try {
@@ -427,10 +435,11 @@ function extractPCMData(wavBuffer: Buffer): ExtractedPCM {
     return {
       pcmData: wavBuffer.subarray(wavInfo.dataOffset, end),
       numChannels: wavInfo.numChannels,
+      sampleRate: wavInfo.sampleRate,
     };
   } catch (error) {
-    logger.warn({ error }, 'Failed to parse WAV header, falling back to fixed offset (assuming mono)');
-    return { pcmData: wavBuffer.subarray(44), numChannels: 1 };
+    logger.warn({ error }, 'Failed to parse WAV header, falling back to fixed offset (assuming mono, 44100 Hz)');
+    return { pcmData: wavBuffer.subarray(44), numChannels: 1, sampleRate: 44100 };
   }
 }
 

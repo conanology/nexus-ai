@@ -18,7 +18,17 @@ ${researchBrief}
 SCRIPT REQUIREMENTS:
 1. **Word Count**: Write between ${targetWordCount.min} and ${targetWordCount.max} words (strict requirement)
 2. **Tone**: Professional, engaging, and educational - appropriate for a tech-savvy audience
-3. **Structure**: Clear introduction, main content sections, and conclusion
+3. **Three-Act Structure** (CRITICAL for YouTube retention):
+   - **ACT 1 — HOOK (0-15 seconds, ~40 words)**: Open with a PATTERN INTERRUPT. This MUST be one of:
+     a) A surprising statistic ("90% of developers don't know this about...")
+     b) A bold claim or hot take ("This changes everything about how we...")
+     c) A curiosity-gap question ("What if I told you the biggest AI lab just...")
+     The first paragraph MUST create an irresistible reason to keep watching.
+   - **ACT 2 — CONTEXT (15-45 seconds, ~80 words)**: Establish the what/why-now/who. Answer: What is this about? Why should viewers care RIGHT NOW? Who is affected?
+   - **ACT 3 — BODY with OPEN LOOPS**: The remaining content must include:
+     * Minimum 2 OPEN LOOPS before the midpoint — pose questions or tease information that won't be resolved until later ("We'll get to why this matters in a moment...")
+     * Each open loop MUST be resolved later in the script
+     * Create curiosity gaps between sections to prevent drop-off
 4. **Visual Cues**: Insert [VISUAL: description] tags every 30-45 seconds of reading time (roughly every 100-150 words)
    - Example: [VISUAL: Animated diagram showing neural network architecture]
    - Example: [VISUAL: Code snippet highlighting the key algorithm]
@@ -28,7 +38,7 @@ SCRIPT REQUIREMENTS:
    - Example: [PRONOUNCE: PyTorch = "pie-torch"]
    - Example: [PRONOUNCE: Llama = "lah-mah"]
 6. **Flow**: Ensure smooth transitions between sections
-7. **Engagement**: Hook the audience in the first 15 seconds
+7. **Engagement**: Every 60-90 seconds, re-engage with a micro-hook (question, surprising fact, or callback to an open loop)
 
 OUTPUT FORMAT:
 Write the complete script in markdown format with:
@@ -55,13 +65,21 @@ ${writerDraft}
 TARGET WORD COUNT: ${targetWordCount.min}-${targetWordCount.max} words
 
 REVIEW CRITERIA:
-1. **Flow and Pacing**: Does the script flow naturally? Are transitions smooth?
-2. **Accuracy**: Are technical claims accurate and well-explained?
-3. **Engagement**: Will this hold the audience's attention? Is the hook strong?
-4. **Visual Cues**: Are [VISUAL: ...] tags appropriately placed (every 30-45 seconds)?
-5. **Pronunciation Hints**: Are all technical terms properly flagged with [PRONOUNCE: ...]?
-6. **Word Count**: Is the script within the ${targetWordCount.min}-${targetWordCount.max} word range?
-7. **Clarity**: Is the content accessible to the target audience?
+1. **Hook Evaluation** (CRITICAL):
+   - Is the first paragraph (0-15 seconds) a pattern interrupt? (question, surprising statistic, or bold claim)
+   - Does it create a curiosity gap that compels continued watching?
+   - Would YOU click away after reading the first paragraph? If yes, the hook fails.
+2. **Open Loop Verification**:
+   - Are there at least 2 unresolved questions/teases before the midpoint of the script?
+   - Is each open loop explicitly resolved later in the script?
+   - Do the open loops create genuine curiosity (not artificial cliffhangers)?
+3. **Flow and Pacing**: Does the script flow naturally? Are transitions smooth?
+4. **Accuracy**: Are technical claims accurate and well-explained?
+5. **Engagement**: Does the script re-engage every 60-90 seconds with micro-hooks?
+6. **Visual Cues**: Are [VISUAL: ...] tags appropriately placed (every 30-45 seconds)?
+7. **Pronunciation Hints**: Are all technical terms properly flagged with [PRONOUNCE: ...]?
+8. **Word Count**: Is the script within the ${targetWordCount.min}-${targetWordCount.max} word range?
+9. **Clarity**: Is the content accessible to the target audience?
 
 OUTPUT FORMAT:
 Provide your response in two sections:
@@ -97,6 +115,8 @@ OPTIMIZATION FOCUS:
 3. **Segment Breaks**: Each paragraph represents a natural video segment
 4. **Word Count**: Ensure final narration is within ${targetWordCount.min}-${targetWordCount.max} words
 5. **Engagement**: Maximize audience retention throughout
+6. **Hook Segment**: The FIRST segment MUST be tagged with \`"type": "hook"\` in the direction document. This segment should be a pattern interrupt (question, statistic, or bold claim) and must be 40 words or fewer.
+7. **Open Loops**: Verify at least 2 open loops exist before the midpoint and are resolved later
 
 ## OUTPUT FORMAT
 
@@ -183,6 +203,95 @@ Generate the dual output now in ${language}:`;
 }
 
 /**
+ * Troll Agent prompt
+ * Adversarial retention reviewer — persona of a bored, critical YouTube viewer
+ * Evaluates scripts for hooks, open loops, and the 15-second payoff rule
+ */
+export function buildTrollPrompt(draft: string, researchBrief: string): string {
+  return `You are the Troll Agent — a ruthlessly honest, easily bored YouTube viewer who clicks away from boring videos within seconds. Your job is to evaluate this script draft for VIEWER RETENTION weaknesses.
+
+You are NOT a script editor. You are a bored viewer scrolling through YouTube. If this video showed up in your feed, would you watch it? Would you KEEP watching it?
+
+RESEARCH BRIEF (for context only):
+${researchBrief}
+
+SCRIPT DRAFT TO EVALUATE:
+${draft}
+
+EVALUATION CRITERIA (score each 0-100):
+
+1. **HOOK STRENGTH** (first 15 seconds / ~40 words):
+   - Is there a pattern interrupt that stops the scroll?
+   - Does it create an irresistible curiosity gap?
+   - Would YOU personally keep watching?
+
+2. **OPEN LOOPS** (before midpoint):
+   - Are there at least 2 unresolved questions/teases before the halfway point?
+   - Do they create genuine "I need to know" moments?
+   - Are they resolved later (not forgotten)?
+
+3. **15-SECOND PAYOFF RULE**:
+   - Every 15 seconds of reading time (~40 words), there must be a payoff: a surprising fact, a joke, a revelation, a visual change, or a tension release.
+   - Identify the LONGEST stretch without any payoff.
+
+4. **RE-ENGAGEMENT HOOKS**:
+   - Every 60-90 seconds, there should be a micro-hook (question, callback, surprise).
+   - Count total hooks across the script.
+
+OUTPUT FORMAT (respond ONLY with this JSON, no other text):
+
+\`\`\`json
+{
+  "score": <number 0-100>,
+  "approved": <boolean - true if score >= 70>,
+  "critique": "<markdown critique with specific line-level feedback on boring segments. Be brutal but constructive. Quote the boring parts and suggest fixes.>",
+  "metrics": {
+    "hookCount": <number of hooks/re-engagement moments detected>,
+    "openLoopCount": <number of open loops before the midpoint>,
+    "longestGapSec": <estimated seconds of the longest stretch without a payoff>
+  }
+}
+\`\`\`
+
+Be ruthless. If it's boring, say so. Score honestly.`;
+}
+
+/**
+ * Troll Agent revision prompt
+ * Sent to the Writer agent with the Troll's critique to produce a revised draft
+ */
+export function buildTrollRevisionPrompt(
+  originalDraft: string,
+  trollCritique: string,
+  researchBrief: string,
+  language: string = 'English'
+): string {
+  return `You are a professional YouTube script writer. Your previous draft was reviewed by an adversarial retention expert (the "Troll Agent") who found specific weaknesses. Revise the script to address every critique.
+
+OUTPUT LANGUAGE: ${language}
+
+RESEARCH CONTEXT:
+${researchBrief}
+
+ORIGINAL DRAFT:
+${originalDraft}
+
+TROLL AGENT'S CRITIQUE:
+${trollCritique}
+
+REVISION INSTRUCTIONS:
+1. Address EVERY specific weakness mentioned in the critique
+2. Add hooks where the Troll identified boring stretches
+3. Add open loops if the Troll said there aren't enough before the midpoint
+4. Ensure the 15-second payoff rule is met throughout
+5. Keep the same overall structure and word count (±10%)
+6. Maintain all [VISUAL:...] and [PRONOUNCE:...] tags
+7. Do NOT add commentary — output ONLY the revised script
+
+Generate the complete revised script now in ${language}:`;
+}
+
+/**
  * Word count adjustment prompt for regeneration attempts
  * Used when validation fails due to word count issues
  */
@@ -197,25 +306,73 @@ export function buildWordCountAdjustmentPrompt(
     ? targetWordCount.min - currentWordCount
     : currentWordCount - targetWordCount.max;
 
-  return `The script below needs word count adjustment.
+  // Estimate paragraph count for structure hint
+  const paragraphs = script.split(/\n\n+/).filter(p => p.trim().length > 0);
+  const paragraphCount = paragraphs.length;
+
+  return `You are a professional script editor. Adjust the word count of the script below.
+
+CRITICAL: Your output MUST be between ${targetWordCount.min} and ${targetWordCount.max} words. Count carefully.
+Do NOT summarize. Do NOT produce a synopsis. Output the FULL adjusted script.
 
 OUTPUT LANGUAGE: ${language}
 
-CURRENT SCRIPT:
+CURRENT SCRIPT (${currentWordCount} words, ${paragraphCount} paragraphs):
 ${script}
 
-ISSUE: The script is ${isTooShort ? 'too short' : 'too long'} (${currentWordCount} words, target: ${targetWordCount.min}-${targetWordCount.max} words)
-ADJUSTMENT NEEDED: ${isTooShort ? `Add approximately ${difference} words` : `Remove approximately ${difference} words`}
+ISSUE: The script is ${isTooShort ? 'too short' : 'too long'} by approximately ${difference} words.
+TARGET: ${targetWordCount.min}-${targetWordCount.max} words.
 
-REQUIREMENTS:
-1. Maintain all [VISUAL: ...] and [PRONOUNCE: ...] tags
-2. Preserve the core message and structure
-3. ${isTooShort ? 'Expand content with additional insights, examples, or explanations' : 'Tighten content by removing redundancies and less critical details'}
-4. Keep the tone and style consistent
-5. Ensure final word count is between ${targetWordCount.min} and ${targetWordCount.max} words
+INSTRUCTIONS:
+1. The script has approximately ${paragraphCount} paragraphs. Adjust within each paragraph — ${isTooShort ? 'expand with additional detail, examples, or context' : 'tighten by removing redundancies and less critical details'}.
+2. Maintain all [VISUAL: ...] and [PRONOUNCE: ...] tags.
+3. Preserve the core message, structure, and every section.
+4. Keep the tone and style consistent.
+5. Output the COMPLETE adjusted script — every paragraph, every section. Do not omit any part.
 
 OUTPUT FORMAT:
-Provide ONLY the adjusted script in markdown format.
+Provide ONLY the adjusted script in markdown format. No commentary, no word count note, no preamble.
 
 Generate the adjusted script now in ${language}:`;
+}
+
+// =============================================================================
+// Channel Memory / Lore Prompt (V4 Cognitive Overhaul)
+// =============================================================================
+
+/**
+ * Build a "Channel History" context section from past video entries.
+ *
+ * Injected into the Writer agent prompt so the script can reference
+ * earlier videos, maintain consistent stances, and build channel lore.
+ *
+ * @param pastVideos - Up to 5 relevant past video entries
+ * @returns Formatted context string, or empty string if no videos
+ */
+export function buildLorePrompt(pastVideos: import('./types.js').VideoMemoryEntry[]): string {
+  if (!pastVideos || pastVideos.length === 0) return '';
+
+  const entries = pastVideos.slice(0, 5).map((v, i) => {
+    const claimsList = v.claims.slice(0, 3).map((c) => `  - ${c}`).join('\n');
+    return `${i + 1}. **${v.title}** (${v.source}, ${v.publishedAt.slice(0, 10)})
+   Topic: ${v.topic}
+   Stance: ${v.stance}
+   Key claims:
+${claimsList}`;
+  });
+
+  return `
+CHANNEL HISTORY (reference up to 2 of these in the script):
+You have covered these related topics before. When relevant, briefly reference
+past videos to build continuity and reward returning viewers. Do NOT force
+references — only mention past content when it genuinely supports the narrative.
+
+${entries.join('\n\n')}
+
+LORE RULES:
+- Max 2 callbacks to past videos per script
+- Use phrases like "as we covered in our video about..." or "remember when we talked about..."
+- Only reference past stances if they're still defensible
+- Never contradict a previous claim without acknowledging the update
+`;
 }

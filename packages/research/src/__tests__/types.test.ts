@@ -50,7 +50,7 @@ describe('Research Types', () => {
         wordCount: 2000,
         artifactUrl: 'gs://nexus-ai-artifacts/2026-01-16/research/research.md',
         provider: {
-          name: 'gemini-3-pro-preview',
+          name: 'gemini-3.1-pro-preview',
           tier: 'primary',
           attempts: 1,
         },
@@ -59,7 +59,7 @@ describe('Research Types', () => {
       expect(output.brief).toContain('Research Brief');
       expect(output.wordCount).toBe(2000);
       expect(output.artifactUrl).toMatch(/^gs:\/\//);
-      expect(output.provider.name).toBe('gemini-3-pro-preview');
+      expect(output.provider.name).toBe('gemini-3.1-pro-preview');
       expect(output.provider.tier).toBe('primary');
       expect(output.provider.attempts).toBe(1);
     });

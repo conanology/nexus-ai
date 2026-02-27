@@ -16,7 +16,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // =============================================================================
 
 /** Default model for LLM generation */
-const DEFAULT_MODEL = 'gemini-3-pro-preview';
+const DEFAULT_MODEL = 'gemini-3.1-pro-preview';
 
 /** Approximate characters per token for estimation */
 const CHARS_PER_TOKEN = 4;
@@ -41,11 +41,11 @@ const PRICING = {
  * Gemini LLM Provider
  *
  * Implements the LLMProvider interface using Google's Gemini models.
- * Supports gemini-3-pro-preview (primary) and gemini-2.5-pro (fallback).
+ * Supports gemini-3.1-pro-preview (primary) and gemini-2.5-pro (fallback).
  *
  * @example
  * ```typescript
- * const provider = new GeminiLLMProvider('gemini-3-pro-preview');
+ * const provider = new GeminiLLMProvider('gemini-3.1-pro-preview');
  * const result = await provider.generate('Write a script about AI');
  * console.log(result.text);
  * ```
@@ -59,7 +59,7 @@ export class GeminiLLMProvider implements LLMProvider {
 
   /**
    * Create a new Gemini LLM provider
-   * @param model - Model name (default: 'gemini-3-pro-preview')
+   * @param model - Model name (default: 'gemini-3.1-pro-preview')
    */
   constructor(model: string = DEFAULT_MODEL) {
     this.model = model;

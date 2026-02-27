@@ -72,6 +72,28 @@ Enhanced content about AI research with better pacing.
       expect(prompt).toContain('engaging');
       expect(prompt.toLowerCase()).toContain('hook');
     });
+
+    it('should include three-act retention structure', () => {
+      const prompt = buildWriterPrompt(mockResearchBrief, targetWordCount);
+      expect(prompt).toContain('PATTERN INTERRUPT');
+      expect(prompt).toContain('ACT 1');
+      expect(prompt).toContain('ACT 2');
+      expect(prompt).toContain('ACT 3');
+    });
+
+    it('should require open loops before midpoint', () => {
+      const prompt = buildWriterPrompt(mockResearchBrief, targetWordCount);
+      expect(prompt).toContain('OPEN LOOPS');
+      expect(prompt).toContain('Minimum 2');
+      expect(prompt).toContain('resolved later');
+    });
+
+    it('should specify hook types (question, statistic, bold claim)', () => {
+      const prompt = buildWriterPrompt(mockResearchBrief, targetWordCount);
+      expect(prompt).toContain('statistic');
+      expect(prompt).toContain('bold claim');
+      expect(prompt).toContain('question');
+    });
   });
 
   describe('buildCriticPrompt', () => {
@@ -103,6 +125,19 @@ Enhanced content about AI research with better pacing.
     it('should support custom language', () => {
       const prompt = buildCriticPrompt(mockWriterDraft, targetWordCount, 'French');
       expect(prompt).toContain('OUTPUT LANGUAGE: French');
+    });
+
+    it('should include hook evaluation rubric', () => {
+      const prompt = buildCriticPrompt(mockWriterDraft, targetWordCount);
+      expect(prompt).toContain('Hook Evaluation');
+      expect(prompt).toContain('pattern interrupt');
+      expect(prompt).toContain('curiosity gap');
+    });
+
+    it('should include open loop verification checklist', () => {
+      const prompt = buildCriticPrompt(mockWriterDraft, targetWordCount);
+      expect(prompt).toContain('Open Loop Verification');
+      expect(prompt).toContain('at least 2 unresolved');
     });
   });
 
@@ -151,6 +186,17 @@ Enhanced content about AI research with better pacing.
       const prompt = buildOptimizerPrompt(mockCriticDraft, targetWordCount, 'German');
       expect(prompt).toContain('OUTPUT LANGUAGE: German');
     });
+
+    it('should instruct first segment tagged as hook type', () => {
+      const prompt = buildOptimizerPrompt(mockCriticDraft, targetWordCount);
+      expect(prompt).toContain('"type": "hook"');
+      expect(prompt).toContain('FIRST segment');
+    });
+
+    it('should require open loop verification', () => {
+      const prompt = buildOptimizerPrompt(mockCriticDraft, targetWordCount);
+      expect(prompt).toContain('open loop');
+    });
   });
 
   describe('buildWordCountAdjustmentPrompt', () => {
@@ -160,8 +206,8 @@ Enhanced content about AI research with better pacing.
 
       expect(prompt).toContain('too short');
       expect(prompt).toContain('1000 words');
-      expect(prompt).toContain('Add approximately 200 words');
-      expect(prompt).toContain('Expand content');
+      expect(prompt).toContain('approximately 200 words');
+      expect(prompt).toContain('expand');
     });
 
     it('should handle too long scripts', () => {
@@ -170,8 +216,8 @@ Enhanced content about AI research with better pacing.
 
       expect(prompt).toContain('too long');
       expect(prompt).toContain('2000 words');
-      expect(prompt).toContain('Remove approximately 200 words');
-      expect(prompt).toContain('Tighten content');
+      expect(prompt).toContain('approximately 200 words');
+      expect(prompt).toContain('tighten');
     });
 
     it('should preserve tags requirement', () => {

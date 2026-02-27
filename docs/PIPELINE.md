@@ -47,7 +47,7 @@ The Nexus-AI pipeline transforms a trending topic into a fully rendered video. T
 | **Input** | Topic `{ title, url, source }` |
 | **Output** | `{ researchBrief, topicData }` (~2000 words) |
 | **Fallback** | None (throws on failure) |
-| **External** | Gemini LLM (`gemini-3-pro-preview`) |
+| **External** | Gemini LLM (`gemini-3.1-pro-preview`) |
 
 ### Step 4: Script Generation
 

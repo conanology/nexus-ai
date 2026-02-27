@@ -19,6 +19,18 @@ export interface ScreenshotOptions {
   darkMode?: boolean;
   fullPage?: boolean;
   clip?: { x: number; y: number; width: number; height: number };
+  /** CSS selector to crop screenshot to a specific element's bounding box */
+  cssSelector?: string;
+  /** Text to highlight with neon green border before capture */
+  highlightText?: string;
+  /** Natural language search objective for agentic browser fallback */
+  searchObjective?: string;
+  /** Agentic capture fallback — injected by caller to avoid circular dep */
+  agenticCaptureFn?: (
+    page: import('playwright-core').Page,
+    url: string,
+    searchObjective: string,
+  ) => Promise<{ buffer: Buffer | null; status: string }>;
 }
 
 export interface ScreenshotRequest {
@@ -207,6 +219,57 @@ async function injectCookieHideCSS(
 }
 
 // ---------------------------------------------------------------------------
+// Anti-clutter injection — hide distracting chrome before capture
+// ---------------------------------------------------------------------------
+
+/**
+ * Inject JS to aggressively hide common annoying page elements:
+ * headers, navs, footers, cookie/banner/popup elements, and
+ * all position:fixed / position:sticky elements.
+ *
+ * Runs via page.evaluate() so it targets computed styles too.
+ */
+async function injectAntiClutter(
+  page: import('playwright-core').Page,
+): Promise<void> {
+  try {
+    // Use string-based evaluate to avoid DOM type references in Node TypeScript context
+    const antiClutterScript = `
+      (function() {
+        var CLUTTER_SELECTORS = [
+          'header', 'nav', 'footer',
+          '[id*="cookie"]', '[class*="cookie"]',
+          '[id*="banner"]', '[class*="banner"]',
+          '[id*="popup"]', '[class*="popup"]',
+          '[id*="modal"]', '[class*="modal"]',
+          '[id*="overlay"]', '[class*="overlay"]',
+          '[id*="newsletter"]', '[class*="newsletter"]',
+          '[id*="subscribe"]', '[class*="subscribe"]',
+          '[role="banner"]', '[role="navigation"]',
+          '[aria-label*="cookie" i]', '[aria-label*="consent" i]'
+        ];
+        for (var i = 0; i < CLUTTER_SELECTORS.length; i++) {
+          try {
+            var els = document.querySelectorAll(CLUTTER_SELECTORS[i]);
+            els.forEach(function(el) { el.style.setProperty('display', 'none', 'important'); });
+          } catch(e) {}
+        }
+        var allElements = document.querySelectorAll('*');
+        allElements.forEach(function(el) {
+          var style = window.getComputedStyle(el);
+          if (style.position === 'fixed' || style.position === 'sticky') {
+            el.style.setProperty('display', 'none', 'important');
+          }
+        });
+      })()
+    `;
+    await page.evaluate(antiClutterScript);
+  } catch {
+    // Non-fatal — page may block evaluate
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Cookie consent click dismissal
 // ---------------------------------------------------------------------------
 
@@ -264,6 +327,10 @@ export async function captureWebsiteScreenshot(
     darkMode = true,
     fullPage = false,
     clip,
+    cssSelector,
+    highlightText,
+    searchObjective,
+    agenticCaptureFn,
   } = options;
 
   let context: import('playwright-core').BrowserContext | null = null;
@@ -297,6 +364,9 @@ export async function captureWebsiteScreenshot(
     // CSS injection to hide cookie/consent banners (belt-and-suspenders)
     await injectCookieHideCSS(page);
 
+    // Anti-clutter injection: hide headers, navs, footers, fixed/sticky chrome
+    await injectAntiClutter(page);
+
     // Validate page content (reject Cloudflare, error pages, disambiguation)
     const validated = await validatePage(page);
     if (validated === null) {
@@ -319,7 +389,84 @@ export async function captureWebsiteScreenshot(
       }
     }
 
-    // Capture screenshot
+    // Inject text highlighting if requested (T036)
+    if (highlightText) {
+      try {
+        // Use string-based evaluate to avoid DOM type references in Node TypeScript context
+        const highlightScript = `
+          (function(text) {
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            var node;
+            while ((node = walker.nextNode())) {
+              if (node.textContent && node.textContent.includes(text)) {
+                var parent = node.parentElement;
+                if (parent) {
+                  var html = parent.innerHTML;
+                  var escaped = text.replace(/[&<>"']/g, function(m) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m] || m;
+                  });
+                  parent.innerHTML = html.replace(
+                    text,
+                    '<mark style="border: 2px solid #aaff00; border-radius: 4px; padding: 2px 4px; background: transparent;">' + escaped + '</mark>'
+                  );
+                }
+                break;
+              }
+            }
+          })(${JSON.stringify(highlightText)})
+        `;
+        await page.evaluate(highlightScript);
+        await page.waitForTimeout(200);
+      } catch {
+        // No-op if text not found — silent fallback per Principle X
+      }
+    }
+
+    // CSS selector cropping — scroll to element, wait for stability, capture bounding box
+    if (cssSelector) {
+      try {
+        const locator = page.locator(cssSelector).first();
+        if (await locator.isVisible({ timeout: 3000 }).catch(() => false)) {
+          // Scroll element into view and wait for layout stability
+          await locator.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(500);
+
+          // Re-inject anti-clutter after scroll (fixed elements may reappear)
+          await injectAntiClutter(page);
+          await page.waitForTimeout(200);
+
+          // Capture only the element's bounding box
+          const elementBuffer = await locator.screenshot({ type: 'png' });
+          const sizeBytes = elementBuffer.length;
+          console.log(
+            `Screenshot captured (css selector "${cssSelector}"): ${url} (${formatBytes(sizeBytes)})`,
+          );
+          return elementBuffer;
+        }
+      } catch {
+        // Silent fallback — try agentic browser next, then viewport
+        console.log(`CSS selector "${cssSelector}" not found, trying agentic fallback: ${url}`);
+      }
+    }
+
+    // Agentic browser fallback — when CSS selector failed and search objective provided
+    if (searchObjective && agenticCaptureFn) {
+      try {
+        const agenticResult = await agenticCaptureFn(page, url, searchObjective);
+        if (agenticResult.buffer) {
+          const sizeBytes = agenticResult.buffer.length;
+          console.log(
+            `Screenshot captured (agentic browser): ${url} (${formatBytes(sizeBytes)})`,
+          );
+          return agenticResult.buffer;
+        }
+        console.log(`Agentic browser fallback ${agenticResult.status}: ${url}`);
+      } catch {
+        console.log(`Agentic browser fallback error, falling back to viewport: ${url}`);
+      }
+    }
+
+    // Capture screenshot (viewport or full-page)
     const buffer = await page.screenshot({
       type: 'png',
       fullPage,

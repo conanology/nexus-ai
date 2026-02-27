@@ -37,7 +37,7 @@ vi.mock('@nexus-ai/core', async () => {
         },
         cost: tracker.getSummary(),
         durationMs: 250,
-        provider: result.providers?.optimizer || { name: 'gemini-3-pro-preview', tier: 'primary', attempts: 1 },
+        provider: result.providers?.optimizer || { name: 'gemini-3.1-pro-preview', tier: 'primary', attempts: 1 },
         warnings: [],
       };
     }),

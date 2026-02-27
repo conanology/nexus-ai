@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import http from 'http';
 import express from 'express';
@@ -33,6 +34,43 @@ export class RenderService {
 
   private getStoragePath(gsUrl: string): string {
     return gsUrl.replace(/^gs:\/\/[^\/]+\//, '');
+  }
+
+  /**
+   * Materialize data-URI images to disk files and rewrite scene fields
+   * to point at localhost HTTP URLs. This prevents multi-megabyte base64
+   * strings from bloating Remotion's serialised inputProps JSON.
+   */
+  private async materializeImages(
+    scenes: Array<Record<string, unknown>>,
+    tmpDir: string,
+    serverPort: number,
+  ): Promise<number> {
+    const IMAGE_FIELDS = ['backgroundImage', 'screenshotImage', 'fullPageImage'] as const;
+    let materialized = 0;
+
+    for (const scene of scenes) {
+      for (const field of IMAGE_FIELDS) {
+        const value = scene[field];
+        if (typeof value !== 'string' || !value.startsWith('data:')) continue;
+
+        // Parse the data URI — e.g. data:image/png;base64,iVBOR...
+        const match = value.match(/^data:image\/(\w+);base64,(.+)$/s);
+        if (!match) continue;
+
+        const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+        const data = Buffer.from(match[2], 'base64');
+        const hash = crypto.createHash('md5').update(data).digest('hex').slice(0, 12);
+        const filename = `img-${hash}.${ext}`;
+        const filePath = path.join(tmpDir, filename);
+
+        await fs.writeFile(filePath, data);
+        scene[field] = `http://localhost:${serverPort}/assets/${filename}`;
+        materialized++;
+      }
+    }
+
+    return materialized;
   }
 
   async renderVideo(input: RenderInput, onProgress?: (progress: string) => void): Promise<RenderOutput> {
@@ -93,11 +131,14 @@ export class RenderService {
          }
       }
 
-      logger.info({ entryPoint }, 'Bundling video studio');
+      const publicDir = path.resolve(__dirname, '../../../video-studio/public');
+
+      logger.info({ entryPoint, publicDir }, 'Bundling video studio');
       onProgress?.('Bundling video studio (this may take several minutes)');
 
       const bundled = await bundle({
         entryPoint,
+        publicDir,
         webpackOverride: (config) => ({
           ...config,
           resolve: {
@@ -121,6 +162,8 @@ export class RenderService {
               'google-auth-library': false,
               '@grpc/grpc-js': false,
               '@grpc/proto-loader': false,
+              'playwright': false,
+              'playwright-core': false,
               'pino': false,
               'pino-pretty': false,
             },
@@ -178,6 +221,8 @@ export class RenderService {
             scenes: timelineData.scenes,
             totalDurationFrames: timelineData.totalDurationFrames,
             audioUrl: localAudioUrl,
+            impactWords: timelineData.impactWords ?? [],
+            wordTimings: timelineData.wordTimings ?? [],
           }
         : {
             timeline: timelineData,
@@ -207,6 +252,21 @@ export class RenderService {
           sceneCount: timelineData.scenes?.length,
           mode: 'legacy-timeline',
         }, 'Legacy timeline mode — using keyword SceneMapper output');
+      }
+
+      // 3b. Materialize data-URI images to disk (V2 only)
+      if (isV2Director) {
+        const materialized = await this.materializeImages(
+          timelineData.scenes,
+          tmpDir,
+          serverPort,
+        );
+        if (materialized > 0) {
+          logger.info(
+            { pipelineId: input.pipelineId, materialized },
+            `Materialized ${materialized} data-URI images to disk`,
+          );
+        }
       }
 
       // 4. Select Composition

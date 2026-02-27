@@ -5,25 +5,25 @@
 
 export const THEME = {
   colors: {
-    // Primary brand colors — Cyan (target palette from VIDEO_SYSTEM_SPEC.md Section 4.2)
-    primary: '#00d4ff', // Electric Cyan
-    primaryLight: '#0ea5e9',
-    primaryDark: '#0284c7',
+    // Primary brand colors — Neon Hacker palette
+    primary: '#aaff00', // Neon Green
+    primaryLight: '#88cc00',
+    primaryDark: '#669900',
 
-    // Secondary colors
-    secondary: '#8b5cf6', // Violet
-    secondaryLight: '#a855f7',
-    secondaryDark: '#7c3aed',
+    // Secondary colors — unified Neon Green
+    secondary: '#88cc00',
+    secondaryLight: '#aaff00',
+    secondaryDark: '#669900',
 
     // Accent colors
-    accent: '#00d4ff', // Cyan (matches primary)
-    accentLight: '#0ea5e9',
-    accentDark: '#0284c7',
+    accent: '#aaff00', // Neon Green
+    accentLight: '#88cc00',
+    accentDark: '#669900',
 
-    // Background colors (dark mode default)
-    background: '#0a0e1a', // Deep dark
-    backgroundLight: '#1e293b', // Elevated
-    backgroundDark: '#111827', // Base
+    // Background colors (dark mode default) — Deep Black
+    background: '#0a0a0a', // Deep dark
+    backgroundLight: '#1a1a1a', // Elevated
+    backgroundDark: '#111111', // Base
 
     // Text colors
     text: '#ffffff', // Pure white
@@ -34,38 +34,47 @@ export const THEME = {
     success: '#10b981', // Green
     warning: '#f59e0b', // Amber
     error: '#ef4444', // Red
-    info: '#0ea5e9', // Sky
+    info: '#88cc00', // Neon Green
 
     // Chart/visualization colors
     chart: {
-      blue: '#0ea5e9',
-      green: '#10b981',
+      blue: '#aaff00',
+      green: '#aaff00',
       yellow: '#f59e0b',
       red: '#ef4444',
-      purple: '#8b5cf6',
-      cyan: '#00d4ff',
+      purple: '#88cc00',
+      cyan: '#aaff00',
     },
   },
 
   fonts: {
+    /** Inter — regular text, labels, headings */
     heading: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    /** Inter — body text */
     body: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    /** JetBrains Mono — numbers, stats, code */
     mono: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
   },
 
   fontSizes: {
-    xs: 20,      // source citations
-    sm: 24,      // labels
-    base: 36,    // body base (was 32)
-    lg: 48,      // body lower (was 42)
-    xl: 64,      // body upper (was 54)
-    '2xl': 84,   // subheading (was 72)
-    '3xl': 96,   // heading (was 86)
-    '4xl': 120,  // large heading (was 96)
-    '5xl': 144,  // stats (was 120)
-    '6xl': 160,  // cold-open (was 140)
-    '7xl': 192,  // impact (was 160)
-    '8xl': 224,  // hero (was 192)
+    xs: 14,      // source citations
+    sm: 17,      // labels
+    base: 25,    // body base
+    lg: 34,      // body lower
+    xl: 45,      // body upper
+    '2xl': 59,   // subheading
+    '3xl': 67,   // heading
+    '4xl': 84,   // large heading
+    '5xl': 101,  // stats
+    '6xl': 112,  // cold-open
+    '7xl': 134,  // impact
+    '8xl': 157,  // hero
+  },
+
+  lineHeight: {
+    tight: 1.0,     // stat numbers, impact text
+    cinematic: 1.1,  // headings, emphasis
+    normal: 1.25,    // body text
   },
 
   spacing: {
@@ -91,7 +100,7 @@ export const THEME = {
     md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
     lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
     xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-    glow: '0 0 20px rgba(0, 212, 255, 0.3)',
+    glow: '0 0 20px rgba(170, 255, 0, 0.3)',
   },
 
   // Animation timing

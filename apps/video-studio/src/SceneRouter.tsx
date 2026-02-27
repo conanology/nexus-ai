@@ -16,6 +16,8 @@ import { IntroSequence } from './components/scenes/IntroSequence.js';
 import { OutroSequence } from './components/scenes/OutroSequence.js';
 import { MemeReaction } from './components/scenes/MemeReaction.js';
 import { MapAnimation } from './components/scenes/MapAnimation.js';
+import { ScrollingCapture } from './components/scenes/ScrollingCapture.js';
+import { DynamicChart } from './components/scenes/DynamicChart.js';
 import { ColdOpen } from './components/scenes/ColdOpen.js';
 // AnimatedCaptions disabled — YouTube auto-generates captions
 // import { AnimatedCaptions } from './components/overlays/AnimatedCaptions.js';
@@ -44,6 +46,8 @@ export const SCENE_REGISTRY: Record<SceneType, React.FC<SceneComponentProps<any>
   'code-block':        CodeBlock,
   'meme-reaction':     MemeReaction,
   'map-animation':     MapAnimation,
+  'scrolling-capture': ScrollingCapture,
+  'dynamic-chart':     DynamicChart,
   'outro':             OutroSequence,
 };
 
@@ -310,8 +314,12 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl, audi
                 screenshotDisplayMode={scene.screenshotDisplayMode}
                 pacing={scene.pacing}
               />
-              {scene.type !== 'meme-reaction' && scene.type !== 'map-animation' && scene.annotations && scene.annotations.length > 0 && (
-                <AnnotationLayer annotations={scene.annotations} sceneDurationFrames={durationInFrames} />
+              {scene.type !== 'meme-reaction' && scene.type !== 'map-animation' && scene.type !== 'dynamic-chart' && scene.annotations && scene.annotations.length > 0 && (
+                <AnnotationLayer
+                  annotations={scene.annotations}
+                  sceneDurationFrames={durationInFrames}
+                  suppressForHighlight={!!scene.highlightText}
+                />
               )}
               {scene.type !== 'meme-reaction' && scene.overlays && scene.overlays.length > 0 && (
                 <OverlayRenderer overlays={scene.overlays} fps={fps} sceneDuration={durationInFrames} />

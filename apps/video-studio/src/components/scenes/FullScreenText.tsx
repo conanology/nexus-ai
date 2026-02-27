@@ -16,7 +16,7 @@ export const FullScreenText: React.FC<SceneComponentProps<'full-screen-text'>> =
   const motionStyles = useMotion(motion, durationInFrames);
 
   const { text, alignment } = visualData;
-  const fontSize = text.length > 100 ? 108 : 140;
+  const fontSize = text.length > 100 ? 76 : 98;
   const textAlign = alignment ?? 'center';
 
   return (

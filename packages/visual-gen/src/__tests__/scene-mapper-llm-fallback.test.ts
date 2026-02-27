@@ -9,7 +9,7 @@ import type { VisualCue } from '../types.js';
 // Mock the entire @nexus-ai/core module
 vi.mock('@nexus-ai/core', () => ({
   GeminiLLMProvider: vi.fn().mockImplementation(() => ({
-    name: 'gemini-3-pro-preview',
+    name: 'gemini-3.1-pro-preview',
     generate: vi.fn().mockResolvedValue({
       text: 'DataFlowDiagram',
       tokens: 10,

@@ -30,6 +30,8 @@ export const SCENE_TYPES = [
   'code-block',
   'meme-reaction',
   'map-animation',
+  'scrolling-capture',
+  'dynamic-chart',
   'outro',
 ] as const;
 
@@ -46,6 +48,37 @@ export const SCENE_PACING_VALUES = ['punch', 'breathe', 'dense', 'normal'] as co
 export type ScenePacing = (typeof SCENE_PACING_VALUES)[number];
 
 export const ScenePacingSchema = z.enum(SCENE_PACING_VALUES);
+
+// --- dynamic-chart ---
+export interface DynamicChartVisualData {
+  chartType: 'bar' | 'line';
+  title: string;
+  data: Array<{ label: string; value: number }>;
+  unit?: string;
+  animationStyle?: 'sequential' | 'simultaneous';
+}
+export const DynamicChartVisualDataSchema = z.object({
+  chartType: z.enum(['bar', 'line']),
+  title: z.string().max(80),
+  data: z.array(z.object({
+    label: z.string(),
+    value: z.number().finite(),
+  })).min(2).max(12),
+  unit: z.string().optional(),
+  animationStyle: z.enum(['sequential', 'simultaneous']).optional(),
+}).passthrough();
+
+// --- scrolling-capture ---
+export interface ScrollingCaptureVisualData {
+  fullPageImageUrl: string;
+  scrollSpeedPxPerSec?: number;
+  label?: string;
+}
+export const ScrollingCaptureVisualDataSchema = z.object({
+  fullPageImageUrl: z.string(),
+  scrollSpeedPxPerSec: z.number().optional(),
+  label: z.string().optional(),
+});
 
 /** Default pacing per scene type when LLM doesn't specify one — Fireship-style: mostly punch */
 export const DEFAULT_SCENE_PACING: Record<SceneType, ScenePacing> = {
@@ -65,6 +98,8 @@ export const DEFAULT_SCENE_PACING: Record<SceneType, ScenePacing> = {
   outro: 'normal',
   'meme-reaction': 'punch',
   'map-animation': 'normal',
+  'scrolling-capture': 'dense',
+  'dynamic-chart': 'dense',
 };
 
 // =============================================================================
@@ -335,6 +370,8 @@ export interface VisualDataMap {
   'code-block': CodeBlockVisualData;
   'meme-reaction': MemeReactionVisualData;
   'map-animation': MapAnimationVisualData;
+  'scrolling-capture': ScrollingCaptureVisualData;
+  'dynamic-chart': DynamicChartVisualData;
   outro: OutroVisualData;
 }
 
@@ -357,6 +394,8 @@ export const VISUAL_DATA_SCHEMAS: Record<SceneType, z.ZodType> = {
   'code-block': CodeBlockVisualDataSchema,
   'meme-reaction': MemeReactionVisualDataSchema,
   'map-animation': MapAnimationVisualDataSchema,
+  'scrolling-capture': ScrollingCaptureVisualDataSchema,
+  'dynamic-chart': DynamicChartVisualDataSchema,
   outro: OutroVisualDataSchema,
 };
 
@@ -482,6 +521,10 @@ export interface Scene {
   overlays?: SceneOverlay[];
   annotations?: SceneAnnotation[];
   isColdOpen?: boolean;
+  visualLayer?: VisualLayer;
+  cssSelector?: string;
+  highlightText?: string;
+  fullPageImage?: string;
 }
 
 // =============================================================================
@@ -524,10 +567,15 @@ export interface ScriptSegment {
   sentenceCount: number;
 }
 
+export type VisualLayer = 'abstract-concept' | 'evidence-screenshot' | 'showcase-scroll';
+
 export type ClassifiedSegment = ScriptSegment & {
   sceneType: SceneType;
   visualData: Record<string, unknown>;
   pacing: ScenePacing;
+  visualLayer?: VisualLayer;
+  cssSelector?: string;
+  highlightText?: string;
 };
 
 // =============================================================================
@@ -539,6 +587,8 @@ export const LLMSceneEntrySchema = z.object({
   sceneType: z.string(),
   visualData: z.record(z.unknown()),
   pacing: z.string().optional(),
+  cssSelector: z.string().optional(),
+  highlightText: z.string().optional(),
 });
 
 export type LLMSceneEntry = z.infer<typeof LLMSceneEntrySchema>;

@@ -18,6 +18,7 @@ import {
   screenshotToDataUri,
 } from '@nexus-ai/asset-library';
 import type { Scene } from '@nexus-ai/director-agent';
+import { captureWithAgenticBrowser } from './agentic-browser.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -212,11 +213,16 @@ export async function enrichScenesWithSourceScreenshots(
           const waitMs = getWaitMs(source.url);
           console.log(`  Capturing: ${source.url} (wait ${waitMs}ms)`);
 
+          const scene = scenes[sceneIndex];
           const buffer = await captureWebsiteScreenshot(source.url, {
             darkMode: true,
             waitMs,
             width: 1920,
             height: 1080,
+            cssSelector: scene.cssSelector,
+            highlightText: scene.highlightText,
+            searchObjective: scene.content?.slice(0, 200),
+            agenticCaptureFn: captureWithAgenticBrowser,
           });
 
           return { sceneIndex, source, buffer };

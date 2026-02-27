@@ -39,7 +39,9 @@ import {
   buildCriticPrompt,
   buildOptimizerPrompt,
   buildWordCountAdjustmentPrompt,
+  buildLorePrompt,
 } from './prompts.js';
+import { executeTrollDebate } from './troll-agent.js';
 import {
   detectSegmentType,
 } from './compatibility.js';
@@ -317,15 +319,17 @@ async function executeAgent(
   prompt: string,
   tracker: CostTracker,
   pipelineId: string,
-  providers: LLMProvider[]
+  providers: LLMProvider[],
+  options?: { temperature?: number }
 ): Promise<AgentDraft> {
-  logger.info({ pipelineId, agent: agentName, model: providers[0].name }, `Executing ${agentName} agent`);
+  const temperature = options?.temperature ?? 0.7;
+  logger.info({ pipelineId, agent: agentName, model: providers[0].name, temperature }, `Executing ${agentName} agent`);
 
   const fallbackResult = await withFallback(
     providers,
     async (provider: LLMProvider) => {
       const llmResult = await provider.generate(prompt, {
-        temperature: 0.7,
+        temperature,
         maxTokens: 8192, // High token limit for script generation
       });
 
@@ -381,16 +385,18 @@ async function executeMultiAgentPipeline(
   targetWordCount: { min: number; max: number },
   tracker: CostTracker,
   pipelineId: string,
-  language: string = 'English'
+  language: string = 'English',
+  channelHistory?: import('./types.js').VideoMemoryEntry[],
 ): Promise<MultiAgentResult> {
   // Shared providers to avoid redundant instantiation
   const providers = [
-    new GeminiLLMProvider('gemini-3-pro-preview'),
+    new GeminiLLMProvider('gemini-3.1-pro-preview'),
     new GeminiLLMProvider('gemini-2.5-pro'),
   ];
 
-  // Phase 1: Writer
-  const writerPrompt = buildWriterPrompt(researchBrief, targetWordCount, language);
+  // Phase 1: Writer (with optional channel lore context)
+  const loreContext = channelHistory ? buildLorePrompt(channelHistory) : '';
+  const writerPrompt = buildWriterPrompt(researchBrief + loreContext, targetWordCount, language);
   const writerDraft = await executeAgent('writer', writerPrompt, tracker, pipelineId, providers);
 
   // Phase 2: Critic
@@ -402,8 +408,30 @@ async function executeMultiAgentPipeline(
   const revisedScriptMatch = criticDraft.content.match(/(?:##\s*Revised\s+Script|REVISED\s+SCRIPT:?)\s*\n([\s\S]*)/i);
   const criticRevisedContent = revisedScriptMatch ? revisedScriptMatch[1].trim() : criticDraft.content;
 
-  // Phase 3: Optimizer
-  const optimizerPrompt = buildOptimizerPrompt(criticRevisedContent, targetWordCount, language);
+  // Phase 2.5: Troll Agent debate loop (between Critic and Optimizer)
+  const debateResult = await executeTrollDebate(
+    criticRevisedContent,
+    researchBrief,
+    tracker,
+    pipelineId,
+    providers
+  );
+
+  // Use the best draft from the debate (either approved or highest-scoring)
+  const debateWinningDraft = debateResult.bestDraft;
+
+  logger.info(
+    {
+      pipelineId,
+      debateScore: debateResult.bestScore,
+      debateRounds: debateResult.totalRounds,
+      approvedOnRound: debateResult.approvedOnRound,
+    },
+    `[Troll] Debate complete — Score ${debateResult.bestScore}/100, ${debateResult.approvedOnRound ? `approved round ${debateResult.approvedOnRound}` : 'best of ' + debateResult.totalRounds + ' rounds'}`
+  );
+
+  // Phase 3: Optimizer (uses debate-winning draft instead of raw critic output)
+  const optimizerPrompt = buildOptimizerPrompt(debateWinningDraft, targetWordCount, language);
   const optimizerDraft = await executeAgent('optimizer', optimizerPrompt, tracker, pipelineId, providers);
 
   return {
@@ -502,7 +530,7 @@ export async function executeScriptGen(
 
       // Shared providers
       const providers = [
-        new GeminiLLMProvider('gemini-3-pro-preview'),
+        new GeminiLLMProvider('gemini-3.1-pro-preview'),
         new GeminiLLMProvider('gemini-2.5-pro'),
       ];
 
@@ -512,12 +540,18 @@ export async function executeScriptGen(
         targetWordCount,
         tracker,
         pipelineId,
-        language
+        language,
+        data.channelHistory,
       );
 
       let finalScript = multiAgentResult.optimizerDraft.content;
       let wordCount = multiAgentResult.optimizerDraft.wordCount;
       let regenerationAttempts = 0;
+
+      // Preserve the critic's draft as golden reference — regeneration always
+      // feeds this original instead of the previous failed output (prevents
+      // error compounding where too-long → too-short → too-long oscillation).
+      const goldenDraft = multiAgentResult.optimizerDraft.content;
 
       // Validate word count and regenerate if needed (max 3 attempts)
       let validation = validateWordCount(wordCount, targetWordCount);
@@ -525,24 +559,25 @@ export async function executeScriptGen(
         regenerationAttempts++;
         logger.warn(
           { pipelineId, wordCount, targetWordCount, attempt: regenerationAttempts },
-          `Word count validation failed: ${validation.reason}. Regenerating...`
+          `Word count validation failed: ${validation.reason}. Regenerating from golden draft...`
         );
 
-        // Generate adjustment prompt
+        // Generate adjustment prompt from golden draft (not previous failed output)
         const adjustmentPrompt = buildWordCountAdjustmentPrompt(
-          finalScript,
-          wordCount,
+          goldenDraft,
+          countWords(goldenDraft),
           targetWordCount,
           language
         );
 
-        // Execute adjustment
+        // Execute adjustment with lower temperature for more deterministic output
         const adjustedDraft = await executeAgent(
           'optimizer',
           adjustmentPrompt,
           tracker,
           pipelineId,
-          providers
+          providers,
+          { temperature: 0.3 }
         );
 
         finalScript = adjustedDraft.content;

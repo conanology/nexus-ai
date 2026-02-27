@@ -93,6 +93,8 @@ const SCENE_SFX_MAP: Record<string, string[]> = {
   'quote': ['impact-soft'],
   'meme-reaction': ['record-scratch'],
   'map-animation': ['reveal', 'digital-scan'],
+  'scrolling-capture': ['reveal'],
+  'dynamic-chart': ['reveal'],
   'narration-default': ['whoosh-in'],
 };
 

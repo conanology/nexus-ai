@@ -42,7 +42,7 @@ export const MapAnimation: React.FC<SceneComponentProps<'map-animation'>> = (pro
     : 0;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#0A0E1A' }}>
+    <AbsoluteFill style={{ backgroundColor: COLORS.bgDeepDark }}>
       {/* Sparse particles — minimal, the map is the visual */}
       <ParticleField density="sparse" speed="slow" color={COLORS.accentPrimary} />
 
@@ -90,8 +90,8 @@ export const MapAnimation: React.FC<SceneComponentProps<'map-animation'>> = (pro
           {statNumber && (
             <div
               style={{
-                fontSize: 64,
-                fontFamily: THEME.fonts.heading,
+                fontSize: 45,
+                fontFamily: THEME.fonts.mono,
                 fontWeight: 700,
                 color: COLORS.accentPrimary,
                 opacity: statOpacity,

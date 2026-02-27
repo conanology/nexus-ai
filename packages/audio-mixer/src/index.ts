@@ -19,6 +19,7 @@ export type {
   AudioMixerQualityResult,
   AudioQualityCheckResult,
   AudioMixerQualityMetrics,
+  SilenceDrop,
 } from './types.js';
 
 export {
@@ -36,7 +37,7 @@ export { loadMusicLibrary, selectMusic, prepareLoopedTrack, clearMusicLibraryCac
 export { loadSFXLibrary, getSFX, extractSFXTriggers, clearSFXLibraryCache } from './sfx.js';
 
 // Mix pipeline
-export { mixAudio, buildFilterComplex } from './mix-pipeline.js';
+export { mixAudio, buildFilterComplex, buildSilenceDrops } from './mix-pipeline.js';
 
 // Quality gate
 export { validateAudioMix } from './quality-gate.js';

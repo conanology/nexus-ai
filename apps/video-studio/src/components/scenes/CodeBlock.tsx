@@ -4,6 +4,7 @@ import { useMotion } from '../../hooks/useMotion.js';
 import { COLORS, withOpacity } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import { FloatingTerminal } from '../shared/FloatingTerminal.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 // ---------------------------------------------------------------------------
@@ -18,15 +19,11 @@ const CURSOR_PERIOD = 30;
 
 // True terminal black
 const EDITOR_BG = '#000000';
-const TITLE_BAR_BG = '#1a1a1a';
-const DOT_RED = '#ff5f57';
-const DOT_YELLOW = '#febc2e';
-const DOT_GREEN = '#28c840';
 
 // NEON syntax colors
 const COLOR_KEYWORD = '#FF6B9D';     // hot pink
-const COLOR_STRING = '#00D4FF';      // cyan
-const COLOR_NUMBER = '#00FF88';      // neon green
+const COLOR_STRING = COLORS.accentPrimary;      // accent neon
+const COLOR_NUMBER = COLORS.accentPrimary;      // neon green
 const COLOR_COMMENT = '#6B7280';     // muted gray
 const COLOR_OPERATOR = COLORS.textSecondary;
 const COLOR_DEFAULT = COLORS.textPrimary;
@@ -122,22 +119,6 @@ function tokenizeLine(line: string): Token[] {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const TitleBarDots: React.FC = () => (
-  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-    {[DOT_RED, DOT_YELLOW, DOT_GREEN].map((color) => (
-      <div
-        key={color}
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-          backgroundColor: color,
-        }}
-      />
-    ))}
-  </div>
-);
-
 interface CodeLineProps {
   lineNumber: number;
   tokens: Token[];
@@ -177,7 +158,7 @@ const CodeLine: React.FC<CodeLineProps> = ({
         paddingLeft: highlighted ? Math.max(0, 8 - borderWidth) : 8,
         minHeight: fontSize * 1.6,
         boxShadow: highlighted
-          ? '0 0 12px rgba(0,212,255,0.5), 0 0 24px rgba(0,212,255,0.2)'
+          ? `0 0 12px ${withOpacity(COLORS.accentPrimary, 0.5)}, 0 0 24px ${withOpacity(COLORS.accentPrimary, 0.2)}`
           : 'none',
       }}
     >
@@ -202,7 +183,7 @@ const CodeLine: React.FC<CodeLineProps> = ({
         fontSize,
         fontFamily: THEME.fonts.mono,
         whiteSpace: 'pre',
-        textShadow: highlighted ? '0 0 8px rgba(0,212,255,0.3)' : 'none',
+        textShadow: highlighted ? `0 0 8px ${withOpacity(COLORS.accentPrimary, 0.3)}` : 'none',
       }}>
         {tokens.map((token, j) => (
           <span
@@ -291,52 +272,34 @@ export const CodeBlock: React.FC<SceneComponentProps<'code-block'>> = (props) =>
           ...motionStyles.exitStyle,
         }}
       >
-        {/* Editor window — 90% width, 75% height (fill the frame) */}
-        <div
-          style={{
-            width: '90%',
-            height: '75%',
-            borderRadius: 12,
-            backgroundColor: EDITOR_BG,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            opacity: windowProgress,
-            transform: `scale(${windowScale})`,
-            border: '1px solid rgba(0, 212, 255, 0.2)',
-          }}
-        >
-          {/* Title bar */}
+        <FloatingTerminal rotateX={6} rotateY={-3} style={{ width: '90%', height: '75%', opacity: windowProgress, transform: `scale(${windowScale})` }}>
+          {/* Editor content (title bar label + code area) */}
           <div
             style={{
-              height: 36,
-              backgroundColor: TITLE_BAR_BG,
+              width: '100%',
+              height: '100%',
+              backgroundColor: EDITOR_BG,
               display: 'flex',
-              alignItems: 'center',
-              paddingLeft: 12,
-              paddingRight: 12,
-              flexShrink: 0,
-              position: 'relative',
+              flexDirection: 'column',
             }}
           >
-            <TitleBarDots />
-            {label && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  textAlign: 'center',
-                  fontSize: 24,
-                  fontFamily: THEME.fonts.mono,
-                  color: COLORS.textSecondary,
-                  pointerEvents: 'none',
-                }}
-              >
-                {label}
-              </div>
-            )}
-          </div>
+          {/* Title bar label */}
+          {label && (
+            <div
+              style={{
+                height: 0,
+                position: 'relative',
+                top: -28,
+                textAlign: 'center',
+                fontSize: 24,
+                fontFamily: THEME.fonts.mono,
+                color: COLORS.textSecondary,
+                pointerEvents: 'none',
+              }}
+            >
+              {label}
+            </div>
+          )}
 
           {/* Code area */}
           <div
@@ -433,7 +396,8 @@ export const CodeBlock: React.FC<SceneComponentProps<'code-block'>> = (props) =>
               </span>
             )}
           </div>
-        </div>
+          </div>
+        </FloatingTerminal>
       </div>
     </AbsoluteFill>
   );

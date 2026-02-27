@@ -209,8 +209,8 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
                 key={`${edge.from}-${edge.to}`}
                 from={edge.endpoints.from}
                 to={edge.endpoints.to}
-                color="#00FF88"
-                glowColor="#00FF88"
+                color={COLORS.accentPrimary}
+                glowColor={COLORS.accentPrimary}
                 strokeWidth={2}
                 delayFrames={edgeStartFrame + j * EDGE_STAGGER}
                 durationFrames={EDGE_DRAW_DURATION}
@@ -249,8 +249,8 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
                 height: nodeH,
                 borderRadius: 12,
                 backgroundColor: '#000000',
-                border: '2px solid #00FF88',
-                boxShadow: `0 0 12px ${withOpacity('#00FF88', 0.2)}`,
+                border: `2px solid ${COLORS.accentPrimary}`,
+                boxShadow: `0 0 12px ${withOpacity(COLORS.accentPrimary, 0.2)}`,
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',

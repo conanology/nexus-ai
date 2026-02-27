@@ -18,8 +18,8 @@ This single key powers all AI services:
 
 | Service | Model | Package |
 |---------|-------|---------|
-| LLM (research briefs) | `gemini-3-pro-preview` | `@nexus-ai/research` |
-| LLM (script generation) | `gemini-3-pro-preview` | `@nexus-ai/script-gen` |
+| LLM (research briefs) | `gemini-3.1-pro-preview` | `@nexus-ai/research` |
+| LLM (script generation) | `gemini-3.1-pro-preview` | `@nexus-ai/script-gen` |
 | Scene classification | `gemini-2.5-flash` | `@nexus-ai/director-agent` |
 | Image generation | `gemini-*` via `@google/generative-ai` | `@nexus-ai/visual-gen` |
 | Text-to-speech | `gemini-2.5-flash-preview-tts` | TTS in `scripts/run-local.ts` |

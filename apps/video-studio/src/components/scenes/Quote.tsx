@@ -8,6 +8,7 @@ import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import { SlowZoom } from '../shared/SlowZoom.js';
 import { ParallaxContainer } from '../shared/ParallaxContainer.js';
 import { AnimatedText } from '../shared/AnimatedText.js';
+import { GlassPanel } from '../shared/GlassPanel.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 // ---------------------------------------------------------------------------
@@ -29,7 +30,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
   const motionStyles = useMotion(motion, durationInFrames);
 
   const { text, attribution, role } = visualData;
-  const quoteFontSize = text.length > 150 ? 40 : 48;
+  const quoteFontSize = text.length > 150 ? 28 : 34;
 
   // --- Quotation mark (0-15) — slides down ---
   const quoteMarkOpacity = interpolate(frame, [0, QUOTE_MARK_FADE_FRAMES], [0, 0.2], {
@@ -81,7 +82,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
             position: 'absolute',
             top: 80,
             left: 120,
-            fontSize: 200,
+            fontSize: 140,
             fontFamily: THEME.fonts.heading,
             fontWeight: 700,
             color: withOpacity(COLORS.accentPrimary, quoteMarkOpacity),
@@ -103,19 +104,13 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
-            padding: '120px 160px',
+            padding: '80px 80px',
             zIndex: 2,
             ...motionStyles.entranceStyle,
             ...motionStyles.exitStyle,
           }}
         >
-          <div
-            style={{
-              position: 'relative',
-              maxWidth: '70%',
-              paddingLeft: 32,
-            }}
-          >
+          <GlassPanel blurRadius={20} opacity={0.4} style={{ maxWidth: '70%', paddingLeft: 32, position: 'relative' }}>
             {/* Vertical accent bar */}
             <div
               style={{
@@ -144,10 +139,11 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
             {attribution && (
               <div
                 style={{
-                  marginTop: 40,
-                  fontSize: 32,
+                  marginTop: 28,
+                  fontSize: 22,
                   fontFamily: THEME.fonts.body,
                   fontWeight: 400,
+                  lineHeight: 1.1,
                   color: COLORS.textSecondary,
                   opacity: attrOpacity,
                   transform: `translateY(${attrSlideY}px)`,
@@ -163,9 +159,10 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
               <div
                 style={{
                   marginTop: 8,
-                  fontSize: 28,
+                  fontSize: 20,
                   fontFamily: THEME.fonts.body,
                   fontWeight: 400,
+                  lineHeight: 1.1,
                   color: COLORS.textMuted,
                   opacity: roleOpacity,
                   transform: `translateY(${roleSlideY}px)`,
@@ -174,7 +171,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
                 {role}
               </div>
             )}
-          </div>
+          </GlassPanel>
         </div>
       </SlowZoom>
       </ParallaxContainer>

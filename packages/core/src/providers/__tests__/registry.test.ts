@@ -43,7 +43,7 @@ describe('createProviderRegistry', () => {
       const registry = createProviderRegistry();
 
       expect(registry.llm.primary).toBeInstanceOf(GeminiLLMProvider);
-      expect(registry.llm.primary.name).toBe('gemini-3-pro-preview');
+      expect(registry.llm.primary.name).toBe('gemini-3.1-pro-preview');
     });
 
     it('should have 1 LLM fallback', () => {

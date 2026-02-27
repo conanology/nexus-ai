@@ -125,7 +125,7 @@ vi.mock('../sfx.js', async () => {
 
 import { execFile } from 'child_process';
 import { extractSFXTriggers } from '../sfx.js';
-import { buildFilterComplex } from '../mix-pipeline.js';
+import { buildFilterComplex, buildSilenceDrops } from '../mix-pipeline.js';
 import { downloadFromGCS, uploadToGCS } from '../gcs-helpers.js';
 
 const mockExecFile = vi.mocked(execFile);
@@ -596,5 +596,106 @@ describe('Error handling', () => {
 
     const result = extractSFXTriggers(segments, makeSfxLibrary());
     expect(result).toHaveLength(0);
+  });
+});
+
+// =====================================================================
+// buildSilenceDrops tests
+// =====================================================================
+describe('buildSilenceDrops', () => {
+  it('creates one silence drop for a stat-callout scene', () => {
+    const scenes = [{ type: 'stat-callout', startFrame: 90 }];
+    const result = buildSilenceDrops(scenes, 30);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      timeSec: 2.0,
+      durationSec: 1.0,
+      fadeBackMs: 300,
+    });
+  });
+
+  it('creates one silence drop for a text-emphasis scene', () => {
+    const scenes = [{ type: 'text-emphasis', startFrame: 150 }];
+    const result = buildSilenceDrops(scenes, 30);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      timeSec: 4.0,
+      durationSec: 1.0,
+      fadeBackMs: 300,
+    });
+  });
+
+  it('creates one silence drop for a full-screen-text scene', () => {
+    const scenes = [{ type: 'full-screen-text', startFrame: 120 }];
+    const result = buildSilenceDrops(scenes, 30);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      timeSec: 3.0,
+      durationSec: 1.0,
+      fadeBackMs: 300,
+    });
+  });
+
+  it('creates silence drop for isColdOpen scene regardless of type', () => {
+    const scenes = [{ type: 'narration-default', startFrame: 60, isColdOpen: true }];
+    const result = buildSilenceDrops(scenes, 30);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      timeSec: 1.0,
+      durationSec: 1.0,
+      fadeBackMs: 300,
+    });
+  });
+
+  it('does not create a drop for narration-default scene without isColdOpen', () => {
+    const scenes = [{ type: 'narration-default', startFrame: 90 }];
+    const result = buildSilenceDrops(scenes, 30);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('only creates drops for impact scenes in a mixed array', () => {
+    const scenes = [
+      { type: 'intro', startFrame: 0 },
+      { type: 'stat-callout', startFrame: 90 },
+      { type: 'narration-default', startFrame: 150 },
+      { type: 'text-emphasis', startFrame: 240 },
+      { type: 'outro', startFrame: 300 },
+    ];
+    const result = buildSilenceDrops(scenes, 30);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].timeSec).toBe(2.0);  // stat-callout at frame 90
+    expect(result[1].timeSec).toBe(7.0);  // text-emphasis at frame 240
+  });
+
+  it('clamps drop start to 0 when scene is at frame 0', () => {
+    const scenes = [{ type: 'stat-callout', startFrame: 0 }];
+    const result = buildSilenceDrops(scenes, 30);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].timeSec).toBe(0);
+    expect(result[0].durationSec).toBe(1.0);
+    expect(result[0].fadeBackMs).toBe(300);
+  });
+
+  it('returns empty array for empty scenes array', () => {
+    const result = buildSilenceDrops([], 30);
+    expect(result).toEqual([]);
+  });
+
+  it('computes correct drop timing: scene at frame 90 with fps=30', () => {
+    const scenes = [{ type: 'full-screen-text', startFrame: 90 }];
+    const result = buildSilenceDrops(scenes, 30);
+
+    // sceneStart = 90 / 30 = 3.0s, dropStart = 3.0 - 1.0 = 2.0s
+    expect(result).toHaveLength(1);
+    expect(result[0].timeSec).toBe(2.0);
+    expect(result[0].durationSec).toBe(1.0);
+    expect(result[0].fadeBackMs).toBe(300);
   });
 });

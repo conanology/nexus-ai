@@ -9,6 +9,7 @@ import {
   calculateAverageLoudness,
   validateDuration,
   validateAudioQuality,
+  stitchAudio,
 } from '../audio-quality.js';
 
 describe('Audio Quality Validation', () => {
@@ -178,6 +179,91 @@ describe('Audio Quality Validation', () => {
       expect(quality).toHaveProperty('clippingDetected');
       expect(quality).toHaveProperty('averageLoudnessDb');
       expect(quality.durationValid).toBe(true); // Default true if no word count
+    });
+  });
+
+  describe('stitchAudio - sample rate handling', () => {
+    /** Helper: create a minimal WAV buffer with the given sample rate */
+    function createWavBuffer(sampleRate: number, numChannels: number = 1, durationMs: number = 100): Buffer {
+      const bitsPerSample = 16;
+      const numSamples = Math.floor((durationMs / 1000) * sampleRate);
+      const dataSize = numSamples * numChannels * (bitsPerSample / 8);
+      const header = Buffer.alloc(44);
+      let offset = 0;
+
+      header.write('RIFF', offset); offset += 4;
+      header.writeUInt32LE(36 + dataSize, offset); offset += 4;
+      header.write('WAVE', offset); offset += 4;
+      header.write('fmt ', offset); offset += 4;
+      header.writeUInt32LE(16, offset); offset += 4;
+      header.writeUInt16LE(1, offset); offset += 2; // PCM
+      header.writeUInt16LE(numChannels, offset); offset += 2;
+      header.writeUInt32LE(sampleRate, offset); offset += 4;
+      header.writeUInt32LE(sampleRate * numChannels * (bitsPerSample / 8), offset); offset += 4;
+      header.writeUInt16LE(numChannels * (bitsPerSample / 8), offset); offset += 2;
+      header.writeUInt16LE(bitsPerSample, offset); offset += 2;
+      header.write('data', offset); offset += 4;
+      header.writeUInt32LE(dataSize, offset);
+
+      // Generate PCM data with moderate amplitude
+      const pcm = Buffer.alloc(dataSize);
+      for (let i = 0; i < dataSize; i += 2) {
+        pcm.writeInt16LE(Math.floor(Math.sin(i * 0.1) * 5000), i);
+      }
+
+      return Buffer.concat([header, pcm]);
+    }
+
+    it('should extract and use actual sample rate from WAV segments (24000 Hz)', () => {
+      const seg1 = createWavBuffer(24000);
+      const seg2 = createWavBuffer(24000);
+
+      const result = stitchAudio(
+        [
+          { index: 0, audioBuffer: seg1, durationSec: 0.1 },
+          { index: 1, audioBuffer: seg2, durationSec: 0.1 },
+        ],
+        100
+      );
+
+      // The output WAV header should declare 24000 Hz, not 44100
+      expect(result.length).toBeGreaterThan(44);
+      const outputSampleRate = result.readUInt32LE(24);
+      expect(outputSampleRate).toBe(24000);
+    });
+
+    it('should use 44100 Hz when segments are 44100 Hz', () => {
+      const seg1 = createWavBuffer(44100);
+      const seg2 = createWavBuffer(44100);
+
+      const result = stitchAudio(
+        [
+          { index: 0, audioBuffer: seg1, durationSec: 0.1 },
+          { index: 1, audioBuffer: seg2, durationSec: 0.1 },
+        ],
+        100
+      );
+
+      const outputSampleRate = result.readUInt32LE(24);
+      expect(outputSampleRate).toBe(44100);
+    });
+
+    it('should warn but still produce output for mixed sample rates', () => {
+      const seg1 = createWavBuffer(24000);
+      const seg2 = createWavBuffer(44100);
+
+      const result = stitchAudio(
+        [
+          { index: 0, audioBuffer: seg1, durationSec: 0.1 },
+          { index: 1, audioBuffer: seg2, durationSec: 0.1 },
+        ],
+        100
+      );
+
+      // Uses first segment's rate
+      const outputSampleRate = result.readUInt32LE(24);
+      expect(outputSampleRate).toBe(24000);
+      expect(result.length).toBeGreaterThan(44);
     });
   });
 });

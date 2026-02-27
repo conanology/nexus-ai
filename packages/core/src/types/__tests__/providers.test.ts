@@ -25,7 +25,7 @@ describe('Provider Types', () => {
         },
         cost: 0.0023,
         timestamp: '2026-01-08T08:23:45.123Z',
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3.1-pro-preview',
       };
 
       expect(cost.cost).toBe(0.0023);
@@ -80,7 +80,7 @@ describe('Provider Types', () => {
           output: 800,
         },
         cost: 0.0023,
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3.1-pro-preview',
         quality: 'primary',
       };
 

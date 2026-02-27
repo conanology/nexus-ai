@@ -8,7 +8,7 @@
  */
 
 import { parseScript } from './script-parser.js';
-import { classifyScenes } from './scene-classifier.js';
+import { classifyScenes, assignVisualLayers } from './scene-classifier.js';
 import { validateScenes } from './validator.js';
 import { applyPacing } from './pacing-engine.js';
 import { extractColdOpenHook } from './hook-extractor.js';
@@ -96,8 +96,11 @@ export async function generateSceneDirection(
   const validated = validateScenes(classified);
   warnings.push(...validated.warnings);
 
+  // Step 3b: Assign visual layers (abstract-concept / evidence-screenshot / showcase-scroll)
+  const layered = assignVisualLayers(validated.scenes);
+
   // Step 4: Map to final Scene[] objects with intelligent transitions
-  let scenes: Scene[] = validated.scenes.map((seg, index) => ({
+  let scenes: Scene[] = layered.map((seg, index) => ({
     id: `scene-${index}-${seg.sceneType}`,
     type: seg.sceneType,
     startFrame: seg.startFrame,
@@ -106,6 +109,9 @@ export async function generateSceneDirection(
     visualData: seg.visualData as Scene['visualData'],
     pacing: seg.pacing,
     transition: assignTransition(seg.sceneType, seg.pacing, index),
+    visualLayer: seg.visualLayer,
+    cssSelector: seg.cssSelector,
+    highlightText: seg.highlightText,
   }));
 
   // Step 5: Apply pacing — adjusts durations based on pacing values

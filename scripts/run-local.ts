@@ -328,10 +328,14 @@ async function runScriptGen(
   pipelineId: string,
   researchBrief: string,
   topicData: any,
+  channelHistory?: any[],
 ): Promise<{ scriptGenOutput: any; scriptText: string; directionDocument: any }> {
   header('Step 4: Script Generation (Writer → Critic → Optimizer)');
 
   console.log('  Running multi-agent script generation...');
+  if (channelHistory?.length) {
+    console.log(`  Channel history: ${channelHistory.length} related videos injected`);
+  }
 
   try {
     const { executeScriptGen, getScriptText, isV2Output } = await import(
@@ -344,6 +348,7 @@ async function runScriptGen(
       data: {
         researchBrief,
         topicData,
+        channelHistory,
       },
       config: { timeout: 300000, retries: 2 },
     });
@@ -1205,8 +1210,22 @@ async function main() {
     // Step 3: Research
     const research = await runResearch(pipelineId, selectedTopic);
 
+    // Step 3.5: Memory — query related past videos
+    let channelHistory: any[] = [];
+    try {
+      const { createMemoryClient } = await import(
+        '../packages/script-gen/src/memory-client.js'
+      );
+      const memClient = createMemoryClient();
+      channelHistory = await memClient.query(selectedTopic.title, 5);
+      await memClient.close();
+      console.log(`  [Memory] Found ${channelHistory.length} related videos`);
+    } catch {
+      console.log('  [Memory] Skipped (unavailable)');
+    }
+
     // Step 4: Script Generation
-    const scriptResult = await runScriptGen(pipelineId, research.researchBrief, research.topicData);
+    const scriptResult = await runScriptGen(pipelineId, research.researchBrief, research.topicData, channelHistory);
     scriptGenOutput = scriptResult.scriptGenOutput;
     scriptText = scriptResult.scriptText;
     directionDocument = scriptResult.directionDocument;
@@ -1253,12 +1272,25 @@ async function main() {
   // Step 8: Director Agent
   const { scenes, warnings } = await runDirectorAgent(scriptText, audioDuration, topic, wordTimings);
 
+  // Step 8b: Build silence drops for high-impact scenes
+  let silenceDrops: Array<{ timeSec: number; durationSec: number; fadeBackMs: number }> = [];
+  try {
+    const { buildSilenceDrops } = await import(
+      '../packages/audio-mixer/src/mix-pipeline.js'
+    );
+    silenceDrops = buildSilenceDrops(scenes, FPS);
+    console.log(`  Silence drops: ${silenceDrops.length} (stat-callout, text-emphasis, full-screen-text, cold-open)`);
+  } catch (err) {
+    console.log(`  Silence drops: skipped (${err instanceof Error ? err.message : String(err)})`);
+  }
+
   // Save raw scenes
   const totalFrames = Math.ceil(audioDuration * FPS);
   const rawPayload = {
     version: 'v2-director',
     totalDurationFrames: totalFrames,
     scenes,
+    silenceDrops,
   };
   await fs.writeFile(
     path.join(localStorageDir, 'scenes-raw.json'),
@@ -1347,6 +1379,31 @@ async function main() {
     header('Step 11: Generating Chapters');
     const chapterCount = await generateChapters(enrichedScenes, outputDir);
     console.log(`  Generated ${chapterCount} chapters`);
+
+    // Step 11.5: Memory — save video entry for future lore
+    try {
+      const { createMemoryClient } = await import(
+        '../packages/script-gen/src/memory-client.js'
+      );
+      const memClient = createMemoryClient();
+      await memClient.save({
+        topic: topic || 'unknown',
+        title: topicData?.title || topic || 'Untitled',
+        slug: topicSlug,
+        publishedAt: new Date().toISOString(),
+        claims: [], // Would need LLM extraction — left empty for now
+        stance: 'balanced',
+        topicTags: (topic || '').toLowerCase().split(/\s+/).filter((w: string) => w.length > 2),
+        source: topicData?.source || 'local',
+        wordCount: scriptText.split(/\s+/).length,
+        sceneCount: enrichedScenes.length,
+        durationSec,
+      });
+      await memClient.close();
+      console.log('  [Memory] Saved video entry for channel lore');
+    } catch {
+      console.log('  [Memory] Save skipped (unavailable)');
+    }
 
     // Copy script to output
     await fs.writeFile(path.join(outputDir, 'script.txt'), scriptText);

@@ -3,6 +3,7 @@ import { Audio, Sequence, useVideoConfig } from 'remotion';
 import { z } from 'zod';
 import { DirectionDocumentSchema } from '../types';
 import type { DirectionSegment, MotionConfig, WordTiming, EmphasisWord } from '../types';
+import { COLORS } from '../utils/colors.js';
 import {
   NeuralNetworkAnimation,
   DataFlowDiagram,
@@ -18,6 +19,7 @@ import {
 } from '../components';
 import { SceneRouter } from '../SceneRouter.js';
 import { ColorGrade } from '../components/shared/ColorGrade.js';
+import { HudOverlay } from '../components/shared/HudOverlay.js';
 import { SCENE_TYPES } from '../types/scenes.js';
 import type { Scene, SceneType } from '../types/scenes.js';
 
@@ -134,7 +136,7 @@ const UnknownComponentFallback: React.FC<{ componentName: string }> = ({ compone
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: '#0a0e1a',
+      backgroundColor: COLORS.bgDeepDark,
       color: '#fff',
       fontSize: 24,
       fontFamily: 'sans-serif',
@@ -224,6 +226,7 @@ export const TechExplainer: React.FC<TechExplainerProps> = (props) => {
           wordTimings={('wordTimings' in validated ? validated.wordTimings : undefined) as WordTiming[] | undefined}
           impactWords={impactWords}
         />
+        <HudOverlay showTimecode />
       </ColorGrade>
     );
   }

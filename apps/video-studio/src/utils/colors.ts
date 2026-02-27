@@ -9,19 +9,19 @@ import type React from 'react';
  */
 
 export const COLORS = {
-  // Background
-  bgDeepDark: '#0a0e1a',
-  bgBase: '#111827',
-  bgElevated: '#1e293b',
+  // Background — Neon Hacker palette
+  bgDeepDark: '#0a0a0a',
+  bgBase: '#111111',
+  bgElevated: '#1a1a1a',
 
-  // Accent Primary
-  accentPrimary: '#00d4ff',
-  accentGlow: 'rgba(0, 212, 255, 0.3)',
-  accentBright: '#0ea5e9',
+  // Accent Primary — Neon Green
+  accentPrimary: '#aaff00',
+  accentGlow: 'rgba(170, 255, 0, 0.3)',
+  accentBright: '#88cc00',
 
-  // Accent Secondary
-  accentSecondary: '#8b5cf6',
-  accentSecondaryBright: '#a855f7',
+  // Accent Secondary — Neon Green (unified)
+  accentSecondary: '#88cc00',
+  accentSecondaryBright: '#aaff00',
 
   // Text
   textPrimary: '#ffffff',
@@ -35,9 +35,9 @@ export const COLORS = {
 } as const;
 
 export const GRADIENTS = {
-  background: 'linear-gradient(135deg, #0a0e1a, #111827, #0a0e1a)',
-  accent: 'linear-gradient(90deg, #00d4ff, #8b5cf6)',
-  glow: 'radial-gradient(circle, rgba(0,212,255,0.15), transparent)',
+  background: 'linear-gradient(135deg, #0a0a0a, #111111, #0a0a0a)',
+  accent: 'linear-gradient(90deg, #aaff00, #88cc00)',
+  glow: 'radial-gradient(circle, rgba(170,255,0,0.15), transparent)',
 } as const;
 
 /**

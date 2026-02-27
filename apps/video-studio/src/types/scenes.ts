@@ -26,6 +26,8 @@ export type SceneType =
   | 'code-block'
   | 'meme-reaction'
   | 'map-animation'
+  | 'scrolling-capture'
+  | 'dynamic-chart'
   | 'outro';
 
 // -----------------------------------------------------------------------------
@@ -73,6 +75,8 @@ export const SCENE_TYPES: SceneType[] = [
   'code-block',
   'meme-reaction',
   'map-animation',
+  'scrolling-capture',
+  'dynamic-chart',
   'outro',
 ];
 
@@ -193,6 +197,20 @@ export interface MapAnimationVisualData {
   centerOn?: string;
 }
 
+export interface DynamicChartVisualData {
+  chartType: 'bar' | 'line';
+  title: string;
+  data: Array<{ label: string; value: number }>;
+  unit?: string;
+  animationStyle?: 'sequential' | 'simultaneous';
+}
+
+export interface ScrollingCaptureVisualData {
+  fullPageImageUrl: string;
+  scrollSpeedPxPerSec?: number;
+  label?: string;
+}
+
 export interface OutroVisualData {
   nextTopicTeaser?: string;
 }
@@ -217,6 +235,8 @@ export interface VisualDataMap {
   'code-block': CodeBlockVisualData;
   'meme-reaction': MemeReactionVisualData;
   'map-animation': MapAnimationVisualData;
+  'scrolling-capture': ScrollingCaptureVisualData;
+  'dynamic-chart': DynamicChartVisualData;
   'outro': OutroVisualData;
 }
 
@@ -340,9 +360,14 @@ export interface Scene {
   screenshotImage?: string;
   screenshotDisplayMode?: 'background' | 'foreground';
   sourceUrl?: string;
+  visualSource?: 'source-screenshot' | 'content-screenshot' | 'company-screenshot' | 'stock' | 'ai-generated' | 'programmatic' | 'gradient';
   overlays?: SceneOverlay[];
   annotations?: SceneAnnotation[];
   isColdOpen?: boolean;
+  visualLayer?: 'abstract-concept' | 'evidence-screenshot' | 'showcase-scroll';
+  cssSelector?: string;
+  highlightText?: string;
+  fullPageImage?: string;
 }
 
 // -----------------------------------------------------------------------------

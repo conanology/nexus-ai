@@ -88,7 +88,7 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
 
   const { title, items, style } = visualData;
   const compact = items.length > 6;
-  const fontSize = compact ? 44 : 54;
+  const fontSize = compact ? 31 : 38;
   const itemSpacing = compact ? 60 : 80;
 
   // Title slide-up
@@ -129,9 +129,10 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
         {title && (
           <div
             style={{
-              fontSize: 72,
+              fontSize: 50,
               fontFamily: THEME.fonts.heading,
               fontWeight: 700,
+              lineHeight: 1.1,
               color: COLORS.textPrimary,
               marginBottom: itemSpacing,
               opacity: titleOpacity,

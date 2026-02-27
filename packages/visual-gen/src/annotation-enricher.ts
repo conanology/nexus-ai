@@ -13,11 +13,14 @@ import type { Scene, SceneAnnotation, CircleAnnotation, ArrowAnnotation, Underli
 // Annotation Colors
 // ---------------------------------------------------------------------------
 
+/** Unified neon green — cyberpunk precision aesthetic */
+const NEON_GREEN = '#aaff00';
+
 export const ANNOTATION_COLORS = {
-  emphasis: '#FF4444',  // red — draws attention, "look here!"
-  brand: '#00D4FF',     // cyan — matches video aesthetic
-  warning: '#FFB800',   // amber — caution, negative
-  success: '#00FF88',   // green — positive, growth
+  emphasis: NEON_GREEN,
+  brand: NEON_GREEN,
+  warning: NEON_GREEN,
+  success: NEON_GREEN,
 } as const;
 
 // ---------------------------------------------------------------------------

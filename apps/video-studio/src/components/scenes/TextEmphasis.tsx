@@ -27,7 +27,7 @@ export const TextEmphasis: React.FC<SceneComponentProps<'text-emphasis'>> = (pro
   // Override to slam when pacing is punch for extra impact
   const style = (pacing === 'punch' && rawStyle === 'fade') ? 'slam' as const : rawStyle;
   const bgVariant = style === 'slam' ? 'intense' : 'cool';
-  const fontSize = phrase.length > 60 ? 160 : 200;
+  const fontSize = phrase.length > 60 ? 112 : 140;
 
   return (
     <AbsoluteFill>

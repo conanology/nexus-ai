@@ -126,7 +126,7 @@ export async function executeResearch(
       }, language);
 
       // Set up LLM providers with fallback
-      const primaryProvider = new GeminiLLMProvider('gemini-3-pro-preview');
+      const primaryProvider = new GeminiLLMProvider('gemini-3.1-pro-preview');
       const fallbackProvider = new GeminiLLMProvider('gemini-2.5-pro');
       const providers = [primaryProvider, fallbackProvider];
 

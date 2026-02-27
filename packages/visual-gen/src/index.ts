@@ -28,3 +28,6 @@ export { enrichScenesWithStock } from './stock-enricher.js';
 export { enrichScenesWithCodeSnippets } from './code-snippet-generator.js';
 export { detectImpactWords } from './impact-word-detector.js';
 export type { ImpactWord } from './impact-word-detector.js';
+export { buildNanoBananaPrompt, applyVisualLayerCascade } from './asset-fetcher.js';
+export { captureWithAgenticBrowser } from './agentic-browser.js';
+export type { AgenticCaptureResult } from './agentic-browser.js';

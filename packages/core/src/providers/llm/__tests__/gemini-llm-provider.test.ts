@@ -22,15 +22,15 @@ vi.mock('../../../utils/with-retry.js', () => ({
 describe('GeminiLLMProvider', () => {
   describe('constructor', () => {
     it('should have name property matching model', () => {
-      const provider = new GeminiLLMProvider('gemini-3-pro-preview');
+      const provider = new GeminiLLMProvider('gemini-3.1-pro-preview');
 
-      expect(provider.name).toBe('gemini-3-pro-preview');
+      expect(provider.name).toBe('gemini-3.1-pro-preview');
     });
 
     it('should use default model when not specified', () => {
       const provider = new GeminiLLMProvider();
 
-      expect(provider.name).toBe('gemini-3-pro-preview');
+      expect(provider.name).toBe('gemini-3.1-pro-preview');
     });
 
     it('should accept custom model names', () => {
@@ -138,7 +138,7 @@ describe('GeminiLLMProvider', () => {
         text: 'Generated text response',
         tokens: { input: 100, output: 500 },
         cost: 0.0025,
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3.1-pro-preview',
         quality: 'primary',
       };
 
@@ -156,7 +156,7 @@ describe('GeminiLLMProvider', () => {
       expect(result.tokens.input).toBeGreaterThanOrEqual(0);
       expect(result.tokens.output).toBeGreaterThanOrEqual(0);
       expect(result.cost).toBeGreaterThanOrEqual(0);
-      expect(result.model).toBe('gemini-3-pro-preview');
+      expect(result.model).toBe('gemini-3.1-pro-preview');
       expect(result.quality).toBe('primary');
     });
   });
@@ -189,7 +189,7 @@ describe('GeminiLLMProvider', () => {
   describe('name property for withFallback', () => {
     it('should have name property for fallback tracking', () => {
       const providers = [
-        new GeminiLLMProvider('gemini-3-pro-preview'),
+        new GeminiLLMProvider('gemini-3.1-pro-preview'),
         new GeminiLLMProvider('gemini-2.5-pro'),
       ];
 
@@ -201,7 +201,7 @@ describe('GeminiLLMProvider', () => {
     });
 
     it('should have unique names for different models', () => {
-      const primary = new GeminiLLMProvider('gemini-3-pro-preview');
+      const primary = new GeminiLLMProvider('gemini-3.1-pro-preview');
       const fallback = new GeminiLLMProvider('gemini-2.5-pro');
 
       expect(primary.name).not.toBe(fallback.name);

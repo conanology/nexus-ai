@@ -62,6 +62,16 @@ export interface DuckingConfig {
   releaseMs: number;
 }
 
+/** Silence drop — full mute of music before high-impact scenes */
+export interface SilenceDrop {
+  /** Start time of the silence window (scene start - 1.0s) */
+  timeSec: number;
+  /** Duration of silence in seconds (1.0 for V3) */
+  durationSec: number;
+  /** Fade-back duration in milliseconds (300 for V3) */
+  fadeBackMs: number;
+}
+
 export interface SpeechSegment {
   startSec: number;
   endSec: number;
@@ -94,6 +104,8 @@ export interface AudioMixerInput {
   voiceTrackUrl: string;
   directionDocument: DirectionDocument;
   targetDurationSec: number;
+  /** Pre-built silence drops for high-impact scenes (built by caller from Scene[] data) */
+  silenceDrops?: SilenceDrop[];
 }
 
 export interface AudioMixerOutput {

@@ -13,7 +13,7 @@ import {
   type StageOutput,
   type StageConfig,
 } from '@nexus-ai/core';
-import type { AudioMixerInput, AudioMixerOutput, GainPoint, MoodType, SFXTriggerResolved } from './types.js';
+import type { AudioMixerInput, AudioMixerOutput, GainPoint, MoodType, SFXTriggerResolved, SilenceDrop } from './types.js';
 import { detectSpeechSegments, generateDuckingCurve, DEFAULT_DUCKING_CONFIG } from './ducking.js';
 import { loadMusicLibrary, selectMusic, prepareLoopedTrack } from './music-selector.js';
 import { loadSFXLibrary, extractSFXTriggers } from './sfx.js';
@@ -122,6 +122,54 @@ function dbToLinear(db: number): number {
   return Math.pow(10, db / 20);
 }
 
+/** Scene types that trigger a silence drop (music mute before impact scenes) */
+const SILENCE_DROP_SCENE_TYPES = new Set([
+  'stat-callout',
+  'text-emphasis',
+  'full-screen-text',
+]);
+
+/**
+ * Minimal scene shape required by buildSilenceDrops.
+ */
+interface SceneForSilenceDrop {
+  type: string;
+  startFrame: number;
+  isColdOpen?: boolean;
+}
+
+/**
+ * Build silence-drop descriptors for high-impact scenes.
+ * Creates a SilenceDrop for every scene whose type is stat-callout,
+ * text-emphasis, full-screen-text, or that is flagged as a cold open.
+ * Each drop starts 1 second before the scene and lasts 1 second with
+ * a 300ms fade-back.
+ */
+export function buildSilenceDrops(
+  scenes: SceneForSilenceDrop[],
+  fps: number
+): SilenceDrop[] {
+  const drops: SilenceDrop[] = [];
+
+  for (const scene of scenes) {
+    const isImpactType = SILENCE_DROP_SCENE_TYPES.has(scene.type);
+    if (!isImpactType && !scene.isColdOpen) {
+      continue;
+    }
+
+    const sceneStartSec = scene.startFrame / fps;
+    const dropStart = Math.max(0, sceneStartSec - 1.0);
+
+    drops.push({
+      timeSec: dropStart,
+      durationSec: 1.0,
+      fadeBackMs: 300,
+    });
+  }
+
+  return drops;
+}
+
 /**
  * Execute the full audio mix pipeline.
  */
@@ -174,11 +222,12 @@ async function executeMixPipeline(
     const speechSegments = await detectSpeechSegments(voicePath);
     log.info({ segmentCount: speechSegments.length }, 'Speech segments detected');
 
-    // 4. Generate ducking curve
+    // 4. Generate ducking curve (with silence drops if provided)
     const duckingCurve = generateDuckingCurve(
       speechSegments,
       DEFAULT_DUCKING_CONFIG,
-      data.targetDurationSec
+      data.targetDurationSec,
+      data.silenceDrops,
     );
     const duckingApplied = speechSegments.length > 0 && musicPath !== null;
 

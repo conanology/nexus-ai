@@ -151,14 +151,14 @@ function renderStatHook(visualData: StatCalloutVisualData): React.ReactElement {
         prefix={visualData.prefix}
         suffix={visualData.suffix}
         decimals={decimals}
-        fontSize={192} // +20% from normal 160
+        fontSize={134} // 30% reduction from 192
         durationFrames={1} // Instant — no count-up in cold open
         color="#ffffff"
       />
       <div
         style={{
           marginTop: 24,
-          fontSize: 48, // +20% from normal 40
+          fontSize: 34, // 30% reduction from 48
           fontFamily: THEME.fonts.heading,
           fontWeight: 400,
           color: COLORS.textSecondary,
@@ -172,7 +172,7 @@ function renderStatHook(visualData: StatCalloutVisualData): React.ReactElement {
 }
 
 function renderTextHook(visualData: TextEmphasisVisualData): React.ReactElement {
-  const fontSize = visualData.phrase.length > 60 ? 86 : 115; // +20% from normal 72/96
+  const fontSize = visualData.phrase.length > 60 ? 60 : 80; // 30% reduction
 
   return (
     <AnimatedText

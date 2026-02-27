@@ -674,9 +674,9 @@ describe('V2 Output Structure', () => {
       },
       regenerationAttempts: 0,
       providers: {
-        writer: { name: 'gemini-3-pro-preview', tier: 'primary' as const, attempts: 1 },
-        critic: { name: 'gemini-3-pro-preview', tier: 'primary' as const, attempts: 1 },
-        optimizer: { name: 'gemini-3-pro-preview', tier: 'primary' as const, attempts: 1 },
+        writer: { name: 'gemini-3.1-pro-preview', tier: 'primary' as const, attempts: 1 },
+        critic: { name: 'gemini-3.1-pro-preview', tier: 'primary' as const, attempts: 1 },
+        optimizer: { name: 'gemini-3.1-pro-preview', tier: 'primary' as const, attempts: 1 },
       },
     };
 

@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
 import { unlink } from 'fs/promises';
 import ffmpegPath from 'ffmpeg-static';
 import { NexusError } from '@nexus-ai/core';
-import type { SpeechSegment, GainPoint, DuckingConfig } from './types.js';
+import type { SpeechSegment, GainPoint, DuckingConfig, SilenceDrop } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -251,7 +251,8 @@ function mergeAdjacentSegments(
 export function generateDuckingCurve(
   speechSegments: SpeechSegment[],
   config: DuckingConfig,
-  totalDurationSec: number
+  totalDurationSec: number,
+  silenceDrops?: SilenceDrop[]
 ): GainPoint[] {
   const {
     speechLevel,
@@ -265,10 +266,14 @@ export function generateDuckingCurve(
 
   // Empty segments → flat curve at silenceLevel
   if (speechSegments.length === 0) {
-    return [
+    const basePoints: GainPoint[] = [
       { timeSec: 0, gainDb: silenceLevel },
       { timeSec: totalDurationSec, gainDb: silenceLevel },
     ];
+    if (silenceDrops && silenceDrops.length > 0) {
+      return applySilenceDrops(basePoints, silenceDrops, silenceLevel, totalDurationSec);
+    }
+    return basePoints;
   }
 
   const points: GainPoint[] = [];
@@ -301,7 +306,53 @@ export function generateDuckingCurve(
   }
 
   // Sort by time and deduplicate overlapping regions
-  return deduplicatePoints(points.sort((a, b) => a.timeSec - b.timeSec));
+  const baseCurve = deduplicatePoints(points.sort((a, b) => a.timeSec - b.timeSec));
+
+  // Apply silence drops if provided
+  if (silenceDrops && silenceDrops.length > 0) {
+    return applySilenceDrops(baseCurve, silenceDrops, silenceLevel, totalDurationSec);
+  }
+
+  return baseCurve;
+}
+
+/** Effectively-silent gain level in dB (-96 dB ≈ 0 linear) */
+const SILENCE_DROP_DB = -96;
+
+/**
+ * Insert silence-drop gain points into an existing ducking curve.
+ * For each drop: hard cut to -96 dB at timeSec, hold for durationSec,
+ * then fade back to silenceLevel over fadeBackMs.
+ */
+function applySilenceDrops(
+  baseCurve: GainPoint[],
+  drops: SilenceDrop[],
+  silenceLevel: number,
+  totalDurationSec: number
+): GainPoint[] {
+  const extra: GainPoint[] = [];
+
+  for (const drop of drops) {
+    const dropStart = Math.max(0, drop.timeSec);
+    const holdEnd = Math.min(totalDurationSec, dropStart + drop.durationSec);
+    const fadeEnd = Math.min(totalDurationSec, holdEnd + drop.fadeBackMs / 1000);
+
+    // Hard cut to silence
+    extra.push({ timeSec: dropStart, gainDb: SILENCE_DROP_DB });
+
+    // End of hold — still silent
+    if (holdEnd > dropStart) {
+      extra.push({ timeSec: holdEnd, gainDb: SILENCE_DROP_DB });
+    }
+
+    // Fade back to silenceLevel
+    if (fadeEnd > holdEnd) {
+      extra.push({ timeSec: fadeEnd, gainDb: silenceLevel });
+    }
+  }
+
+  const merged = [...baseCurve, ...extra].sort((a, b) => a.timeSec - b.timeSec);
+  return deduplicatePoints(merged);
 }
 
 /**

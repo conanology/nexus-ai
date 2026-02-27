@@ -84,6 +84,8 @@ export type {
   UnderlineAnnotation,
   XMarkAnnotation,
   SceneAnnotation,
+  // Visual layer types
+  VisualLayer,
 } from './types.js';
 
 // Constants and schemas

@@ -252,7 +252,7 @@ export async function executeVisualGen(
         const mapperCost = mapper.getTotalCost();
         if (mapperCost > 0) {
           (config.tracker as any).recordApiCall(
-            'gemini-3-pro-preview',
+            'gemini-3.1-pro-preview',
             { input: 0, output: 0 },
             mapperCost
           );

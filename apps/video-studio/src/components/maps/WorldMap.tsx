@@ -33,7 +33,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({
   highlightedCountries,
   highlightColor,
   baseColor = 'rgba(255,255,255,0.08)',
-  strokeColor = 'rgba(0,212,255,0.15)',
+  strokeColor = 'rgba(170,255,0,0.15)',
   animationStyle,
   sceneDurationFrames,
 }) => {

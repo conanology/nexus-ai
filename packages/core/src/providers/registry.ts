@@ -71,7 +71,7 @@ export interface ProviderRegistry {
 export function createProviderRegistry(): ProviderRegistry {
   return {
     llm: {
-      primary: new GeminiLLMProvider('gemini-3-pro-preview'),
+      primary: new GeminiLLMProvider('gemini-3.1-pro-preview'),
       fallbacks: [new GeminiLLMProvider('gemini-2.5-pro')],
     },
     tts: {

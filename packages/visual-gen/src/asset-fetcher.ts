@@ -124,6 +124,9 @@ export async function enrichScenesWithAssets(
   // --- Concept fallback enrichment (Wikipedia screenshots for bare scenes) ---
   await enrichScenesWithConceptFallback(scenes);
 
+  // --- T032: Visual layer cascade (evidence → showcase → abstract-concept) ---
+  applyVisualLayerCascade(scenes);
+
   // --- AI Image enrichment (LAST visual source — only for scenes still without visuals, max 4) ---
   await enrichScenesWithImages(scenes, 'technology');
 
@@ -220,6 +223,9 @@ export async function enrichScenesWithAssetsFull(
   // --- Concept fallback enrichment (Wikipedia screenshots for bare scenes) ---
   await enrichScenesWithConceptFallback(scenes);
 
+  // --- T032: Visual layer cascade (evidence → showcase → abstract-concept) ---
+  applyVisualLayerCascade(scenes);
+
   // --- AI Image enrichment (LAST visual source — only for scenes still without visuals, max 4) ---
   await enrichScenesWithImages(scenes, topic);
 
@@ -237,6 +243,66 @@ export async function enrichScenesWithAssetsFull(
   logVisualSourceMetrics(enrichedScenes);
 
   return enrichedScenes;
+}
+
+// ---------------------------------------------------------------------------
+// T032: Visual Layer Cascade Fallback
+// ---------------------------------------------------------------------------
+
+/**
+ * Visual layer cascade priority:
+ *   evidence-screenshot → showcase-scroll → abstract-concept
+ *
+ * When a scene's assigned visual layer cannot be fulfilled (no visual after
+ * all enrichers have run), the cascade downgrades the layer to the next in
+ * priority. The Nano Banana AI image (abstract-concept) is always the
+ * terminal fallback.
+ *
+ * This function runs AFTER all screenshot/stock/concept enrichers but BEFORE
+ * AI image generation. It ensures that unfulfilled evidence/showcase scenes
+ * get downgraded to abstract-concept so the AI image enricher picks them up
+ * with the Nano Banana prompt.
+ *
+ * @param scenes - Scene array to process (mutated in place)
+ */
+export function applyVisualLayerCascade(scenes: Scene[]): void {
+  let cascadeCount = 0;
+
+  for (const scene of scenes) {
+    // Only process scenes that have a visual layer AND still lack visuals
+    if (!scene.visualLayer) continue;
+    if (scene.screenshotImage || scene.backgroundImage) continue;
+
+    const originalLayer = scene.visualLayer;
+
+    // Cascade: evidence-screenshot → showcase-scroll → abstract-concept
+    if (scene.visualLayer === 'evidence-screenshot') {
+      // Evidence layer expected a screenshot — none found.
+      // Downgrade to showcase-scroll first (code/diagram/conceptual).
+      // Since showcase-scroll enrichers have already run and also didn't
+      // produce a visual, cascade further to abstract-concept.
+      scene.visualLayer = 'abstract-concept';
+      cascadeCount++;
+    } else if (scene.visualLayer === 'showcase-scroll') {
+      // Showcase layer expected code/diagram-appropriate visuals — none found.
+      // Downgrade to abstract-concept (Nano Banana AI terminal fallback).
+      scene.visualLayer = 'abstract-concept';
+      cascadeCount++;
+    }
+    // abstract-concept stays as-is — it's the terminal fallback.
+
+    if (scene.visualLayer !== originalLayer) {
+      console.log(
+        `  Cascade: scene ${scene.id} (${scene.type}) — ${originalLayer} → ${scene.visualLayer}`,
+      );
+    }
+  }
+
+  if (cascadeCount > 0) {
+    console.log(
+      `Visual layer cascade: ${cascadeCount} scenes downgraded to abstract-concept (Nano Banana fallback)`,
+    );
+  }
 }
 
 /**
@@ -290,6 +356,42 @@ export function enrichScenesWithAudio(scenes: Scene[]): void {
 /** Max AI-generated images per video — screenshots and stock are preferred */
 const MAX_AI_IMAGES = 2;
 
+// ---------------------------------------------------------------------------
+// Nano Banana prompt — deep black + neon green cyberpunk aesthetic
+// Used for abstract-concept visual layer scenes
+// ---------------------------------------------------------------------------
+
+const NANO_BANANA_POSITIVE =
+  'Cyberpunk, minimalist, strictly deep black background with bright neon green glowing accents, no text,';
+
+const NANO_BANANA_NEGATIVE =
+  'no text, no words, no letters, no numbers, no watermarks';
+
+/**
+ * Build a Nano Banana prompt for abstract-concept scenes.
+ * Combines the standard neon-green aesthetic preamble with a scene concept
+ * description derived from the scene content.
+ */
+export function buildNanoBananaPrompt(sceneContent: string): string {
+  // Strip any numbers/brands from content to get a clean concept description
+  const cleaned = sceneContent
+    .replace(/\$[\d,.]+[BMKbmk]?/g, '')
+    .replace(/\b\d[\d,.]*%?\b/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  const concept = cleaned.length > 10
+    ? cleaned.slice(0, 300)
+    : 'abstract futuristic technology concept';
+
+  return [
+    `[POSITIVE PROMPT]\n${NANO_BANANA_POSITIVE} ${concept}`,
+    `[NEGATIVE PROMPT]\n${NANO_BANANA_NEGATIVE}`,
+    '[STYLE]\n16:9 landscape, 1920x1080 framing, photorealistic rendering, cinematic volumetric lighting, matte surfaces, depth of field.',
+    '[FINAL INSTRUCTION]\nGenerate a single stunning image. The image must contain ZERO readable text, numbers, letters, or words. Pure visual art only.',
+  ].join('\n\n');
+}
+
 export async function enrichScenesWithImages(
   scenes: Scene[],
   topic: string,
@@ -311,11 +413,18 @@ export async function enrichScenesWithImages(
       continue;
     }
 
-    const prompt = buildPromptForScene(
-      { type: scene.type, content: scene.content, visualData: scene.visualData as Record<string, unknown> },
-      topic,
-      previousPrompt,
-    );
+    let prompt: string | null;
+
+    // T031: Use Nano Banana prompt for abstract-concept visual layer
+    if (scene.visualLayer === 'abstract-concept') {
+      prompt = buildNanoBananaPrompt(scene.content);
+    } else {
+      prompt = buildPromptForScene(
+        { type: scene.type, content: scene.content, visualData: scene.visualData as Record<string, unknown> },
+        topic,
+        previousPrompt,
+      );
+    }
 
     if (prompt) {
       requests.push({ sceneId: scene.id, prompt });

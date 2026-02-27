@@ -28,7 +28,7 @@ vi.mock('@nexus-ai/core', async () => {
       const result = await executeFn(input.data, config);
 
       // Extract provider info from result if available
-      const providerInfo = result?.provider || { name: 'gemini-3-pro-preview', tier: 'primary', attempts: 1 };
+      const providerInfo = result?.provider || { name: 'gemini-3.1-pro-preview', tier: 'primary', attempts: 1 };
 
       return {
         success: true,

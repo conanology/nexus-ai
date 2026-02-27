@@ -7,7 +7,7 @@
  * @module @nexus-ai/director-agent/validator
  */
 
-import type { ClassifiedSegment, SceneType } from './types.js';
+import type { ClassifiedSegment, SceneType, VisualLayer } from './types.js';
 import { VISUAL_DATA_SCHEMAS } from './types.js';
 
 // =============================================================================
@@ -265,11 +265,65 @@ function getDefaultVisualData(
       return { items: [text.slice(0, 60)], style: 'bullet' };
     case 'code-block':
       return { code: '// code', language: 'javascript' };
+    case 'dynamic-chart':
+      return {
+        chartType: 'bar',
+        title: text.slice(0, 60),
+        data: [{ label: 'A', value: 100 }, { label: 'B', value: 200 }],
+        animationStyle: 'sequential',
+      };
     case 'outro':
       return {};
     default:
       return { backgroundVariant: 'gradient' };
   }
+}
+
+// =============================================================================
+// Visual Layer Variety (belt-and-suspenders for assignVisualLayers)
+// =============================================================================
+
+/**
+ * Rule: No 3 consecutive scenes with the same visualLayer.
+ * When detected, forces the MIDDLE scene to 'abstract-concept'.
+ *
+ * This is a safety net — assignVisualLayers() in scene-classifier.ts should
+ * prevent most cases via round-robin, but content-aware hints can override
+ * the round-robin and create runs of 3+.
+ *
+ * Auto-repairs and warns.
+ */
+function enforceVisualLayerVariety(scenes: ClassifiedSegment[]): string[] {
+  const warnings: string[] = [];
+
+  // Collect indices of scenes that have visualLayer (skip intro/outro which don't)
+  const layeredIndices: number[] = [];
+  for (let i = 0; i < scenes.length; i++) {
+    if (scenes[i].visualLayer) {
+      layeredIndices.push(i);
+    }
+  }
+
+  // Scan for 3-consecutive-same-layer in the layered subset
+  for (let j = 1; j < layeredIndices.length - 1; j++) {
+    const prevIdx = layeredIndices[j - 1];
+    const midIdx = layeredIndices[j];
+    const nextIdx = layeredIndices[j + 1];
+
+    const prevLayer = scenes[prevIdx].visualLayer;
+    const midLayer = scenes[midIdx].visualLayer;
+    const nextLayer = scenes[nextIdx].visualLayer;
+
+    if (prevLayer === midLayer && midLayer === nextLayer) {
+      const original = midLayer;
+      scenes[midIdx].visualLayer = 'abstract-concept' as VisualLayer;
+      warnings.push(
+        `Scene ${midIdx}: Forced visualLayer from "${original}" to "abstract-concept" to break 3-consecutive-same-layer run.`,
+      );
+    }
+  }
+
+  return warnings;
 }
 
 // =============================================================================
@@ -304,6 +358,7 @@ export function validateScenes(scenes: ClassifiedSegment[]): ValidationResult {
   warnings.push(...enforceBookends(repaired));
   warnings.push(...enforceNoTripleRepetition(repaired));
   warnings.push(...validateVisualData(repaired));
+  warnings.push(...enforceVisualLayerVariety(repaired));
   warnings.push(...checkStatUsage(repaired));
   warnings.push(...checkMinDuration(repaired));
   warnings.push(...checkVariety(repaired));

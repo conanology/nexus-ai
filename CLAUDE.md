@@ -1,4 +1,4 @@
-# NEXUS-AI Project — Claude Code Context
+﻿# NEXUS-AI Project — Claude Code Context
 
 ## Quick Reference
 
@@ -85,7 +85,7 @@ Nexus-AI is an automated AI video production pipeline. It discovers trending tec
 - `FirestoreClient` becomes no-op in local mode
 
 ### AI Services
-- **Gemini models**: `gemini-3-pro-preview` (primary), `gemini-2.0-flash` (health), `gemini-2.5-flash` (director)
+- **Gemini models**: `gemini-3.1-pro-preview` (primary), `gemini-2.0-flash` (health), `gemini-2.5-flash` (director)
 - **API key**: `getSecret('nexus-gemini-api-key')` from `@nexus-ai/core` — checks env `NEXUS_GEMINI_API_KEY` first, then GCP Secret Manager
 - **Image gen**: Gemini image generation via `@google/generative-ai` (^0.16.0)
 - **TTS cascade**: AI Studio TTS → edge-tts → silent fallback

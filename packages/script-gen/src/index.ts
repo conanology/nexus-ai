@@ -77,6 +77,12 @@ export type {
   // V2 output types
   ScriptGenOutputV1,
   ScriptGenOutputV2,
+  // V4 Cognitive Overhaul types
+  VideoMemoryEntry,
+  MemoryClient,
+  TrollEvaluation,
+  DebateRound,
+  DebateResult,
 } from './types.js';
 
 // Export constants
@@ -143,7 +149,11 @@ export {
   buildCriticPrompt,
   buildOptimizerPrompt,
   buildWordCountAdjustmentPrompt,
+  buildLorePrompt,
 } from './prompts.js';
+
+// Export memory client
+export { createMemoryClient } from './memory-client.js';
 
 // Export compatibility utilities (V1 → V2 migration)
 export {

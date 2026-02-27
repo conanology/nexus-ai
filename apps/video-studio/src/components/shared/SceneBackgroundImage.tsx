@@ -38,12 +38,12 @@ const CinematicOverlay: React.FC = () => (
           'radial-gradient(ellipse 70% 60% at 50% 50%, transparent 30%, rgba(10, 14, 26, 0.8) 100%)',
       }}
     />
-    {/* Subtle cyan tint for brand consistency */}
+    {/* Subtle neon green tint for brand consistency */}
     <div
       style={{
         position: 'absolute',
         inset: 0,
-        backgroundColor: 'rgba(0, 212, 255, 0.03)',
+        backgroundColor: 'rgba(170, 255, 0, 0.03)',
       }}
     />
   </>
@@ -97,13 +97,13 @@ const ScreenshotOverlay: React.FC = () => {
           backgroundColor: 'rgba(10, 14, 26, 0.55)',
         }}
       />
-      {/* Animated screen glow — pulsing cyan (8-16%) as if screen radiates light */}
+      {/* Animated screen glow — pulsing neon green (8-16%) as if screen radiates light */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           background:
-            `radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0, 212, 255, ${glowPulse}), transparent)`,
+            `radial-gradient(ellipse 60% 50% at 50% 50%, rgba(170, 255, 0, ${glowPulse}), transparent)`,
         }}
       />
       {/* Strong vignette at edges — blends screenshot into dark video aesthetic */}

@@ -9,6 +9,7 @@ import { ParallaxContainer } from '../shared/ParallaxContainer.js';
 import { CountUpNumber } from '../shared/CountUpNumber.js';
 import { GlowEffect } from '../shared/GlowEffect.js';
 import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
+import { GlassPanel } from '../shared/GlassPanel.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 /** Parse a stat string like "700", "2.3", "87.5" into a numeric value and decimal count */
@@ -90,70 +91,74 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
               ...motionStyles.exitStyle,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 60, transform: `scale(${entranceBounce})` }}>
-              {/* Left stat (comparison / "before") — slightly dimmer */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.7 }}>
-                <CountUpNumber
-                  targetNumber={compStat.numeric}
-                  decimals={compStat.decimals}
-                  fontSize={200}
-                  durationFrames={countUpDuration}
-                />
-                <div
+            <GlassPanel blurRadius={20} opacity={0.3} borderRadius={16} style={{ padding: '40px 60px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 60, transform: `scale(${entranceBounce})` }}>
+                {/* Left stat (comparison / "before") — slightly dimmer */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.7 }}>
+                  <CountUpNumber
+                    targetNumber={compStat.numeric}
+                    decimals={compStat.decimals}
+                    fontSize={140}
+                    durationFrames={countUpDuration}
+                  />
+                  <div
+                    style={{
+                      marginTop: 16,
+                      fontSize: 45,
+                      fontFamily: THEME.fonts.heading,
+                      fontWeight: 900,
+                      color: COLORS.textSecondary,
+                      lineHeight: 1.1,
+                      opacity: labelOpacity,
+                      textAlign: 'center',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {comparison.label}
+                  </div>
+                </div>
+
+                {/* Divider arrow */}
+                <span
                   style={{
-                    marginTop: 16,
-                    fontSize: 64,
-                    fontFamily: THEME.fonts.heading,
-                    fontWeight: 900,
-                    color: COLORS.textSecondary,
+                    fontSize: 38,
+                    fontWeight: 700,
+                    color: COLORS.accentPrimary,
                     opacity: labelOpacity,
-                    textAlign: 'center',
-                    textTransform: 'uppercase',
                   }}
                 >
-                  {comparison.label}
+                  →
+                </span>
+
+                {/* Right stat (main / "after") — full brightness */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <CountUpNumber
+                    targetNumber={mainStat.numeric}
+                    prefix={prefix}
+                    suffix={suffix}
+                    decimals={mainStat.decimals}
+                    fontSize={140}
+                    durationFrames={countUpDuration}
+                    delayFrames={countUp ? 10 : 0}
+                  />
+                  <div
+                    style={{
+                      marginTop: 16,
+                      fontSize: 45,
+                      fontFamily: THEME.fonts.heading,
+                      fontWeight: 900,
+                      color: COLORS.textSecondary,
+                      lineHeight: 1.1,
+                      opacity: compLabelOpacity,
+                      textAlign: 'center',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {label}
+                  </div>
                 </div>
               </div>
-
-              {/* Divider arrow */}
-              <span
-                style={{
-                  fontSize: 54,
-                  fontWeight: 700,
-                  color: COLORS.accentPrimary,
-                  opacity: labelOpacity,
-                }}
-              >
-                →
-              </span>
-
-              {/* Right stat (main / "after") — full brightness */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <CountUpNumber
-                  targetNumber={mainStat.numeric}
-                  prefix={prefix}
-                  suffix={suffix}
-                  decimals={mainStat.decimals}
-                  fontSize={200}
-                  durationFrames={countUpDuration}
-                  delayFrames={countUp ? 10 : 0}
-                />
-                <div
-                  style={{
-                    marginTop: 16,
-                    fontSize: 64,
-                    fontFamily: THEME.fonts.heading,
-                    fontWeight: 900,
-                    color: COLORS.textSecondary,
-                    opacity: compLabelOpacity,
-                    textAlign: 'center',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
-            </div>
+            </GlassPanel>
           </div>
         </SlowZoom>
         </ParallaxContainer>
@@ -186,32 +191,35 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
             ...motionStyles.exitStyle,
           }}
         >
-          <div style={{ transform: `scale(${entranceBounce}) translateX(${shakeX}px)` }}>
-            <CountUpNumber
-              targetNumber={mainStat.numeric}
-              prefix={prefix}
-              suffix={suffix}
-              decimals={mainStat.decimals}
-              fontSize={300}
-              durationFrames={countUpDuration}
-            />
-          </div>
+          <GlassPanel blurRadius={20} opacity={0.3} borderRadius={16} style={{ padding: '40px 60px' }}>
+            <div style={{ transform: `scale(${entranceBounce}) translateX(${shakeX}px)` }}>
+              <CountUpNumber
+                targetNumber={mainStat.numeric}
+                prefix={prefix}
+                suffix={suffix}
+                decimals={mainStat.decimals}
+                fontSize={210}
+                durationFrames={countUpDuration}
+              />
+            </div>
 
-          <div
-            style={{
-              marginTop: 24,
-              fontSize: 64,
-              fontFamily: THEME.fonts.heading,
-              fontWeight: 900,
-              color: COLORS.textSecondary,
-              opacity: labelOpacity,
-              transform: `translateY(${labelSlideY}px) translateX(${shakeX}px)`,
-              textAlign: 'center',
-              textTransform: 'uppercase',
-            }}
-          >
-            {label}
-          </div>
+            <div
+              style={{
+                marginTop: 24,
+                fontSize: 45,
+                fontFamily: THEME.fonts.heading,
+                fontWeight: 900,
+                color: COLORS.textSecondary,
+                lineHeight: 1.1,
+                opacity: labelOpacity,
+                transform: `translateY(${labelSlideY}px) translateX(${shakeX}px)`,
+                textAlign: 'center',
+                textTransform: 'uppercase',
+              }}
+            >
+              {label}
+            </div>
+          </GlassPanel>
         </div>
       </SlowZoom>
       </ParallaxContainer>

@@ -36,8 +36,8 @@ function isValidImageSrc(src?: string): boolean {
 
 /** Deterministic hash → palette color for unknown companies */
 const FALLBACK_PALETTE = [
-  '#00D4FF', '#FF6B6B', '#00FF88', '#FFD93D', '#C084FC',
-  '#FF8C42', '#22D3EE', '#F472B6', '#A3E635', '#FB923C',
+  COLORS.accentPrimary, '#FFFFFF', '#888888', '#CCCCCC', '#555555',
+  '#AAAAAA', '#DDDDDD', '#777777', '#EEEEEE', '#999999',
 ];
 
 function hashColor(name: string): string {
@@ -272,11 +272,11 @@ const SequentialLogo: React.FC<SequentialLogoProps> = ({ logo, opacity, slamScal
         <>
           <div
             style={{
-              fontSize: 72,
+              fontSize: 50,
               fontWeight: 700,
               fontFamily: THEME.fonts.mono,
               color: logo.color,
-              lineHeight: 1,
+              lineHeight: 1.1,
               marginBottom: 16,
             }}
           >

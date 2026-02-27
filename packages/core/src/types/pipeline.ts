@@ -72,7 +72,7 @@ export interface StageInput<T> {
  * Provider execution information
  */
 export interface ProviderInfo {
-  /** Provider name (e.g., "gemini-3-pro-preview") */
+  /** Provider name (e.g., "gemini-3.1-pro-preview") */
   name: string;
   /** Provider tier used */
   tier: 'primary' | 'fallback';

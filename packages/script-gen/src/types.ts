@@ -25,6 +25,8 @@ export interface ScriptGenInput {
     viralityScore: number;
     metadata?: Record<string, unknown>;
   };
+  /** Past video entries for channel lore context (V4 Cognitive Overhaul) */
+  channelHistory?: VideoMemoryEntry[];
 }
 
 // ScriptGenOutput is defined as a union type below (V1 | V2) for backward compatibility
@@ -61,6 +63,119 @@ export interface MultiAgentResult {
   criticDraft: AgentDraft;
   /** Optimizer draft (final optimized script) */
   optimizerDraft: AgentDraft;
+}
+
+// =============================================================================
+// Troll Agent Types (V4 Cognitive Overhaul)
+// =============================================================================
+
+/**
+ * Troll Agent retention evaluation for a single debate round
+ */
+export interface TrollEvaluation {
+  /** Retention score 0-100 */
+  score: number;
+  /** True if score >= approval threshold (default 70) */
+  approved: boolean;
+  /** Line-level feedback (markdown) */
+  critique: string;
+  /** Retention metrics */
+  metrics: {
+    /** Hooks detected in draft */
+    hookCount: number;
+    /** Open loops before midpoint */
+    openLoopCount: number;
+    /** Longest segment (sec) without payoff */
+    longestGapSec: number;
+  };
+}
+
+/**
+ * A single cycle of the Troll Agent debate loop
+ */
+export interface DebateRound {
+  /** 1-indexed round number */
+  roundNumber: number;
+  /** Full script text for this round */
+  draftText: string;
+  /** Word count of the draft */
+  wordCount: number;
+  /** Retention score 0-100 */
+  trollScore: number;
+  /** Whether the Troll approved this draft */
+  trollApproved: boolean;
+  /** Line-level critique from the Troll */
+  trollCritique: string;
+  /** Number of hooks detected */
+  hookCount: number;
+  /** Number of open loops before midpoint */
+  openLoopCount: number;
+  /** Longest segment (sec) without payoff */
+  longestGapSec: number;
+  /** LLM provider info */
+  provider: AgentProviderInfo;
+}
+
+/**
+ * Result of the full Troll Agent debate loop
+ */
+export interface DebateResult {
+  /** Highest-scoring draft text */
+  bestDraft: string;
+  /** Score of selected draft */
+  bestScore: number;
+  /** All rounds for diagnostics */
+  rounds: DebateRound[];
+  /** Round# of approval, or null if never approved */
+  approvedOnRound: number | null;
+  /** Rounds executed (1-3) */
+  totalRounds: number;
+}
+
+// =============================================================================
+// Channel Memory Types (V4 Cognitive Overhaul)
+// =============================================================================
+
+/**
+ * Persistent record of a completed video for channel lore
+ */
+export interface VideoMemoryEntry {
+  /** UUID primary key */
+  id: string;
+  /** Original topic string */
+  topic: string;
+  /** Video title */
+  title: string;
+  /** URL-safe slug */
+  slug: string;
+  /** ISO 8601 date of pipeline completion */
+  publishedAt: string;
+  /** 3-5 key claims/takeaways */
+  claims: string[];
+  /** Editorial stance */
+  stance: string;
+  /** Lowercase keywords for similarity search */
+  topicTags: string[];
+  /** News source (hacker-news, arxiv, etc.) */
+  source: string;
+  /** Final script word count */
+  wordCount: number;
+  /** Number of scenes in final video */
+  sceneCount: number;
+  /** Video duration in seconds */
+  durationSec: number;
+}
+
+/**
+ * Memory client interface for channel lore persistence
+ */
+export interface MemoryClient {
+  /** Query similar past videos. Returns [] on any error. */
+  query(topic: string, limit?: number): Promise<VideoMemoryEntry[]>;
+  /** Save new video entry. Silent no-op on error. */
+  save(entry: Omit<VideoMemoryEntry, 'id'>): Promise<void>;
+  /** Close database connection. */
+  close(): Promise<void>;
 }
 
 // =============================================================================

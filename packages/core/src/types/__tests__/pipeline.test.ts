@@ -204,14 +204,14 @@ describe('Pipeline Types', () => {
           measurements: {},
         },
         cost: {
-          service: 'gemini-3-pro-preview',
+          service: 'gemini-3.1-pro-preview',
           tokens: { input: 100, output: 50 },
           cost: 0.0015,
           timestamp: new Date().toISOString(),
         },
         durationMs: 1000,
         provider: {
-          name: 'gemini-3-pro-preview',
+          name: 'gemini-3.1-pro-preview',
           tier: 'primary',
           attempts: 1,
         },
