@@ -601,6 +601,37 @@ export async function executeVisualGen(
       qualityStatus,
     };
 
+    const strictVisualRegeneration = ['1', 'true', 'yes', 'on'].includes(
+      String(process.env.NEXUS_VISUAL_STRICT_REGENERATE || 'false').toLowerCase(),
+    );
+    const minVisualScore = Number(process.env.NEXUS_VISUAL_MIN_SCORE || 70);
+    const minEvidenceCoverage = Number(process.env.NEXUS_VISUAL_MIN_EVIDENCE_COVERAGE || 0.35);
+
+    if (
+      strictVisualRegeneration &&
+      (
+        visualQuality.qualityScore < minVisualScore ||
+        visualQuality.sourceEvidenceCoverage < minEvidenceCoverage ||
+        visualQuality.qualityStatus === 'DEGRADED'
+      )
+    ) {
+      throw NexusError.retryable(
+        'Visual quality below strict regeneration threshold',
+        {
+          code: 'NEXUS_VISUAL_QUALITY_REGENERATE',
+          context: {
+            pipelineId,
+            qualityScore: visualQuality.qualityScore,
+            qualityStatus: visualQuality.qualityStatus,
+            sourceEvidenceCoverage: visualQuality.sourceEvidenceCoverage,
+            minVisualScore,
+            minEvidenceCoverage,
+          },
+          stage: 'visual-gen',
+        },
+      );
+    }
+
     // Build artifacts array
     const artifacts: ArtifactRef[] = [
       {
