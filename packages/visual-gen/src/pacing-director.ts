@@ -1,18 +1,63 @@
 import type { Scene, ScenePacing } from '@nexus-ai/director-agent';
 
+export type HookArchetype = 'shock-stat' | 'contradiction' | 'breaking-shift';
+type StoryPhase = 'hook' | 'exposition' | 'conclusion';
+
 export interface PacingDirectiveMetrics {
   hookSceneCount: number;
   expositionSceneCount: number;
   conclusionSceneCount: number;
   cadencePerMin: number;
+  hookArchetype: HookArchetype;
+  patternBreakCount: number;
+  noveltyInterventions: number;
+  maxConsecutiveSceneTypeRun: number;
 }
 
 function isEvidenceScene(scene: Scene): boolean {
   return Boolean(scene.sourceUrl) || scene.visualSource === 'source-screenshot' || scene.visualSource === 'content-screenshot';
 }
 
-function chooseHookTransition(index: number): Scene['transition'] {
-  const pattern: Array<NonNullable<Scene['transition']>> = ['slam', 'cut', 'split', 'zoom-in', 'cut'];
+function inferPhase(ratio: number): StoryPhase {
+  if (ratio < 0.15) return 'hook';
+  if (ratio < 0.8) return 'exposition';
+  return 'conclusion';
+}
+
+function inferPacing(phase: StoryPhase, scene: Scene, sceneDurationSec: number): ScenePacing {
+  if (phase === 'hook') return 'punch';
+  if (phase === 'conclusion' || sceneDurationSec > 10) return 'breathe';
+  if (isEvidenceScene(scene)) return 'dense';
+  return 'normal';
+}
+
+function extractHookText(scenes: Scene[], totalFrames: number): string {
+  return scenes
+    .filter((scene) => ((scene.startFrame + scene.endFrame) / 2) / totalFrames < 0.22)
+    .slice(0, 3)
+    .map((scene) => scene.content || '')
+    .join(' ')
+    .toLowerCase();
+}
+
+function detectHookArchetype(scenes: Scene[], totalFrames: number): HookArchetype {
+  const hookText = extractHookText(scenes, totalFrames);
+  const hasStatSignal = /\b\d+(?:\.\d+)?\s*(?:%|x|k|m|b|million|billion|seconds?|minutes?|hours?)\b/i.test(hookText);
+  if (hasStatSignal) return 'shock-stat';
+
+  const hasContradictionSignal = /\b(?:but|however|yet|despite|although|instead|versus|vs\.?|while)\b/i.test(hookText);
+  if (hasContradictionSignal) return 'contradiction';
+
+  return 'breaking-shift';
+}
+
+function chooseHookTransition(index: number, archetype: HookArchetype): Scene['transition'] {
+  const patternByArchetype: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
+    'shock-stat': ['slam', 'split', 'cut', 'zoom-in'],
+    'contradiction': ['split', 'wipe-down', 'cut', 'zoom-in'],
+    'breaking-shift': ['zoom-in', 'slam', 'cut', 'split'],
+  };
+  const pattern = patternByArchetype[archetype];
   return pattern[index % pattern.length];
 }
 
@@ -21,38 +66,87 @@ function chooseConclusionTransition(index: number): Scene['transition'] {
   return pattern[index % pattern.length];
 }
 
-function inferPacing(ratio: number, scene: Scene, sceneDurationSec: number): ScenePacing {
-  if (ratio < 0.15) return 'punch';
-  if (ratio >= 0.8) return 'breathe';
-  if (sceneDurationSec > 10) return 'breathe';
-  if (isEvidenceScene(scene)) return 'dense';
-  return 'normal';
+function choosePatternBreakTransition(index: number, phase: StoryPhase): NonNullable<Scene['transition']> {
+  const pattern = phase === 'hook'
+    ? (['slam', 'split', 'zoom-in', 'wipe-down'] as const)
+    : (['split', 'zoom-in', 'wipe-down', 'pop-in'] as const);
+  return pattern[index % pattern.length];
+}
+
+function hasPatternBreak(scene: Scene): boolean {
+  return Boolean(scene.transition) && scene.transition !== 'cut';
+}
+
+function appendSfx(scene: Scene, sfxName: string): void {
+  if (!scene.sfx) {
+    scene.sfx = [sfxName];
+    return;
+  }
+  if (!scene.sfx.includes(sfxName)) {
+    scene.sfx.push(sfxName);
+  }
+}
+
+function hookSfxForArchetype(archetype: HookArchetype): string {
+  if (archetype === 'shock-stat') return 'impact-hard';
+  if (archetype === 'contradiction') return 'transition';
+  return 'reveal';
+}
+
+function getPatternBreakTargetSec(phase: StoryPhase): number {
+  if (phase === 'hook') return 5;
+  if (phase === 'conclusion') return 8;
+  return 9;
 }
 
 export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): PacingDirectiveMetrics {
   if (scenes.length === 0) {
-    return { hookSceneCount: 0, expositionSceneCount: 0, conclusionSceneCount: 0, cadencePerMin: 0 };
+    return {
+      hookSceneCount: 0,
+      expositionSceneCount: 0,
+      conclusionSceneCount: 0,
+      cadencePerMin: 0,
+      hookArchetype: 'breaking-shift',
+      patternBreakCount: 0,
+      noveltyInterventions: 0,
+      maxConsecutiveSceneTypeRun: 0,
+    };
   }
 
   const totalFrames = Math.max(...scenes.map((s) => s.endFrame), 1);
+  const hookArchetype = detectHookArchetype(scenes, totalFrames);
+
   let hookSceneCount = 0;
   let expositionSceneCount = 0;
   let conclusionSceneCount = 0;
+  let patternBreakCount = 0;
+  let noveltyInterventions = 0;
+
+  let elapsedSincePatternBreakSec = 0;
+  let previousType: string | undefined;
+  let typeRun = 0;
+  let maxConsecutiveSceneTypeRun = 0;
+  let previousVisualSource: string | undefined;
+  let visualRun = 0;
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     const midpoint = (scene.startFrame + scene.endFrame) / 2;
     const ratio = midpoint / totalFrames;
     const sceneDurationSec = Math.max((scene.endFrame - scene.startFrame) / 30, 0.1);
+    const phase = inferPhase(ratio);
 
-    scene.pacing = inferPacing(ratio, scene, sceneDurationSec);
+    scene.pacing = inferPacing(phase, scene, sceneDurationSec);
 
-    if (ratio < 0.15) {
+    if (phase === 'hook') {
       hookSceneCount++;
       if (!scene.transition || scene.transition === 'cut') {
-        scene.transition = chooseHookTransition(i);
+        scene.transition = chooseHookTransition(i, hookArchetype);
       }
-    } else if (ratio < 0.8) {
+      if (i === 0) {
+        appendSfx(scene, hookSfxForArchetype(hookArchetype));
+      }
+    } else if (phase === 'exposition') {
       expositionSceneCount++;
       if (!scene.transition) {
         scene.transition = scene.pacing === 'dense' ? 'split' : 'cut';
@@ -63,10 +157,64 @@ export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): 
         scene.transition = chooseConclusionTransition(i);
       }
     }
+
+    if (scene.type === previousType) {
+      typeRun += 1;
+    } else {
+      typeRun = 1;
+      previousType = scene.type;
+    }
+    maxConsecutiveSceneTypeRun = Math.max(maxConsecutiveSceneTypeRun, typeRun);
+
+    const visualKey = scene.visualSource ?? 'none';
+    if (visualKey === previousVisualSource) {
+      visualRun += 1;
+    } else {
+      visualRun = 1;
+      previousVisualSource = visualKey;
+    }
+
+    if (typeRun > 2 || visualRun > 3) {
+      if (!scene.transition || scene.transition === 'cut') {
+        scene.transition = choosePatternBreakTransition(i, phase);
+      }
+      if (phase !== 'conclusion') {
+        scene.pacing = 'dense';
+      }
+      appendSfx(scene, phase === 'hook' ? 'impact-hard' : 'whoosh-in');
+      noveltyInterventions++;
+    }
+
+    if (hasPatternBreak(scene)) {
+      patternBreakCount++;
+      elapsedSincePatternBreakSec = 0;
+      continue;
+    }
+
+    elapsedSincePatternBreakSec += sceneDurationSec;
+    const patternBreakTargetSec = getPatternBreakTargetSec(phase);
+    if (elapsedSincePatternBreakSec >= patternBreakTargetSec) {
+      scene.transition = choosePatternBreakTransition(i, phase);
+      if (phase !== 'conclusion' && scene.pacing === 'normal') {
+        scene.pacing = 'dense';
+      }
+      patternBreakCount++;
+      noveltyInterventions++;
+      elapsedSincePatternBreakSec = 0;
+    }
   }
 
   const minutes = Math.max(audioDurationSec / 60, 0.1);
   const cadencePerMin = Number((scenes.length / minutes).toFixed(2));
 
-  return { hookSceneCount, expositionSceneCount, conclusionSceneCount, cadencePerMin };
+  return {
+    hookSceneCount,
+    expositionSceneCount,
+    conclusionSceneCount,
+    cadencePerMin,
+    hookArchetype,
+    patternBreakCount,
+    noveltyInterventions,
+    maxConsecutiveSceneTypeRun,
+  };
 }

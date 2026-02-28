@@ -14,6 +14,7 @@ import { generateDirectorScenes } from './director-bridge.js';
 import { enrichScenesWithAssets } from './asset-fetcher.js';
 import { scoreVisualQuality } from './visual-quality-scorer.js';
 import { applyPacingEnvelope } from './pacing-director.js';
+import type { PacingDirectiveMetrics } from './pacing-director.js';
 
 /**
  * Resolve segment start time from a direction document segment's timing.
@@ -91,6 +92,7 @@ export async function executeVisualGen(
     let providerTier: string;
     let alignmentError: number;
     let pacingCadencePerMin: number | undefined;
+    let pacingMetrics: PacingDirectiveMetrics | undefined;
     let qualityScenes: Array<{
       type: string;
       visualSource?: string;
@@ -135,7 +137,7 @@ export async function executeVisualGen(
         });
       }
 
-      const pacingMetrics = applyPacingEnvelope(directorResult.scenes, data.audioDurationSec);
+      pacingMetrics = applyPacingEnvelope(directorResult.scenes, data.audioDurationSec);
       pacingCadencePerMin = pacingMetrics.cadencePerMin;
       logger.info({
         msg: 'Applied pacing envelope to director scenes',
@@ -610,6 +612,7 @@ export async function executeVisualGen(
       audioMixingFailed,
       ...visualQuality,
       pacingCadencePerMin,
+      pacingMetrics,
       qualityStatus,
     };
 
