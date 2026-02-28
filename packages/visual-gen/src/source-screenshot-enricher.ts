@@ -38,6 +38,19 @@ interface MatchedSource {
   strategy: ReturnType<typeof buildAssetCaptureStrategy>;
 }
 
+function sourceKindPriority(kind: ReturnType<typeof buildAssetCaptureStrategy>['sourceKind']): number {
+  switch (kind) {
+    case 'paper': return 5;
+    case 'repository': return 4;
+    case 'article': return 3;
+    case 'app': return 2.5;
+    case 'tweet': return 2;
+    case 'website': return 1;
+    case 'video': return 0.5;
+    default: return 0;
+  }
+}
+
 function contentMentionsDomain(content: string, url: string): boolean {
   try {
     const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
@@ -74,6 +87,8 @@ function matchSourcesToScenes(
 
     const contentLower = scene.content.toLowerCase();
 
+    const candidates: Array<{ source: SourceUrl; strategy: ReturnType<typeof buildAssetCaptureStrategy>; score: number }> = [];
+
     for (const source of sourceUrls) {
       const strategy = buildAssetCaptureStrategy(source.url, scene.content);
       if (!strategy.isScreenshottable) continue;
@@ -87,12 +102,28 @@ function matchSourcesToScenes(
       const titleMatchCount = titleWords.filter((w) => contentLower.includes(w)).length;
       const domainMatch = contentMentionsDomain(scene.content, source.url);
       const tweetMention = strategy.sourceKind === 'tweet' && /(tweet|post|x.com|twitter)/i.test(contentLower);
+      const repoMention = strategy.sourceKind === 'repository' && /(repo|repository|github|gitlab|open\s*source)/i.test(contentLower);
+      const paperMention = strategy.sourceKind === 'paper' && /(paper|study|research|arxiv)/i.test(contentLower);
 
-      if (titleMatchCount >= Math.min(2, titleWords.length) || domainMatch || tweetMention) {
-        matches.set(i, { source, strategy });
-        usedNormalizedUrls.add(strategy.normalizedUrl);
-        break;
-      }
+      const relevancePass = titleMatchCount >= Math.min(2, titleWords.length) || domainMatch || tweetMention || repoMention || paperMention;
+      if (!relevancePass) continue;
+
+      const score =
+        titleMatchCount * 2 +
+        (domainMatch ? 3 : 0) +
+        (tweetMention ? 2 : 0) +
+        (repoMention ? 2 : 0) +
+        (paperMention ? 2 : 0) +
+        sourceKindPriority(strategy.sourceKind);
+
+      candidates.push({ source, strategy, score });
+    }
+
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.score - a.score);
+      const best = candidates[0];
+      matches.set(i, { source: best.source, strategy: best.strategy });
+      usedNormalizedUrls.add(best.strategy.normalizedUrl);
     }
 
     if (matches.size >= MAX_SOURCE_SCREENSHOTS) break;

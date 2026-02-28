@@ -225,6 +225,20 @@ export class QualityGateRegistry implements QualityGate {
         reason = 'Visual quality critically low (score=' + qualityScore.toFixed(1) + ', evidenceCoverage=' + (sourceEvidenceCoverage * 100).toFixed(1) + '%)';
       }
 
+      // Elite mode: enforce higher bar with hard publish blocking
+      const eliteMode = ['1', 'true', 'yes', 'on'].includes(String(process.env.NEXUS_VISUAL_ELITE_MODE || 'false').toLowerCase());
+      const eliteMinScore = Number(process.env.NEXUS_VISUAL_ELITE_MIN_SCORE || 80);
+      const eliteMinEvidence = Number(process.env.NEXUS_VISUAL_ELITE_MIN_EVIDENCE || 0.45);
+      const eliteMinCadence = Number(process.env.NEXUS_VISUAL_ELITE_MIN_CADENCE || 22);
+
+      if (eliteMode && (qualityScore < eliteMinScore || sourceEvidenceCoverage < eliteMinEvidence || sceneCadencePerMin < eliteMinCadence)) {
+        status = QualityStatus.FAIL;
+        reason =
+          'Elite visual gate failed (score=' + qualityScore.toFixed(1) +
+          ', evidence=' + (sourceEvidenceCoverage * 100).toFixed(1) +
+          '%, cadence=' + sceneCadencePerMin.toFixed(1) + '/min)';
+      }
+
       return {
         status,
         metrics: {

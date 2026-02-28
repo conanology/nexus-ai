@@ -13,6 +13,7 @@ import { generateTimeline } from './timeline.js';
 import { generateDirectorScenes } from './director-bridge.js';
 import { enrichScenesWithAssets } from './asset-fetcher.js';
 import { scoreVisualQuality } from './visual-quality-scorer.js';
+import { applyPacingEnvelope } from './pacing-director.js';
 
 /**
  * Resolve segment start time from a direction document segment's timing.
@@ -89,6 +90,7 @@ export async function executeVisualGen(
     let providerName: string;
     let providerTier: string;
     let alignmentError: number;
+    let pacingCadencePerMin: number | undefined;
     let qualityScenes: Array<{
       type: string;
       visualSource?: string;
@@ -132,6 +134,15 @@ export async function executeVisualGen(
           error: error instanceof Error ? error.message : String(error),
         });
       }
+
+      const pacingMetrics = applyPacingEnvelope(directorResult.scenes, data.audioDurationSec);
+      pacingCadencePerMin = pacingMetrics.cadencePerMin;
+      logger.info({
+        msg: 'Applied pacing envelope to director scenes',
+        pipelineId,
+        stage: 'visual-gen',
+        pacingMetrics,
+      });
 
       // Build V2 JSON payload
       const v2Payload = {
@@ -598,6 +609,7 @@ export async function executeVisualGen(
       audioMixingApplied,
       audioMixingFailed,
       ...visualQuality,
+      pacingCadencePerMin,
       qualityStatus,
     };
 
@@ -616,18 +628,16 @@ export async function executeVisualGen(
       )
     ) {
       throw NexusError.retryable(
+        'NEXUS_VISUAL_QUALITY_REGENERATE',
         'Visual quality below strict regeneration threshold',
+        'visual-gen',
         {
-          code: 'NEXUS_VISUAL_QUALITY_REGENERATE',
-          context: {
-            pipelineId,
-            qualityScore: visualQuality.qualityScore,
-            qualityStatus: visualQuality.qualityStatus,
-            sourceEvidenceCoverage: visualQuality.sourceEvidenceCoverage,
-            minVisualScore,
-            minEvidenceCoverage,
-          },
-          stage: 'visual-gen',
+          pipelineId,
+          qualityScore: visualQuality.qualityScore,
+          qualityStatus: visualQuality.qualityStatus,
+          sourceEvidenceCoverage: visualQuality.sourceEvidenceCoverage,
+          minVisualScore,
+          minEvidenceCoverage,
         },
       );
     }
