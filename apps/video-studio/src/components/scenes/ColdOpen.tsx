@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
 import { COLORS } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
+import { getVideoStyleConfig } from '../../utils/style-profile.js';
 import { CountUpNumber } from '../shared/CountUpNumber.js';
 import { AnimatedText } from '../shared/AnimatedText.js';
 import type { StatCalloutVisualData, TextEmphasisVisualData } from '../../types/scenes.js';
@@ -51,13 +52,14 @@ const EXIT_FRAMES = 3;
 export const ColdOpen: React.FC<ColdOpenProps> = ({ hook, durationFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const styleConfig = getVideoStyleConfig();
 
   // --- Cyan accent line: draws from center outward ---
   const lineProgress = interpolate(frame, [LINE_START, LINE_END], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const lineWidth = lineProgress * 300;
+  const lineWidth = lineProgress * (styleConfig.profile === 'fireship' ? 260 : 340);
 
   // --- Content entrance: slam spring ---
   const contentFrame = Math.max(0, frame - CONTENT_APPEAR);
@@ -74,8 +76,9 @@ export const ColdOpen: React.FC<ColdOpenProps> = ({ hook, durationFrames }) => {
   let shakeY = 0;
   if (contentFrame > 0 && contentFrame <= SHAKE_FRAMES) {
     const intensity = 1 - contentFrame / SHAKE_FRAMES;
-    shakeX = Math.sin(contentFrame * Math.PI * 3) * 4 * intensity;
-    shakeY = Math.cos(contentFrame * Math.PI * 2.5) * 4 * intensity;
+    const shakeBase = styleConfig.slamShakePx * 0.75;
+    shakeX = Math.sin(contentFrame * Math.PI * 3) * shakeBase * intensity;
+    shakeY = Math.cos(contentFrame * Math.PI * 2.5) * shakeBase * intensity;
   }
 
   // --- Hard cut to black at the end ---
@@ -104,12 +107,30 @@ export const ColdOpen: React.FC<ColdOpenProps> = ({ hook, durationFrames }) => {
           backgroundColor: COLORS.accentPrimary,
           zIndex: 1,
           // Fade out when content appears
+          boxShadow: `0 0 24px ${COLORS.accentPrimary}` ,
           opacity: interpolate(frame, [CONTENT_APPEAR, CONTENT_APPEAR + 5], [1, 0.3], {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
           }),
         }}
       />
+
+      <div
+        style={{
+          position: 'absolute',
+          top: 58,
+          left: 72,
+          fontFamily: THEME.fonts.mono,
+          fontSize: 12,
+          letterSpacing: 2.2,
+          textTransform: 'uppercase',
+          color: COLORS.accentSecondary,
+          opacity: interpolate(frame, [2, CONTENT_APPEAR], [0, 0.9], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+          zIndex: 2,
+        }}
+      >
+        COLD OPEN
+      </div>
 
       {/* Content — stat or text emphasis */}
       <div

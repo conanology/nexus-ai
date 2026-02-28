@@ -25,6 +25,7 @@ import { OverlayRenderer } from './components/overlays/OverlayRenderer.js';
 import { AnnotationLayer } from './components/annotations/AnnotationLayer.js';
 import type { Scene, SceneType, SceneComponentProps, StatCalloutVisualData, TextEmphasisVisualData } from './types/scenes.js';
 import type { WordTiming } from './types.js';
+import { getVideoStyleConfig } from './utils/style-profile.js';
 
 // -----------------------------------------------------------------------------
 // Scene Component Registry
@@ -57,8 +58,8 @@ export const SCENE_REGISTRY: Record<SceneType, React.FC<SceneComponentProps<any>
 
 type TransitionType = NonNullable<Scene['transition']>;
 
-/** Number of frames each transition type uses for entrance animations — near-instant for Fireship pacing. */
-const TRANSITION_FRAMES: Record<TransitionType, number> = {
+/** Base frame counts per transition before style-profile scaling. */
+const BASE_TRANSITION_FRAMES: Record<TransitionType, number> = {
   'cut':        0,
   'slide-left': 3,
   'slam':       2,
@@ -67,6 +68,22 @@ const TRANSITION_FRAMES: Record<TransitionType, number> = {
   'zoom-in':    3,
   'pop-in':     3,
 };
+
+const STYLE_CONFIG = getVideoStyleConfig();
+
+const TRANSITION_FRAMES: Record<TransitionType, number> = (Object.keys(BASE_TRANSITION_FRAMES) as TransitionType[]).reduce(
+  (acc, key) => {
+    const base = BASE_TRANSITION_FRAMES[key];
+    acc[key] = key === 'cut'
+      ? 0
+      : Math.min(
+          STYLE_CONFIG.maxTransitionFrames,
+          Math.max(1, Math.round(base * STYLE_CONFIG.transitionFrameMultiplier)),
+        );
+    return acc;
+  },
+  {} as Record<TransitionType, number>,
+);
 
 const CLAMP = { extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const };
 
@@ -120,7 +137,7 @@ const SceneEnvelope: React.FC<SceneEnvelopeProps> = ({
       case 'slam': {
         // Scale down from 1.15 to 1.0 + sine shake
         const scale = 1.15 - 0.15 * t;
-        const shake = Math.sin(frame * Math.PI * 2.5) * 6 * (1 - t);
+        const shake = Math.sin(frame * Math.PI * 2.5) * STYLE_CONFIG.slamShakePx * (1 - t);
         transform = `scale(${scale}) translateX(${shake}px)`;
         break;
       }
@@ -140,8 +157,8 @@ const SceneEnvelope: React.FC<SceneEnvelopeProps> = ({
           : 1;
         opacity = popT;
         const scaleVal = t < 0.6
-          ? interpolate(t, [0, 0.6], [0, 1.2], CLAMP)
-          : interpolate(t, [0.6, 1], [1.2, 1.0], CLAMP);
+          ? interpolate(t, [0, 0.6], [0, STYLE_CONFIG.popOvershootScale], CLAMP)
+          : interpolate(t, [0.6, 1], [STYLE_CONFIG.popOvershootScale, 1.0], CLAMP);
         transform = `scale(${scaleVal})`;
         break;
       }
