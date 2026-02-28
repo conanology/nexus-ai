@@ -312,6 +312,7 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl, audi
                 backgroundImage={scene.backgroundImage}
                 screenshotImage={scene.screenshotImage}
                 screenshotDisplayMode={scene.screenshotDisplayMode}
+                sourceMetadata={scene.sourceMetadata}
                 pacing={scene.pacing}
               />
               {scene.type !== 'meme-reaction' && scene.type !== 'map-animation' && scene.type !== 'dynamic-chart' && scene.annotations && scene.annotations.length > 0 && (

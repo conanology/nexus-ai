@@ -142,7 +142,7 @@ function resolveEdgeEndpoints(
 // ---------------------------------------------------------------------------
 
 export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -330,7 +330,7 @@ export const Diagram: React.FC<SceneComponentProps<'diagram'>> = (props) => {
           </Sequence>
         );
       })}
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

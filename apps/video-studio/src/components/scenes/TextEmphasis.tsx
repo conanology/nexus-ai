@@ -10,7 +10,7 @@ import { ForegroundScreenshot } from '../shared/ForegroundScreenshot.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 export const TextEmphasis: React.FC<SceneComponentProps<'text-emphasis'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, pacing } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata, pacing } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -84,7 +84,7 @@ export const TextEmphasis: React.FC<SceneComponentProps<'text-emphasis'>> = (pro
         </div>
       </SlowZoom>
       </ParallaxContainer>
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

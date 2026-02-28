@@ -79,7 +79,7 @@ function renderMarker(
 // ---------------------------------------------------------------------------
 
 export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -213,7 +213,7 @@ export const ListReveal: React.FC<SceneComponentProps<'list-reveal'>> = (props) 
         );
       })}
 
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

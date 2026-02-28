@@ -22,7 +22,7 @@ const ATTRIBUTION_START = 35;
 const ROLE_START = 45;
 
 export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -175,7 +175,7 @@ export const Quote: React.FC<SceneComponentProps<'quote'>> = (props) => {
         </div>
       </SlowZoom>
       </ParallaxContainer>
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

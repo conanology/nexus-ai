@@ -398,5 +398,6 @@ export interface SceneComponentProps<T extends SceneType = SceneType> {
   backgroundImage?: string;
   screenshotImage?: string;
   screenshotDisplayMode?: 'background' | 'foreground';
+  sourceMetadata?: SceneSourceMetadata;
   pacing?: 'punch' | 'breathe' | 'dense' | 'normal';
 }

@@ -25,7 +25,7 @@ const LABEL_FADE_DELAY = 10; // frames after count-up completes
 const SHAKE_FRAMES = 10; // screen shake after count-up — bigger for impact
 
 export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -162,7 +162,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
           </div>
         </SlowZoom>
         </ParallaxContainer>
-        {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+        {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
       </AbsoluteFill>
     );
   }
@@ -223,7 +223,7 @@ export const StatCallout: React.FC<SceneComponentProps<'stat-callout'>> = (props
         </div>
       </SlowZoom>
       </ParallaxContainer>
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

@@ -14,7 +14,7 @@ import type { SceneComponentProps } from '../../types/scenes.js';
  * Supports three variants: gradient, particles (denser particle field), and grid.
  */
 export const NarrationDefault: React.FC<SceneComponentProps<'narration-default'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const { durationInFrames } = useVideoConfig();
@@ -50,7 +50,7 @@ export const NarrationDefault: React.FC<SceneComponentProps<'narration-default'>
         />
       </SlowZoom>
       </ParallaxContainer>
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

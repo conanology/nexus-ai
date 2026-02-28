@@ -304,7 +304,7 @@ const SequentialLogo: React.FC<SequentialLogoProps> = ({ logo, opacity, slamScal
 // ---------------------------------------------------------------------------
 
 export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -375,7 +375,7 @@ export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (pro
             );
           })}
         </div>
-        {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+        {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
       </AbsoluteFill>
     );
   }
@@ -421,7 +421,7 @@ export const LogoShowcase: React.FC<SceneComponentProps<'logo-showcase'>> = (pro
           ))}
         </div>
       </div>
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

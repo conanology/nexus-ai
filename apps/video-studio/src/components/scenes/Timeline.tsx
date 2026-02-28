@@ -149,7 +149,7 @@ const EventMarker: React.FC<EventMarkerProps> = ({
 // ---------------------------------------------------------------------------
 
 export const Timeline: React.FC<SceneComponentProps<'timeline'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -220,7 +220,7 @@ export const Timeline: React.FC<SceneComponentProps<'timeline'>> = (props) => {
           );
         })}
       </div>
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

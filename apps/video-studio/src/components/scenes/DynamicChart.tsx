@@ -23,7 +23,7 @@ const LINE_STROKE_WIDTH = 4;
 // ---------------------------------------------------------------------------
 
 export const DynamicChart: React.FC<SceneComponentProps<'dynamic-chart'>> = (props) => {
-  const { visualData, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const frame = useCurrentFrame();
@@ -230,7 +230,7 @@ export const DynamicChart: React.FC<SceneComponentProps<'dynamic-chart'>> = (pro
         </div>
       )}
 
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };

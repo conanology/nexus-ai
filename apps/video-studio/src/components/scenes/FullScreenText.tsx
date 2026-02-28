@@ -9,7 +9,7 @@ import { AnimatedText } from '../shared/AnimatedText.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
 
 export const FullScreenText: React.FC<SceneComponentProps<'full-screen-text'>> = (props) => {
-  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode } = props;
+  const { visualData, motion, backgroundImage, screenshotImage, screenshotDisplayMode, sourceMetadata } = props;
   const isForeground = screenshotDisplayMode === 'foreground' && screenshotImage;
   const bgScreenshot = !isForeground ? screenshotImage : undefined;
   const { durationInFrames } = useVideoConfig();
@@ -72,7 +72,7 @@ export const FullScreenText: React.FC<SceneComponentProps<'full-screen-text'>> =
         </div>
       </SlowZoom>
       </ParallaxContainer>
-      {isForeground && <ForegroundScreenshot src={screenshotImage} />}
+      {isForeground && <ForegroundScreenshot src={screenshotImage} sourceMetadata={sourceMetadata} />}
     </AbsoluteFill>
   );
 };
