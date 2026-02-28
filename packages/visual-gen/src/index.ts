@@ -37,3 +37,6 @@ export type { AssetCaptureStrategy, AssetSourceKind } from './asset-intelligence
 export { deriveSourceBadgeOverlay, sourceKindDisplayLabel } from './source-badge.js';
 export { scoreVisualQuality } from './visual-quality-scorer.js';
 export type { VisualQualityScore } from './visual-quality-scorer.js';
+
+export { getRetentionProfile, getRetentionProfileConfig } from './retention-profile.js';
+export type { RetentionProfile, RetentionProfileConfig } from './retention-profile.js';

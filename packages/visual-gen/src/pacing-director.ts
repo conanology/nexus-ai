@@ -1,4 +1,5 @@
 import type { Scene, ScenePacing } from '@nexus-ai/director-agent';
+import { getRetentionProfileConfig, type RetentionProfile } from './retention-profile.js';
 
 export type HookArchetype = 'shock-stat' | 'contradiction' | 'breaking-shift';
 type StoryPhase = 'hook' | 'exposition' | 'conclusion';
@@ -12,6 +13,7 @@ export interface PacingDirectiveMetrics {
   patternBreakCount: number;
   noveltyInterventions: number;
   maxConsecutiveSceneTypeRun: number;
+  retentionProfile: RetentionProfile;
 }
 
 function isEvidenceScene(scene: Scene): boolean {
@@ -51,13 +53,27 @@ function detectHookArchetype(scenes: Scene[], totalFrames: number): HookArchetyp
   return 'breaking-shift';
 }
 
-function chooseHookTransition(index: number, archetype: HookArchetype): Scene['transition'] {
-  const patternByArchetype: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
-    'shock-stat': ['slam', 'split', 'cut', 'zoom-in'],
-    'contradiction': ['split', 'wipe-down', 'cut', 'zoom-in'],
-    'breaking-shift': ['zoom-in', 'slam', 'cut', 'split'],
+function chooseHookTransition(index: number, archetype: HookArchetype, retentionProfile: RetentionProfile): Scene['transition'] {
+  const premiumPattern: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
+    'shock-stat': ['slam', 'split', 'zoom-in', 'cut'],
+    'contradiction': ['split', 'wipe-down', 'zoom-in', 'cut'],
+    'breaking-shift': ['zoom-in', 'slam', 'split', 'cut'],
   };
-  const pattern = patternByArchetype[archetype];
+
+  const aggressivePattern: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
+    'shock-stat': ['slam', 'split', 'zoom-in', 'pop-in'],
+    'contradiction': ['split', 'wipe-down', 'slam', 'zoom-in'],
+    'breaking-shift': ['zoom-in', 'slam', 'split', 'pop-in'],
+  };
+
+  const balancedPattern: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
+    'shock-stat': ['slam', 'cut', 'split', 'zoom-in'],
+    'contradiction': ['split', 'cut', 'wipe-down', 'zoom-in'],
+    'breaking-shift': ['zoom-in', 'cut', 'slam', 'split'],
+  };
+
+  const table = retentionProfile === 'aggressive' ? aggressivePattern : retentionProfile === 'balanced' ? balancedPattern : premiumPattern;
+  const pattern = table[archetype];
   return pattern[index % pattern.length];
 }
 
@@ -66,7 +82,21 @@ function chooseConclusionTransition(index: number): Scene['transition'] {
   return pattern[index % pattern.length];
 }
 
-function choosePatternBreakTransition(index: number, phase: StoryPhase): NonNullable<Scene['transition']> {
+function choosePatternBreakTransition(index: number, phase: StoryPhase, retentionProfile: RetentionProfile): NonNullable<Scene['transition']> {
+  if (retentionProfile === 'aggressive') {
+    const pattern = phase === 'hook'
+      ? (['slam', 'split', 'zoom-in', 'pop-in', 'wipe-down'] as const)
+      : (['split', 'zoom-in', 'wipe-down', 'pop-in'] as const);
+    return pattern[index % pattern.length];
+  }
+
+  if (retentionProfile === 'balanced') {
+    const pattern = phase === 'hook'
+      ? (['slam', 'split', 'zoom-in'] as const)
+      : (['split', 'zoom-in', 'wipe-down'] as const);
+    return pattern[index % pattern.length];
+  }
+
   const pattern = phase === 'hook'
     ? (['slam', 'split', 'zoom-in', 'wipe-down'] as const)
     : (['split', 'zoom-in', 'wipe-down', 'pop-in'] as const);
@@ -93,13 +123,15 @@ function hookSfxForArchetype(archetype: HookArchetype): string {
   return 'reveal';
 }
 
-function getPatternBreakTargetSec(phase: StoryPhase): number {
-  if (phase === 'hook') return 5;
-  if (phase === 'conclusion') return 8;
-  return 9;
+function getPatternBreakTargetSec(phase: StoryPhase, config: ReturnType<typeof getRetentionProfileConfig>): number {
+  if (phase === 'hook') return config.hookPatternBreakTargetSec;
+  if (phase === 'conclusion') return config.conclusionPatternBreakTargetSec;
+  return config.expositionPatternBreakTargetSec;
 }
 
 export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): PacingDirectiveMetrics {
+  const retentionConfig = getRetentionProfileConfig();
+
   if (scenes.length === 0) {
     return {
       hookSceneCount: 0,
@@ -110,6 +142,7 @@ export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): 
       patternBreakCount: 0,
       noveltyInterventions: 0,
       maxConsecutiveSceneTypeRun: 0,
+      retentionProfile: retentionConfig.profile,
     };
   }
 
@@ -141,7 +174,7 @@ export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): 
     if (phase === 'hook') {
       hookSceneCount++;
       if (!scene.transition || scene.transition === 'cut') {
-        scene.transition = chooseHookTransition(i, hookArchetype);
+        scene.transition = chooseHookTransition(i, hookArchetype, retentionConfig.profile);
       }
       if (i === 0) {
         appendSfx(scene, hookSfxForArchetype(hookArchetype));
@@ -174,9 +207,9 @@ export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): 
       previousVisualSource = visualKey;
     }
 
-    if (typeRun > 2 || visualRun > 3) {
+    if (typeRun > retentionConfig.maxSameSceneTypeRun || visualRun > retentionConfig.maxSameVisualSourceRun) {
       if (!scene.transition || scene.transition === 'cut') {
-        scene.transition = choosePatternBreakTransition(i, phase);
+        scene.transition = choosePatternBreakTransition(i, phase, retentionConfig.profile);
       }
       if (phase !== 'conclusion') {
         scene.pacing = 'dense';
@@ -192,9 +225,9 @@ export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): 
     }
 
     elapsedSincePatternBreakSec += sceneDurationSec;
-    const patternBreakTargetSec = getPatternBreakTargetSec(phase);
+    const patternBreakTargetSec = getPatternBreakTargetSec(phase, retentionConfig);
     if (elapsedSincePatternBreakSec >= patternBreakTargetSec) {
-      scene.transition = choosePatternBreakTransition(i, phase);
+      scene.transition = choosePatternBreakTransition(i, phase, retentionConfig.profile);
       if (phase !== 'conclusion' && scene.pacing === 'normal') {
         scene.pacing = 'dense';
       }
@@ -216,5 +249,6 @@ export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): 
     patternBreakCount,
     noveltyInterventions,
     maxConsecutiveSceneTypeRun,
+    retentionProfile: retentionConfig.profile,
   };
 }

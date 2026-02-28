@@ -1,4 +1,5 @@
 import type { Scene } from '@nexus-ai/director-agent';
+import { getRetentionProfileConfig, type RetentionProfile } from './retention-profile.js';
 
 export interface VisualQualityScore {
   sourceEvidenceCoverage: number;
@@ -8,6 +9,7 @@ export interface VisualQualityScore {
   patternBreakRatio: number;
   hookPatternBreakRate: number;
   narrativeTurnDensity: number;
+  heroMomentCoverage: number;
   maxConsecutiveSceneTypeRun: number;
   aiVisualRatio: number;
   gradientOnlyRatio: number;
@@ -15,6 +17,7 @@ export interface VisualQualityScore {
   qualityScore: number;
   qualityStatus: 'PASS' | 'DEGRADED';
   qualityWarnings: string[];
+  retentionProfile: RetentionProfile;
 }
 
 function clamp01(value: number): number {
@@ -47,11 +50,28 @@ function maxConsecutiveRun(values: string[]): number {
 }
 
 const NARRATIVE_TURN_REGEX = /\b(?:but|however|yet|because|therefore|so\b|instead|despite|means|which means|this means|now)\b/i;
+const HERO_SCENE_TYPES = new Set<Scene['type']>([
+  'stat-callout',
+  'text-emphasis',
+  'full-screen-text',
+  'comparison',
+  'diagram',
+  'quote',
+  'code-block',
+]);
+const HERO_TRANSITIONS = new Set<NonNullable<Scene['transition']>>(['slam', 'zoom-in', 'split', 'pop-in']);
+
+function isHeroMoment(scene: Scene): boolean {
+  if (HERO_SCENE_TYPES.has(scene.type)) return true;
+  if (scene.transition && HERO_TRANSITIONS.has(scene.transition)) return true;
+  return scene.visualSource === 'source-screenshot' && scene.screenshotDisplayMode === 'foreground';
+}
 
 export function scoreVisualQuality(
   scenes: Scene[],
   audioDurationSec: number,
 ): VisualQualityScore {
+  const retention = getRetentionProfileConfig();
   const totalScenes = scenes.length || 1;
   const totalFrames = scenes.length > 0 ? Math.max(...scenes.map((scene) => scene.endFrame), 1) : 1;
 
@@ -88,6 +108,7 @@ export function scoreVisualQuality(
   const maxConsecutiveSceneTypeRun = maxConsecutiveRun(sceneTypeSequence);
 
   const narrativeTurnScenes = scenes.filter((scene) => NARRATIVE_TURN_REGEX.test((scene.content ?? '').toLowerCase())).length;
+  const heroMomentScenes = scenes.filter((scene) => isHeroMoment(scene)).length;
 
   const sourceEvidenceCoverage = clamp01(evidenceScenes / totalScenes);
   const foregroundEvidenceRatio = clamp01(foregroundEvidenceScenes / totalScenes);
@@ -99,6 +120,7 @@ export function scoreVisualQuality(
   const hookPatternBreakRate = hookPatternBreakScenes / hookDurationMin;
 
   const narrativeTurnDensity = clamp01(narrativeTurnScenes / totalScenes);
+  const heroMomentCoverage = clamp01(heroMomentScenes / totalScenes);
   const aiVisualRatio = clamp01(aiScenes / totalScenes);
   const gradientOnlyRatio = clamp01(gradientScenes / totalScenes);
 
@@ -106,19 +128,24 @@ export function scoreVisualQuality(
   const sceneCadencePerMin = totalScenes / minutes;
 
   // Scoring model tuned for retention-first, evidence-heavy tech explainers.
-  const evidenceScore = sourceEvidenceCoverage * 32;
-  const foregroundScore = foregroundEvidenceRatio * 18;
-  const diversityScore = visualDiversity * 14;
-  const cadenceScore = clamp01(sceneCadencePerMin / 18) * 12;
-  const transitionScore = transitionDiversity * 8;
-  const patternBreakScore = clamp01(patternBreakRatio / 0.45) * 8;
-  const hookBreakScore = clamp01(hookPatternBreakRate / 24) * 4;
+  const evidenceScore = sourceEvidenceCoverage * 30;
+  const foregroundScore = foregroundEvidenceRatio * 16;
+  const diversityScore = visualDiversity * 12;
+  const cadenceScore = clamp01(sceneCadencePerMin / retention.targetCadencePerMin) * 12;
+  const transitionScore = clamp01(transitionDiversity / retention.targetTransitionDiversity) * 8;
+  const patternBreakScore = clamp01(patternBreakRatio / retention.targetPatternBreakRatio) * 8;
+  const hookBreakScore = clamp01(hookPatternBreakRate / retention.targetHookPatternBreakRate) * 4;
   const narrativeTurnScore = clamp01(narrativeTurnDensity / 0.35) * 4;
+  const heroMomentScore = clamp01(heroMomentCoverage / retention.minHeroMomentCoverage) * 6;
 
   const aiPenalty = aiVisualRatio > 0.45 ? (aiVisualRatio - 0.45) * 18 : 0;
   const gradientPenalty = gradientOnlyRatio > 0.15 ? (gradientOnlyRatio - 0.15) * 55 : 0;
-  const repeatPenalty = maxConsecutiveSceneTypeRun > 3 ? (maxConsecutiveSceneTypeRun - 3) * 6 : 0;
-  const transitionPenalty = transitionDiversity < 0.25 ? (0.25 - transitionDiversity) * 20 : 0;
+  const repeatPenalty = maxConsecutiveSceneTypeRun > retention.maxSameSceneTypeRun
+    ? (maxConsecutiveSceneTypeRun - retention.maxSameSceneTypeRun) * 6
+    : 0;
+  const transitionPenalty = transitionDiversity < retention.targetTransitionDiversity
+    ? (retention.targetTransitionDiversity - transitionDiversity) * 12
+    : 0;
 
   const rawScore =
     evidenceScore +
@@ -128,7 +155,8 @@ export function scoreVisualQuality(
     transitionScore +
     patternBreakScore +
     hookBreakScore +
-    narrativeTurnScore -
+    narrativeTurnScore +
+    heroMomentScore -
     aiPenalty -
     gradientPenalty -
     repeatPenalty -
@@ -139,14 +167,15 @@ export function scoreVisualQuality(
   const qualityWarnings: string[] = [];
   if (sourceEvidenceCoverage < 0.35) qualityWarnings.push('Low evidence coverage');
   if (foregroundEvidenceRatio < 0.2) qualityWarnings.push('Not enough foreground evidence shots');
-  if (sceneCadencePerMin < 18) qualityWarnings.push('Scene cadence too slow for tech-news pacing');
+  if (sceneCadencePerMin < retention.targetCadencePerMin) qualityWarnings.push('Scene cadence below retention profile target');
   if (gradientOnlyRatio > 0.15) qualityWarnings.push('Too many gradient-only scenes');
   if (aiVisualRatio > 0.6) qualityWarnings.push('Over-reliance on AI-generated visuals');
-  if (patternBreakRatio < 0.3) qualityWarnings.push('Pattern breaks are too sparse');
-  if (hookPatternBreakRate < 14) qualityWarnings.push('Hook window lacks enough kinetic transitions');
-  if (transitionDiversity < 0.45) qualityWarnings.push('Transition diversity is too low');
-  if (maxConsecutiveSceneTypeRun > 3) qualityWarnings.push('Repetitive scene composition detected');
+  if (patternBreakRatio < retention.targetPatternBreakRatio) qualityWarnings.push('Pattern breaks are too sparse');
+  if (hookPatternBreakRate < retention.targetHookPatternBreakRate) qualityWarnings.push('Hook window lacks enough kinetic transitions');
+  if (transitionDiversity < retention.targetTransitionDiversity) qualityWarnings.push('Transition diversity is too low');
+  if (maxConsecutiveSceneTypeRun > retention.maxSameSceneTypeRun) qualityWarnings.push('Repetitive scene composition detected');
   if (narrativeTurnDensity < 0.2) qualityWarnings.push('Narrative turns are too sparse; sequence may feel recap-like');
+  if (heroMomentCoverage < retention.minHeroMomentCoverage) qualityWarnings.push('Not enough memorable hero moments');
 
   const qualityStatus = qualityScore >= 70 ? 'PASS' : 'DEGRADED';
 
@@ -158,6 +187,7 @@ export function scoreVisualQuality(
     patternBreakRatio: round(patternBreakRatio),
     hookPatternBreakRate: round(hookPatternBreakRate),
     narrativeTurnDensity: round(narrativeTurnDensity),
+    heroMomentCoverage: round(heroMomentCoverage),
     maxConsecutiveSceneTypeRun,
     aiVisualRatio: round(aiVisualRatio),
     gradientOnlyRatio: round(gradientOnlyRatio),
@@ -165,5 +195,6 @@ export function scoreVisualQuality(
     qualityScore: round(qualityScore),
     qualityStatus,
     qualityWarnings,
+    retentionProfile: retention.profile,
   };
 }
