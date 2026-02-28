@@ -1,1 +1,91 @@
-import React from 'react';\nimport { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';\nimport { useMotion } from '../../hooks/useMotion.js';\nimport { COLORS, withOpacity } from '../../utils/colors.js';\nimport { THEME } from '../../theme.js';\nimport { BackgroundGradient } from '../shared/BackgroundGradient.js';\nimport type { SceneComponentProps } from '../../types/scenes.js';\n\nexport const OutroSequence: React.FC<SceneComponentProps<'outro'>> = (props) => {\n  const { visualData, motion } = props;\n  const frame = useCurrentFrame();\n  const { durationInFrames, fps } = useVideoConfig();\n  const motionStyles = useMotion(motion, durationInFrames);\n\n  const { nextTopicTeaser } = visualData;\n\n  const logoSpring = spring({\n    frame: Math.max(0, frame - 8),\n    fps,\n    config: { damping: 12, mass: 0.85, stiffness: 180 },\n    durationInFrames: 16,\n  });\n\n  const logoScale = interpolate(logoSpring, [0, 1], [0.9, 1]);\n  const logoOpacity = interpolate(frame, [0, 14], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n\n  const panelOpacity = interpolate(frame, [14, 26], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n  const panelY = interpolate(frame, [14, 26], [22, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n  const ctaPulse = 0.9 + Math.sin((frame * 2 * Math.PI) / 90) * 0.1;\n  const socialOpacity = interpolate(frame, [32, 45], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n\n  const finalFade = interpolate(frame, [durationInFrames - 20, durationInFrames], [1, 0], {\n    extrapolateLeft: 'clamp',\n    extrapolateRight: 'clamp',\n  });\n\n  return (\n    <AbsoluteFill\n      style={{\n        ...motionStyles.entranceStyle,\n        ...motionStyles.exitStyle,\n        opacity: finalFade,\n      }}\n    >\n      <BackgroundGradient variant="intense" animate />\n\n      <div\n        style={{\n          position: 'absolute',\n          inset: 0,\n          display: 'flex',\n          flexDirection: 'column',\n          justifyContent: 'center',\n          alignItems: 'center',\n          padding: `${THEME.safeArea.vertical}px ${THEME.safeArea.horizontal}px`,\n          zIndex: 1,\n        }}\n      >\n        {/* Brand lockup */}\n        <div\n          style={{\n            opacity: logoOpacity,\n            transform: `scale(${logoScale})`,\n            textAlign: 'center',\n          }}\n        >\n          <span\n            style={{\n              fontSize: 92,\n              fontWeight: 800,\n              fontFamily: THEME.fonts.heading,\n              letterSpacing: 2,\n              color: COLORS.textPrimary,\n            }}\n          >\n            NEXUS\n          </span>\n          <span\n            style={{\n              fontSize: 92,\n              fontWeight: 800,\n              fontFamily: THEME.fonts.heading,\n              letterSpacing: 2,\n              color: COLORS.accentPrimary,\n            }}\n          >\n            {' '}AI\n          </span>\n        </div>\n\n        {/* CTA card */}\n        <div\n          style={{\n            marginTop: 22,\n            width: 860,\n            maxWidth: '86%',\n            borderRadius: 18,\n            padding: '20px 24px',\n            backgroundColor: withOpacity(COLORS.bgElevated, 0.8),\n            border: `1px solid ${withOpacity(COLORS.accentPrimary, 0.24)}`,\n            boxShadow: `0 20px 55px ${withOpacity(COLORS.bgDeepDark, 0.6)}` ,\n            opacity: panelOpacity * ctaPulse,\n            transform: `translateY(${panelY}px)`,\n            backdropFilter: 'blur(10px)',\n          }}\n        >\n          <div\n            style={{\n              display: 'flex',\n              alignItems: 'center',\n              justifyContent: 'space-between',\n              gap: 18,\n            }}\n          >\n            <div>\n              <div\n                style={{\n                  fontFamily: THEME.fonts.mono,\n                  fontSize: 12,\n                  letterSpacing: 2.2,\n                  textTransform: 'uppercase',\n                  color: COLORS.accentSecondary,\n                  fontWeight: 700,\n                }}\n              >\n                Keep Building Smarter\n              </div>\n              <div\n                style={{\n                  marginTop: 8,\n                  fontFamily: THEME.fonts.heading,\n                  fontSize: 34,\n                  lineHeight: 1.08,\n                  color: COLORS.textPrimary,\n                  fontWeight: 700,\n                }}\n              >\n                Subscribe for the next AI edge\n              </div>\n            </div>\n\n            <div\n              style={{\n                padding: '10px 14px',\n                borderRadius: 10,\n                background: `linear-gradient(90deg, ${withOpacity(COLORS.accentPrimary, 0.2)}, ${withOpacity(COLORS.accentSecondary, 0.22)})`,\n                border: `1px solid ${withOpacity(COLORS.accentPrimary, 0.3)}`,\n                fontFamily: THEME.fonts.mono,\n                fontWeight: 700,\n                color: COLORS.accentPrimary,\n                fontSize: 12,\n                letterSpacing: 1.5,\n                textTransform: 'uppercase',\n                whiteSpace: 'nowrap',\n              }}\n            >\n              Weekly Premium Drops\n            </div>\n          </div>\n\n          {nextTopicTeaser && (\n            <div\n              style={{\n                marginTop: 14,\n                fontFamily: THEME.fonts.body,\n                fontSize: 22,\n                color: COLORS.textSecondary,\n                borderTop: `1px solid ${withOpacity(COLORS.textMuted, 0.22)}`,\n                paddingTop: 12,\n              }}\n            >\n              <span style={{ color: COLORS.textMuted, fontFamily: THEME.fonts.mono, fontSize: 12, letterSpacing: 1.2, textTransform: 'uppercase' }}>Up Next</span>\n              <div style={{ marginTop: 6 }}>{nextTopicTeaser}</div>\n            </div>\n          )}\n        </div>\n\n        <div\n          style={{\n            marginTop: 26,\n            opacity: socialOpacity,\n            fontFamily: THEME.fonts.mono,\n            fontSize: 16,\n            letterSpacing: 1.6,\n            textTransform: 'uppercase',\n            color: withOpacity(COLORS.textMuted, 0.92),\n          }}\n        >\n          @NexusAI\n        </div>\n      </div>\n    </AbsoluteFill>\n  );\n};\n
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
+import { useMotion } from '../../hooks/useMotion.js';
+import { COLORS, withOpacity } from '../../utils/colors.js';
+import { THEME } from '../../theme.js';
+import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import type { SceneComponentProps } from '../../types/scenes.js';
+
+export const OutroSequence: React.FC<SceneComponentProps<'outro'>> = (props) => {
+  const { visualData, motion } = props;
+  const frame = useCurrentFrame();
+  const { durationInFrames, fps } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
+
+  const { nextTopicTeaser } = visualData;
+
+  const logoSpring = spring({
+    frame: Math.max(0, frame - 6),
+    fps,
+    config: { damping: 12, mass: 0.85, stiffness: 180 },
+    durationInFrames: 16,
+  });
+
+  const logoScale = interpolate(logoSpring, [0, 1], [0.92, 1]);
+  const logoOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const ctaOpacity = interpolate(frame, [14, 28], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{ ...motionStyles.entranceStyle, ...motionStyles.exitStyle }}>
+      <BackgroundGradient variant="intense" animate />
+
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: `${THEME.safeArea.vertical}px ${THEME.safeArea.horizontal}px`,
+        }}
+      >
+        <div style={{ opacity: logoOpacity, transform: `scale(${logoScale})`, textAlign: 'center' }}>
+          <span style={{ fontFamily: THEME.fonts.heading, fontWeight: 800, fontSize: 90, letterSpacing: 2, color: COLORS.textPrimary }}>
+            NEXUS
+          </span>
+          <span style={{ fontFamily: THEME.fonts.heading, fontWeight: 800, fontSize: 90, letterSpacing: 2, color: COLORS.accentPrimary }}>
+            {' '}AI
+          </span>
+        </div>
+
+        <div
+          style={{
+            marginTop: 22,
+            width: 860,
+            maxWidth: '88%',
+            borderRadius: 16,
+            padding: '20px 24px',
+            backgroundColor: withOpacity(COLORS.bgElevated, 0.8),
+            border: `1px solid ${withOpacity(COLORS.accentPrimary, 0.24)}`,
+            boxShadow: `0 20px 50px ${withOpacity(COLORS.bgDeepDark, 0.6)}`,
+            opacity: ctaOpacity,
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <div style={{ fontFamily: THEME.fonts.mono, fontSize: 12, letterSpacing: 2.2, textTransform: 'uppercase', color: COLORS.accentSecondary, fontWeight: 700 }}>
+            Keep Building Smarter
+          </div>
+          <div style={{ marginTop: 8, fontFamily: THEME.fonts.heading, fontSize: 34, lineHeight: 1.1, color: COLORS.textPrimary, fontWeight: 700 }}>
+            Subscribe for the next AI edge
+          </div>
+
+          {nextTopicTeaser && (
+            <div style={{ marginTop: 14, borderTop: `1px solid ${withOpacity(COLORS.textMuted, 0.24)}`, paddingTop: 12 }}>
+              <div style={{ fontFamily: THEME.fonts.mono, fontSize: 11, letterSpacing: 1.6, color: COLORS.textMuted, textTransform: 'uppercase' }}>
+                Up Next
+              </div>
+              <div style={{ marginTop: 6, fontFamily: THEME.fonts.body, fontSize: 22, color: COLORS.textSecondary }}>
+                {nextTopicTeaser}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 24, fontFamily: THEME.fonts.mono, fontSize: 15, letterSpacing: 1.6, textTransform: 'uppercase', color: withOpacity(COLORS.textMuted, 0.92) }}>
+          @NexusAI
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};

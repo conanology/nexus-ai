@@ -1,1 +1,85 @@
-import React from 'react';\nimport { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';\nimport { useMotion } from '../../hooks/useMotion.js';\nimport { COLORS, withOpacity } from '../../utils/colors.js';\nimport { THEME } from '../../theme.js';\nimport { GlowEffect } from '../shared/GlowEffect.js';\nimport { BackgroundGradient } from '../shared/BackgroundGradient.js';\nimport type { SceneComponentProps } from '../../types/scenes.js';\n\n// Light particle field for premium depth without visual noise\nconst PARTICLES = Array.from({ length: 28 }, (_, i) => ({\n  baseX: (i % 7) * 280 + ((i * 29) % 80) - 40,\n  baseY: Math.floor(i / 7) * 260 + ((i * 43) % 90) - 45,\n  size: 2 + (i % 3),\n  phaseOffset: i * 0.7,\n}));\n\nexport const IntroSequence: React.FC<SceneComponentProps<'intro'>> = (props) => {\n  const { visualData, motion } = props;\n  const frame = useCurrentFrame();\n  const { durationInFrames, fps } = useVideoConfig();\n  const motionStyles = useMotion(motion, durationInFrames);\n\n  const { episodeNumber, episodeTitle } = visualData;\n\n  const logoSpring = spring({\n    frame,\n    fps,\n    config: { damping: 14, mass: 0.82, stiffness: 190 },\n    durationInFrames: 18,\n  });\n\n  const logoScale = interpolate(logoSpring, [0, 1], [0.86, 1]);\n  const logoOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n\n  const kickerOpacity = interpolate(frame, [8, 20], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n  const lineWidth = interpolate(frame, [15, 30], [0, 240], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n  const cardOpacity = interpolate(frame, [20, 34], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n  const titleOpacity = interpolate(frame, [26, 40], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\n\n  const subtlePulse = 0.94 + Math.sin((frame * 2 * Math.PI) / 120) * 0.06;\n\n  return (\n    <AbsoluteFill\n      style={{\n        ...motionStyles.entranceStyle,\n        ...motionStyles.exitStyle,\n      }}\n    >\n      <BackgroundGradient variant="cool" animate />\n\n      {/* Particle depth layer */}\n      {PARTICLES.map((p, i) => {\n        const x = p.baseX + Math.sin(frame * 0.018 + p.phaseOffset) * 22;\n        const y = p.baseY + Math.cos(frame * 0.015 + p.phaseOffset) * 16;\n        const opacity = 0.045 + Math.sin(frame * 0.02 + p.phaseOffset) * 0.03;\n\n        return (\n          <div\n            key={i}\n            style={{\n              position: 'absolute',\n              left: x,\n              top: y,\n              width: p.size,\n              height: p.size,\n              borderRadius: '50%',\n              backgroundColor: withOpacity(COLORS.accentSecondary, opacity),\n              pointerEvents: 'none',\n            }}\n          />\n        );\n      })}\n\n      <GlowEffect\n        color={COLORS.accentPrimary}\n        intensity="medium"\n        size={190}\n        pulse\n        position={{ x: 55, y: 46 }}\n      />\n\n      <div\n        style={{\n          position: 'absolute',\n          inset: 0,\n          display: 'flex',\n          flexDirection: 'column',\n          justifyContent: 'center',\n          alignItems: 'center',\n          padding: `${THEME.safeArea.vertical}px ${THEME.safeArea.horizontal}px`,\n          zIndex: 2,\n        }}\n      >\n        {/* Kicker */}\n        <div\n          style={{\n            fontFamily: THEME.fonts.mono,\n            fontSize: 14,\n            letterSpacing: 2.4,\n            color: withOpacity(COLORS.textSecondary, 0.88),\n            textTransform: 'uppercase',\n            opacity: kickerOpacity,\n            marginBottom: 18,\n          }}\n        >\n          NEXUS AI • DAILY BREAKDOWN\n        </div>\n\n        {/* Brand lockup */}\n        <div\n          style={{\n            opacity: logoOpacity,\n            transform: `scale(${logoScale})`,\n            textAlign: 'center',\n            lineHeight: 1,\n          }}\n        >\n          <span\n            style={{\n              fontSize: 118,\n              fontWeight: 800,\n              fontFamily: THEME.fonts.heading,\n              letterSpacing: 3,\n              color: COLORS.textPrimary,\n              textShadow: `0 16px 40px ${withOpacity(COLORS.bgDeepDark, 0.7)}`,\n            }}\n          >\n            NEXUS\n          </span>\n          <span\n            style={{\n              fontSize: 118,\n              fontWeight: 800,\n              fontFamily: THEME.fonts.heading,\n              letterSpacing: 2.5,\n              color: COLORS.accentPrimary,\n              textShadow: `0 0 30px ${withOpacity(COLORS.accentPrimary, 0.28)}`,\n            }}\n          >\n            {' '}AI\n          </span>\n        </div>\n\n        <div\n          style={{\n            width: lineWidth,\n            height: 2,\n            borderRadius: 2,\n            background: `linear-gradient(90deg, ${withOpacity(COLORS.accentPrimary, 0.2)}, ${COLORS.accentPrimary}, ${withOpacity(COLORS.accentSecondary, 0.25)})`,\n            marginTop: 18,\n            boxShadow: `0 0 18px ${withOpacity(COLORS.accentPrimary, 0.28)}`,\n          }}\n        />\n\n        {/* Episode metadata card */}\n        <div\n          style={{\n            marginTop: 24,\n            minWidth: 520,\n            maxWidth: 920,\n            padding: '18px 24px',\n            borderRadius: 14,\n            backgroundColor: withOpacity(COLORS.bgElevated, 0.78),\n            border: `1px solid ${withOpacity(COLORS.accentSecondary, 0.24)}`,\n            boxShadow: `0 18px 45px ${withOpacity(COLORS.bgDeepDark, 0.55)}`,\n            opacity: cardOpacity * subtlePulse,\n            backdropFilter: 'blur(10px)',\n          }}\n        >\n          {episodeNumber !== undefined && (\n            <div\n              style={{\n                fontSize: 13,\n                fontFamily: THEME.fonts.mono,\n                fontWeight: 600,\n                letterSpacing: 2.4,\n                color: COLORS.accentSecondary,\n                textTransform: 'uppercase',\n              }}\n            >\n              Episode {String(episodeNumber).padStart(3, '0')}\n            </div>\n          )}\n\n          {episodeTitle && (\n            <div\n              style={{\n                marginTop: 8,\n                fontSize: 38,\n                fontFamily: THEME.fonts.heading,\n                fontWeight: 700,\n                color: COLORS.textPrimary,\n                lineHeight: 1.12,\n                opacity: titleOpacity,\n              }}\n            >\n              {episodeTitle}\n            </div>\n          )}\n        </div>\n      </div>\n    </AbsoluteFill>\n  );\n};\n
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
+import { useMotion } from '../../hooks/useMotion.js';
+import { COLORS, withOpacity } from '../../utils/colors.js';
+import { THEME } from '../../theme.js';
+import { BackgroundGradient } from '../shared/BackgroundGradient.js';
+import type { SceneComponentProps } from '../../types/scenes.js';
+
+export const IntroSequence: React.FC<SceneComponentProps<'intro'>> = (props) => {
+  const { visualData, motion } = props;
+  const frame = useCurrentFrame();
+  const { durationInFrames, fps } = useVideoConfig();
+  const motionStyles = useMotion(motion, durationInFrames);
+
+  const { episodeNumber, episodeTitle } = visualData;
+
+  const lockupSpring = spring({
+    frame,
+    fps,
+    config: { damping: 14, mass: 0.82, stiffness: 190 },
+    durationInFrames: 18,
+  });
+
+  const lockupScale = interpolate(lockupSpring, [0, 1], [0.9, 1]);
+  const lockupOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const panelOpacity = interpolate(frame, [16, 30], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{ ...motionStyles.entranceStyle, ...motionStyles.exitStyle }}>
+      <BackgroundGradient variant="cool" animate />
+
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: `${THEME.safeArea.vertical}px ${THEME.safeArea.horizontal}px`,
+        }}
+      >
+        <div style={{ opacity: lockupOpacity, transform: `scale(${lockupScale})`, textAlign: 'center' }}>
+          <div style={{ fontFamily: THEME.fonts.mono, fontSize: 13, letterSpacing: 2.2, color: COLORS.accentSecondary, textTransform: 'uppercase', marginBottom: 12 }}>
+            NEXUS AI • DAILY BRIEF
+          </div>
+          <div>
+            <span style={{ fontFamily: THEME.fonts.heading, fontWeight: 800, fontSize: 108, letterSpacing: 2, color: COLORS.textPrimary }}>
+              NEXUS
+            </span>
+            <span style={{ fontFamily: THEME.fonts.heading, fontWeight: 800, fontSize: 108, letterSpacing: 2, color: COLORS.accentPrimary, textShadow: `0 0 24px ${withOpacity(COLORS.accentPrimary, 0.28)}` }}>
+              {' '}AI
+            </span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 24,
+            width: 860,
+            maxWidth: '88%',
+            borderRadius: 16,
+            padding: '18px 22px',
+            backgroundColor: withOpacity(COLORS.bgElevated, 0.8),
+            border: `1px solid ${withOpacity(COLORS.accentSecondary, 0.24)}`,
+            boxShadow: `0 18px 46px ${withOpacity(COLORS.bgDeepDark, 0.58)}` ,
+            opacity: panelOpacity,
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          {episodeNumber !== undefined && (
+            <div style={{ fontFamily: THEME.fonts.mono, fontSize: 12, letterSpacing: 2.2, textTransform: 'uppercase', color: COLORS.accentPrimary, fontWeight: 700 }}>
+              Episode {String(episodeNumber).padStart(3, '0')}
+            </div>
+          )}
+          {episodeTitle && (
+            <div style={{ marginTop: 8, fontFamily: THEME.fonts.heading, fontSize: 38, lineHeight: 1.12, fontWeight: 700, color: COLORS.textPrimary }}>
+              {episodeTitle}
+            </div>
+          )}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
