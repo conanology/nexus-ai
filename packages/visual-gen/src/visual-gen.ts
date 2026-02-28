@@ -12,6 +12,7 @@ import { SceneMapper } from './scene-mapper.js';
 import { generateTimeline } from './timeline.js';
 import { generateDirectorScenes } from './director-bridge.js';
 import { enrichScenesWithAssets } from './asset-fetcher.js';
+import { scoreVisualQuality } from './visual-quality-scorer.js';
 
 /**
  * Resolve segment start time from a direction document segment's timing.
@@ -88,6 +89,12 @@ export async function executeVisualGen(
     let providerName: string;
     let providerTier: string;
     let alignmentError: number;
+    let qualityScenes: Array<{
+      type: string;
+      visualSource?: string;
+      sourceUrl?: string;
+      screenshotDisplayMode?: 'foreground' | 'background';
+    }> = [];
 
     if (mode === 'v2-director') {
       // ----- V2 Director Agent path -----
@@ -136,6 +143,12 @@ export async function executeVisualGen(
       timelineJson = JSON.stringify(v2Payload, null, 2);
       sceneCount = directorResult.sceneCount;
       fallbackUsage = 0;
+      qualityScenes = directorResult.scenes as Array<{
+        type: string;
+        visualSource?: string;
+        sourceUrl?: string;
+        screenshotDisplayMode?: 'foreground' | 'background';
+      }>;
       providerName = 'director-agent';
       providerTier = 'primary';
 
@@ -564,15 +577,28 @@ export async function executeVisualGen(
       qualityStatus = 'DEGRADED';
     }
 
+    const visualQuality = scoreVisualQuality(qualityScenes as any, data.audioDurationSec);
+
+    if (visualQuality.qualityStatus === 'DEGRADED') {
+      qualityStatus = 'DEGRADED';
+      logger.warn({
+        msg: 'Visual quality scorer marked output as DEGRADED',
+        pipelineId,
+        stage: 'visual-gen',
+        visualQuality,
+      });
+    }
+
     // Build quality metrics
     const qualityMeasurements = {
       sceneCount,
       fallbackUsage,
       fallbackPercentage,
       timelineAlignmentError: alignmentError,
-      qualityStatus,
       audioMixingApplied,
       audioMixingFailed,
+      ...visualQuality,
+      qualityStatus,
     };
 
     // Build artifacts array

@@ -186,6 +186,60 @@ export class QualityGateRegistry implements QualityGate {
       };
     });
 
+    // visual-gen: evidence coverage + pacing quality for source-driven visuals
+    this.registerGate('visual-gen', (output: any) => {
+      const m = output.quality?.measurements || {};
+      const sourceEvidenceCoverage = Number(m.sourceEvidenceCoverage || 0);
+      const foregroundEvidenceRatio = Number(m.foregroundEvidenceRatio || 0);
+      const sceneCadencePerMin = Number(m.sceneCadencePerMin || 0);
+      const qualityScore = Number(m.qualityScore || 0);
+      const qualityStatus = String(m.qualityStatus || 'PASS');
+
+      let status = QualityStatus.PASS;
+      const warnings: string[] = [];
+      let reason: string | undefined;
+
+      if (qualityStatus === 'DEGRADED' || qualityScore < 70) {
+        status = QualityStatus.WARN;
+        warnings.push('Visual quality score ' + qualityScore.toFixed(1) + ' below target (70)');
+      }
+
+      if (sourceEvidenceCoverage < 0.35) {
+        status = QualityStatus.WARN;
+        warnings.push('Evidence coverage ' + (sourceEvidenceCoverage * 100).toFixed(1) + '% below minimum 35%');
+      }
+
+      if (foregroundEvidenceRatio < 0.2) {
+        status = QualityStatus.WARN;
+        warnings.push('Foreground evidence ratio ' + (foregroundEvidenceRatio * 100).toFixed(1) + '% below minimum 20%');
+      }
+
+      if (sceneCadencePerMin < 18) {
+        status = QualityStatus.WARN;
+        warnings.push('Scene cadence ' + sceneCadencePerMin.toFixed(1) + '/min below target 18/min');
+      }
+
+      // Hard fail only when visuals collapse completely
+      if (sourceEvidenceCoverage < 0.15 || qualityScore < 45) {
+        status = QualityStatus.FAIL;
+        reason = 'Visual quality critically low (score=' + qualityScore.toFixed(1) + ', evidenceCoverage=' + (sourceEvidenceCoverage * 100).toFixed(1) + '%)';
+      }
+
+      return {
+        status,
+        metrics: {
+          sourceEvidenceCoverage,
+          foregroundEvidenceRatio,
+          sceneCadencePerMin,
+          qualityScore,
+          qualityStatus,
+        },
+        warnings,
+        reason,
+        stage: 'visual-gen',
+      };
+    });
+
     // thumbnail: 3 variants
     this.registerGate('thumbnail', async (output: any, context?: QualityGateContext) => {
       const data = output.data || output;  // Handle both wrapped and unwrapped output

@@ -188,6 +188,15 @@ function updateQualityContext(
     updated.flags = [...updated.flags, ...output.warnings];
   }
 
+  // Track stage-level quality degradation emitted by stage metrics
+  const stageQualityStatus = (output.quality?.measurements as Record<string, unknown> | undefined)?.qualityStatus;
+  if (stageQualityStatus === 'DEGRADED' || stageQualityStatus === 'FAIL' || stageQualityStatus === 'WARN') {
+    if (!updated.degradedStages.includes(stageName)) {
+      updated.degradedStages = [...updated.degradedStages, stageName];
+    }
+    updated.flags = [...updated.flags, stageName + ':quality-' + String(stageQualityStatus).toLowerCase()];
+  }
+
   return updated;
 }
 
