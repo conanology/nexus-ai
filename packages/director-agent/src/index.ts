@@ -75,6 +75,7 @@ export type {
   SourceCitationOverlay,
   KeyPhraseOverlay,
   SourceBadgeOverlay,
+  SceneSourceMetadata,
   SceneOverlay,
   // Annotation types
   AnnotationType,

@@ -1,4 +1,4 @@
-import type { SourceBadgeOverlay } from '@nexus-ai/director-agent';
+import type { SceneSourceMetadata, SourceBadgeOverlay } from '@nexus-ai/director-agent';
 import type { AssetSourceKind } from './asset-intelligence.js';
 import { buildAssetCaptureStrategy } from './asset-intelligence.js';
 
@@ -40,7 +40,7 @@ function kindLabel(kind: AssetSourceKind): string {
   }
 }
 
-export function deriveSourceBadgeOverlay(sourceUrl: string): SourceBadgeOverlay | null {
+export function deriveSourceBadgeOverlay(sourceUrl: string, metadata?: SceneSourceMetadata): SourceBadgeOverlay | null {
   const strategy = buildAssetCaptureStrategy(sourceUrl);
   if (!strategy.isScreenshottable) return null;
 
@@ -52,35 +52,37 @@ export function deriveSourceBadgeOverlay(sourceUrl: string): SourceBadgeOverlay 
   }
 
   const host = parsed.hostname.replace(/^www\./, '');
-  let sourceName = host;
-  let detail: string | undefined;
+  let sourceName = metadata?.sourceName || host;
+  let detail: string | undefined = metadata?.detail;
 
-  if (strategy.sourceKind === 'repository') {
-    const slug = extractRepoSlug(parsed);
-    if (slug) {
-      sourceName = slug;
-      detail = host;
+  if (!metadata) {
+    if (strategy.sourceKind === 'repository') {
+      const slug = extractRepoSlug(parsed);
+      if (slug) {
+        sourceName = slug;
+        detail = host;
+      }
+    } else if (strategy.sourceKind === 'tweet') {
+      const handle = extractTweetHandle(parsed);
+      if (handle) sourceName = handle;
+      detail = 'social source';
+    } else if (strategy.sourceKind === 'article') {
+      detail = 'publisher source';
+    } else if (strategy.sourceKind === 'paper') {
+      detail = 'research source';
+    } else if (strategy.sourceKind === 'app') {
+      detail = 'product source';
     }
-  } else if (strategy.sourceKind === 'tweet') {
-    const handle = extractTweetHandle(parsed);
-    if (handle) sourceName = handle;
-    detail = 'social source';
-  } else if (strategy.sourceKind === 'article') {
-    detail = 'publisher source';
-  } else if (strategy.sourceKind === 'paper') {
-    detail = 'research source';
-  } else if (strategy.sourceKind === 'app') {
-    detail = 'product source';
   }
 
   return {
     type: 'source-badge',
     position: 'bottom-left',
     sourceName,
-    sourceKind: strategy.sourceKind,
+    sourceKind: metadata?.sourceKind || strategy.sourceKind,
     detail,
-    icon: kindIcon(strategy.sourceKind),
-    verified: ['repository', 'article', 'paper', 'app', 'tweet'].includes(strategy.sourceKind),
+    icon: metadata?.icon || kindIcon(strategy.sourceKind),
+    verified: metadata?.verified ?? ['repository', 'article', 'paper', 'app', 'tweet'].includes(strategy.sourceKind),
     delayFrames: 10,
   };
 }

@@ -350,6 +350,16 @@ export type SceneAnnotation = CircleAnnotation | ArrowAnnotation | UnderlineAnno
 // 5.2: Scene Interface
 // -----------------------------------------------------------------------------
 
+export interface SceneSourceMetadata {
+  sourceKind: 'tweet' | 'repository' | 'article' | 'paper' | 'app' | 'website' | 'video' | 'unknown';
+  sourceName?: string;
+  detail?: string;
+  icon?: string;
+  verified?: boolean;
+  authorityScore?: number;
+  stats?: Record<string, string | number>;
+}
+
 export interface Scene {
   id: string;
   type: SceneType;
@@ -365,6 +375,7 @@ export interface Scene {
   screenshotImage?: string;
   screenshotDisplayMode?: 'background' | 'foreground';
   sourceUrl?: string;
+  sourceMetadata?: SceneSourceMetadata;
   visualSource?: 'source-screenshot' | 'content-screenshot' | 'company-screenshot' | 'stock' | 'ai-generated' | 'programmatic' | 'gradient';
   overlays?: SceneOverlay[];
   annotations?: SceneAnnotation[];

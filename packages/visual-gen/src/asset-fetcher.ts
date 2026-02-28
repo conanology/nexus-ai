@@ -24,6 +24,7 @@ import { enrichScenesWithAnnotations } from './annotation-enricher.js';
 import { enrichScenesWithMemes } from './meme-enricher.js';
 import { enrichScenesWithScreenshots } from './screenshot-enricher.js';
 import { enrichScenesWithSourceScreenshots } from './source-screenshot-enricher.js';
+import { enrichScenesWithSourceMetadata } from './source-metadata-enricher.js';
 import type { SourceUrl } from './source-screenshot-enricher.js';
 import { enrichScenesWithContentScreenshots } from './content-screenshot-enricher.js';
 import { enrichScenesWithStock } from './stock-enricher.js';
@@ -114,6 +115,9 @@ export async function enrichScenesWithAssets(
 
   // --- Company screenshot enrichment (known companies with curated URLs) ---
   await enrichScenesWithScreenshots(scenes);
+
+  // --- Source metadata enrichment (authority + source-type details for evidence badges) ---
+  await enrichScenesWithSourceMetadata(scenes);
 
   // --- Stock enrichment (real photos for tangible concepts) ---
   const pexelsApiKey = process.env.PEXELS_API_KEY;
@@ -213,6 +217,9 @@ export async function enrichScenesWithAssetsFull(
 
   // --- Company screenshot enrichment (known companies with curated URLs) ---
   await enrichScenesWithScreenshots(scenes);
+
+  // --- Source metadata enrichment (authority + source-type details for evidence badges) ---
+  await enrichScenesWithSourceMetadata(scenes);
 
   // --- Stock enrichment (real photos for tangible concepts) ---
   const pexelsKey = process.env.PEXELS_API_KEY;

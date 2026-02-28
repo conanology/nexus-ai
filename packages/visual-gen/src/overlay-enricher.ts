@@ -263,7 +263,7 @@ export function enrichScenesWithOverlays(
 
     // F. Source badge when scene has a source screenshot
     if (scene.screenshotImage && scene.sourceUrl) {
-      const badge = deriveSourceBadgeOverlay(scene.sourceUrl);
+      const badge = deriveSourceBadgeOverlay(scene.sourceUrl, scene.sourceMetadata);
       if (badge) overlays.push(badge);
     }
 
