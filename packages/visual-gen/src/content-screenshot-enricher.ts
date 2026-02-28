@@ -16,6 +16,7 @@ import {
 } from '@nexus-ai/asset-library';
 import type { Scene } from '@nexus-ai/director-agent';
 import { captureWithAgenticBrowser } from './agentic-browser.js';
+import { buildAssetCaptureStrategy } from './asset-intelligence.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -35,19 +36,6 @@ const EXCLUDED_SCENE_TYPES = new Set([
 ]);
 
 /** Domains known to block automated screenshots or require login */
-const BLOCKED_DOMAINS = new Set([
-  'twitter.com',
-  'x.com',
-  'facebook.com',
-  'instagram.com',
-  'linkedin.com',
-  'medium.com',
-  'nytimes.com',
-  'wsj.com',
-  'ft.com',
-  'bloomberg.com',
-]);
-
 // ---------------------------------------------------------------------------
 // Known URL Map — 100+ tech companies/platforms/products
 // ---------------------------------------------------------------------------
@@ -289,18 +277,6 @@ const SORTED_CONTENT_KEYS = Object.keys(CONTENT_URL_MAP).sort(
 // URL matching
 // ---------------------------------------------------------------------------
 
-function isScreenshottable(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.replace(/^www\./, '');
-    if (BLOCKED_DOMAINS.has(hostname)) return false;
-    if (!parsed.protocol.startsWith('http')) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Determine whether a screenshot should be foreground (floating window) or background.
  * If the matched entity appears in the first 60 chars → foreground (scene is ABOUT it).
@@ -330,8 +306,9 @@ function extractContentUrl(text: string): { name: string; url: string } | null {
     if (/[a-z0-9]/.test(before) || /[a-z0-9]/.test(after)) continue;
 
     const url = CONTENT_URL_MAP[key];
-    if (isScreenshottable(url)) {
-      return { name: key, url };
+    const strategy = buildAssetCaptureStrategy(url, text);
+    if (strategy.isScreenshottable) {
+      return { name: key, url: strategy.normalizedUrl };
     }
   }
 
@@ -401,18 +378,20 @@ export async function enrichScenesWithContentScreenshots(
           console.log(`  Capturing: ${name} (${url})`);
 
           const scene = scenes[index];
-          const buffer = await captureWebsiteScreenshot(url, {
+          const strategy = buildAssetCaptureStrategy(url, scene.content);
+
+          const buffer = await captureWebsiteScreenshot(strategy.normalizedUrl, {
             darkMode: true,
-            waitMs: 3000,
+            waitMs: strategy.waitMs,
             width: 1920,
             height: 1080,
-            cssSelector: scene.cssSelector,
+            cssSelector: scene.cssSelector ?? strategy.cssSelector,
             highlightText: scene.highlightText,
             searchObjective: scene.content?.slice(0, 200),
             agenticCaptureFn: captureWithAgenticBrowser,
           });
 
-          return { index, name, url, buffer };
+          return { index, name, url: strategy.normalizedUrl, strategy, buffer };
         }),
       );
 
@@ -424,7 +403,7 @@ export async function enrichScenesWithContentScreenshots(
 
           scene.screenshotImage = dataUri;
           scene.visualSource = 'content-screenshot';
-          scene.screenshotDisplayMode = determineDisplayMode(scene.content, name);
+          scene.screenshotDisplayMode = result.value.strategy?.displayMode ?? determineDisplayMode(scene.content, name);
 
           successCount++;
           console.log(`  OK: scene ${index} (${scene.type}) — ${name} [${scene.screenshotDisplayMode}]`);

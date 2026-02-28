@@ -2,12 +2,8 @@
  * Source Screenshot Enricher — captures screenshots of actual source URLs
  * referenced in the video content.
  *
- * When the narrator says "According to this Hacker News post..." or
- * "OpenAI's latest paper shows...", this enricher replaces the abstract
- * AI-generated background with a real screenshot of the ACTUAL source.
- *
- * Source screenshots are the highest-priority visual — they override
- * both AI backgrounds and company screenshots.
+ * Source screenshots are highest-priority visuals and should represent
+ * real evidence (articles, repos, tweets, papers, product pages).
  *
  * @module @nexus-ai/visual-gen/source-screenshot-enricher
  */
@@ -19,15 +15,10 @@ import {
 } from '@nexus-ai/asset-library';
 import type { Scene } from '@nexus-ai/director-agent';
 import { captureWithAgenticBrowser } from './agentic-browser.js';
+import { buildAssetCaptureStrategy } from './asset-intelligence.js';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Max source screenshots per video (generous — these are the most valuable visuals) */
 const MAX_SOURCE_SCREENSHOTS = 20;
 
-/** Scene types that should NEVER get source screenshots */
 const EXCLUDED_SCENE_TYPES = new Set([
   'intro',
   'outro',
@@ -37,122 +28,69 @@ const EXCLUDED_SCENE_TYPES = new Set([
   'map-animation',
 ]);
 
-/** Domains known to block automated screenshots or require login */
-const BLOCKED_DOMAINS = new Set([
-  'twitter.com',
-  'x.com',
-  'facebook.com',
-  'instagram.com',
-  'linkedin.com',
-  'medium.com',       // Paywall
-  'nytimes.com',      // Paywall
-  'wsj.com',          // Paywall
-  'ft.com',           // Paywall
-  'bloomberg.com',    // Paywall
-]);
-
-/** Domains that need extra wait time for JS rendering */
-const SLOW_DOMAINS = new Set([
-  'github.com',
-  'arxiv.org',
-  'huggingface.co',
-  'reddit.com',
-]);
-
-// ---------------------------------------------------------------------------
-// URL Analysis
-// ---------------------------------------------------------------------------
-
-/**
- * Check if a URL is suitable for screenshot capture.
- * Returns false for paywalled, login-required, or invalid URLs.
- */
-function isScreenshottable(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.replace(/^www\./, '');
-
-    // Block known problematic domains
-    if (BLOCKED_DOMAINS.has(hostname)) return false;
-
-    // Must be http(s)
-    if (!parsed.protocol.startsWith('http')) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Get appropriate wait time for a URL based on its domain.
- */
-function getWaitMs(url: string): number {
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, '');
-    if (SLOW_DOMAINS.has(hostname)) return 5000;
-    return 3000;
-  } catch {
-    return 3000;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Source URL extraction
-// ---------------------------------------------------------------------------
-
 export interface SourceUrl {
   url: string;
   title: string;
 }
 
-/**
- * Match source URLs to scenes based on content overlap.
- *
- * For each scene, checks if the scene content references any of the provided
- * source URLs (by title match or domain match). Assigns the best-matching
- * source URL to each scene.
- */
+interface MatchedSource {
+  source: SourceUrl;
+  strategy: ReturnType<typeof buildAssetCaptureStrategy>;
+}
+
+function contentMentionsDomain(content: string, url: string): boolean {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    const base = host.split('.').slice(0, -1).join(' ');
+    const normalized = content.toLowerCase();
+    return normalized.includes(base) || normalized.includes(host);
+  } catch {
+    return false;
+  }
+}
+
 function matchSourcesToScenes(
   scenes: Scene[],
   sourceUrls: SourceUrl[],
-): Map<number, SourceUrl> {
-  const matches = new Map<number, SourceUrl>();
-  const usedUrls = new Set<string>();
+): Map<number, MatchedSource> {
+  const matches = new Map<number, MatchedSource>();
+  const usedNormalizedUrls = new Set<string>();
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
 
-    // Skip excluded types
     if (EXCLUDED_SCENE_TYPES.has(scene.type)) continue;
 
-    // Already has a source URL assigned directly
+    // Prefer explicit sourceUrl pinned on scene
     if (scene.sourceUrl) {
-      const url = scene.sourceUrl;
-      if (isScreenshottable(url) && !usedUrls.has(url)) {
-        matches.set(i, { url, title: scene.content.slice(0, 80) });
-        usedUrls.add(url);
+      const strategy = buildAssetCaptureStrategy(scene.sourceUrl, scene.content);
+      if (strategy.isScreenshottable && !usedNormalizedUrls.has(strategy.normalizedUrl)) {
+        const source: SourceUrl = { url: scene.sourceUrl, title: scene.content.slice(0, 100) };
+        matches.set(i, { source, strategy });
+        usedNormalizedUrls.add(strategy.normalizedUrl);
       }
       continue;
     }
 
-    // Try to match by content similarity
     const contentLower = scene.content.toLowerCase();
-    for (const source of sourceUrls) {
-      if (usedUrls.has(source.url)) continue;
-      if (!isScreenshottable(source.url)) continue;
 
-      // Match by title words (at least 3 significant words must match)
+    for (const source of sourceUrls) {
+      const strategy = buildAssetCaptureStrategy(source.url, scene.content);
+      if (!strategy.isScreenshottable) continue;
+      if (usedNormalizedUrls.has(strategy.normalizedUrl)) continue;
+
       const titleWords = source.title
         .toLowerCase()
         .split(/\s+/)
         .filter((w) => w.length > 3);
 
-      const matchCount = titleWords.filter((w) => contentLower.includes(w)).length;
+      const titleMatchCount = titleWords.filter((w) => contentLower.includes(w)).length;
+      const domainMatch = contentMentionsDomain(scene.content, source.url);
+      const tweetMention = strategy.sourceKind === 'tweet' && /(tweet|post|x.com|twitter)/i.test(contentLower);
 
-      if (matchCount >= Math.min(3, titleWords.length)) {
-        matches.set(i, source);
-        usedUrls.add(source.url);
+      if (titleMatchCount >= Math.min(2, titleWords.length) || domainMatch || tweetMention) {
+        matches.set(i, { source, strategy });
+        usedNormalizedUrls.add(strategy.normalizedUrl);
         break;
       }
     }
@@ -163,21 +101,6 @@ function matchSourcesToScenes(
   return matches;
 }
 
-// ---------------------------------------------------------------------------
-// enrichScenesWithSourceScreenshots
-// ---------------------------------------------------------------------------
-
-/**
- * Enrich scenes with screenshots of actual source URLs.
- *
- * Captures Playwright screenshots of the articles, repos, and papers
- * that the video discusses. These screenshots replace AI-generated
- * backgrounds for the specific scenes where real source context is
- * more valuable.
- *
- * @param scenes - Scene array to enrich (mutated in place)
- * @param sourceUrls - Source URLs from news-sourcing/research
- */
 export async function enrichScenesWithSourceScreenshots(
   scenes: Scene[],
   sourceUrls: SourceUrl[],
@@ -187,7 +110,6 @@ export async function enrichScenesWithSourceScreenshots(
     return;
   }
 
-  // Match sources to scenes
   const matches = matchSourcesToScenes(scenes, sourceUrls);
 
   if (matches.size === 0) {
@@ -195,53 +117,51 @@ export async function enrichScenesWithSourceScreenshots(
     return;
   }
 
-  console.log(
-    `Source screenshot enrichment: capturing ${matches.size} source screenshots`,
-  );
+  console.log(`Source screenshot enrichment: capturing ${matches.size} source screenshots`);
 
   let successCount = 0;
   const CONCURRENCY = 5;
   const matchEntries = Array.from(matches.entries());
 
   try {
-    // Process in parallel batches of CONCURRENCY
     for (let batchStart = 0; batchStart < matchEntries.length; batchStart += CONCURRENCY) {
       const batch = matchEntries.slice(batchStart, batchStart + CONCURRENCY);
 
       const results = await Promise.allSettled(
-        batch.map(async ([sceneIndex, source]) => {
-          const waitMs = getWaitMs(source.url);
-          console.log(`  Capturing: ${source.url} (wait ${waitMs}ms)`);
-
+        batch.map(async ([sceneIndex, matched]) => {
+          const { source, strategy } = matched;
           const scene = scenes[sceneIndex];
-          const buffer = await captureWebsiteScreenshot(source.url, {
+
+          console.log(`  Capturing: ${strategy.normalizedUrl} (${strategy.sourceKind}, wait ${strategy.waitMs}ms)`);
+
+          const buffer = await captureWebsiteScreenshot(strategy.normalizedUrl, {
             darkMode: true,
-            waitMs,
+            waitMs: strategy.waitMs,
             width: 1920,
             height: 1080,
-            cssSelector: scene.cssSelector,
+            cssSelector: scene.cssSelector ?? strategy.cssSelector,
             highlightText: scene.highlightText,
             searchObjective: scene.content?.slice(0, 200),
             agenticCaptureFn: captureWithAgenticBrowser,
           });
 
-          return { sceneIndex, source, buffer };
+          return { sceneIndex, source, strategy, buffer };
         }),
       );
 
       for (const result of results) {
         if (result.status === 'fulfilled' && result.value.buffer) {
-          const { sceneIndex, source, buffer } = result.value;
+          const { sceneIndex, source, strategy, buffer } = result.value;
           const dataUri = screenshotToDataUri(buffer);
           const scene = scenes[sceneIndex];
 
           scene.screenshotImage = dataUri;
           scene.sourceUrl = source.url;
           scene.visualSource = 'source-screenshot';
-          scene.screenshotDisplayMode = 'foreground';
+          scene.screenshotDisplayMode = strategy.displayMode;
 
           successCount++;
-          console.log(`  OK: scene ${sceneIndex} (${scene.type})`);
+          console.log(`  OK: scene ${sceneIndex} (${scene.type}) <- ${strategy.sourceKind}`);
         } else if (result.status === 'fulfilled') {
           console.log(`  FAILED: ${result.value.source.url} — keeping existing background`);
         } else {
@@ -253,8 +173,5 @@ export async function enrichScenesWithSourceScreenshots(
     await closeBrowser();
   }
 
-  console.log(
-    `Source screenshot enrichment: ${successCount}/${matches.size} screenshots captured`,
-  );
+  console.log(`Source screenshot enrichment: ${successCount}/${matches.size} screenshots captured`);
 }
-

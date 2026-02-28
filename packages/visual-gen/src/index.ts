@@ -31,3 +31,6 @@ export type { ImpactWord } from './impact-word-detector.js';
 export { buildNanoBananaPrompt, applyVisualLayerCascade } from './asset-fetcher.js';
 export { captureWithAgenticBrowser } from './agentic-browser.js';
 export type { AgenticCaptureResult } from './agentic-browser.js';
+
+export { buildAssetCaptureStrategy } from './asset-intelligence.js';
+export type { AssetCaptureStrategy, AssetSourceKind } from './asset-intelligence.js';
