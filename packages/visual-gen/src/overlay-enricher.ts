@@ -11,7 +11,8 @@
  */
 
 import { LOGOS, getLogoEntry } from '@nexus-ai/asset-library';
-import type { Scene, SceneOverlay, CornerLogoOverlay, SourceCitationOverlay, InfoBadgeOverlay, FloatingLabelOverlay, KeyPhraseOverlay, SourceBadgeOverlay } from '@nexus-ai/director-agent';
+import type { Scene, SceneOverlay, CornerLogoOverlay, SourceCitationOverlay, InfoBadgeOverlay, FloatingLabelOverlay, KeyPhraseOverlay } from '@nexus-ai/director-agent';
+import { deriveSourceBadgeOverlay } from './source-badge.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -262,16 +263,8 @@ export function enrichScenesWithOverlays(
 
     // F. Source badge when scene has a source screenshot
     if (scene.screenshotImage && scene.sourceUrl) {
-      try {
-        const hostname = new URL(scene.sourceUrl).hostname.replace(/^www\./, '');
-        const overlay: SourceBadgeOverlay = {
-          type: 'source-badge',
-          position: 'bottom-left',
-          sourceName: hostname,
-          delayFrames: 10,
-        };
-        overlays.push(overlay);
-      } catch { /* invalid URL — skip */ }
+      const badge = deriveSourceBadgeOverlay(scene.sourceUrl);
+      if (badge) overlays.push(badge);
     }
 
     // Enforce max overlays per scene

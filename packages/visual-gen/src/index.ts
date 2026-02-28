@@ -34,3 +34,4 @@ export type { AgenticCaptureResult } from './agentic-browser.js';
 
 export { buildAssetCaptureStrategy } from './asset-intelligence.js';
 export type { AssetCaptureStrategy, AssetSourceKind } from './asset-intelligence.js';
+export { deriveSourceBadgeOverlay, sourceKindDisplayLabel } from './source-badge.js';

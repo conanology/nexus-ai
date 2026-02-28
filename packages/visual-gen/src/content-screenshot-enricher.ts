@@ -402,6 +402,7 @@ export async function enrichScenesWithContentScreenshots(
           const scene = scenes[index];
 
           scene.screenshotImage = dataUri;
+          scene.sourceUrl = result.value.url;
           scene.visualSource = 'content-screenshot';
           scene.screenshotDisplayMode = result.value.strategy?.displayMode ?? determineDisplayMode(scene.content, name);
 

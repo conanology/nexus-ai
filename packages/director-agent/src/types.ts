@@ -446,6 +446,10 @@ export interface SourceBadgeOverlay extends BaseOverlay {
   type: 'source-badge';
   position: 'bottom-left';
   sourceName: string;
+  sourceKind?: 'tweet' | 'repository' | 'article' | 'paper' | 'app' | 'website' | 'video' | 'unknown';
+  detail?: string;
+  icon?: string;
+  verified?: boolean;
 }
 
 export type SceneOverlay = CornerLogoOverlay | InfoBadgeOverlay | FloatingLabelOverlay | SourceCitationOverlay | KeyPhraseOverlay | SourceBadgeOverlay;
