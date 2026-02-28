@@ -2,7 +2,7 @@ import React from 'react';
 import { Audio, Sequence, useVideoConfig } from 'remotion';
 import { z } from 'zod';
 import { DirectionDocumentSchema } from '../types';
-import type { DirectionSegment, MotionConfig, WordTiming, EmphasisWord } from '../types';
+import type { MotionConfig, WordTiming, EmphasisWord } from '../types';
 import { COLORS } from '../utils/colors.js';
 import {
   NeuralNetworkAnimation,
@@ -94,6 +94,8 @@ export const TechExplainerSchema = z.union([
 
 export type TechExplainerProps = z.infer<typeof TechExplainerSchema>;
 
+type DirectionSegmentLike = z.infer<typeof DirectionDocumentSchema>['segments'][number];
+
 /**
  * Component mapping for visual elements
  * Maps component names from timeline JSON to React components
@@ -150,7 +152,7 @@ const UnknownComponentFallback: React.FC<{ componentName: string }> = ({ compone
  * Maps a DirectionSegment to scene rendering data (legacy V2 path)
  * Prefers actual timing (from STT) over estimated timing (from script-gen)
  */
-export function mapSegmentToScene(segment: DirectionSegment, fps: number): MappedScene {
+export function mapSegmentToScene(segment: DirectionSegmentLike, fps: number): MappedScene {
   const startSec = segment.timing.actualStartSec ?? segment.timing.estimatedStartSec ?? 0;
   const durationSec = segment.timing.actualDurationSec ?? segment.timing.estimatedDurationSec ?? 5;
 
@@ -160,8 +162,8 @@ export function mapSegmentToScene(segment: DirectionSegment, fps: number): Mappe
     durationInFrames: Math.max(1, Math.round(durationSec * fps)),
     templateProps: segment.visual.templateProps ?? {},
     motion: segment.visual.motion,
-    wordTimings: segment.timing.wordTimings,
-    emphasis: segment.content.emphasis,
+    wordTimings: segment.timing.wordTimings as unknown as WordTiming[] | undefined,
+    emphasis: segment.content.emphasis as unknown as EmphasisWord[] | undefined,
   };
 }
 
@@ -173,7 +175,7 @@ const SCENE_TYPE_SET = new Set<string>(SCENE_TYPES);
  * If a segment's template matches a valid SceneType, it's used directly.
  * Otherwise falls back to 'narration-default'.
  */
-export function mapDirectionToScenes(segments: DirectionSegment[], fps: number): Scene[] {
+export function mapDirectionToScenes(segments: DirectionSegmentLike[], fps: number): Scene[] {
   return segments.map((segment) => {
     const startSec = segment.timing.actualStartSec ?? segment.timing.estimatedStartSec ?? 0;
     const durationSec = segment.timing.actualDurationSec ?? segment.timing.estimatedDurationSec ?? 5;

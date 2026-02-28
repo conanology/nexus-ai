@@ -185,7 +185,13 @@ export function scoreVisualQuality(
   if (narrativeTurnDensity < 0.2) qualityWarnings.push('Narrative turns are too sparse; sequence may feel recap-like');
   if (heroMomentCoverage < retention.minHeroMomentCoverage) qualityWarnings.push('Not enough memorable hero moments');
 
-  const qualityStatus = qualityScore >= 70 ? 'PASS' : 'DEGRADED';
+  const hookHardFail = hookPatternBreakRate < retention.targetHookPatternBreakRate * 0.75;
+  const cadenceHardFail = sceneCadencePerMin < retention.targetCadencePerMin * 0.75;
+
+  if (hookHardFail) qualityWarnings.push('Hard fail: hook kinetic rate below regeneration floor');
+  if (cadenceHardFail) qualityWarnings.push('Hard fail: global cadence below regeneration floor');
+
+  const qualityStatus = qualityScore >= 70 && !hookHardFail && !cadenceHardFail ? 'PASS' : 'DEGRADED';
 
   return {
     sourceEvidenceCoverage: round(sourceEvidenceCoverage),

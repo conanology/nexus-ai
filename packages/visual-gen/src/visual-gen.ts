@@ -631,12 +631,14 @@ export async function executeVisualGen(
     );
     const minVisualScore = Number(process.env.NEXUS_VISUAL_MIN_SCORE || 70);
     const minEvidenceCoverage = Number(process.env.NEXUS_VISUAL_MIN_EVIDENCE_COVERAGE || 0.35);
+    const minHookPatternBreakRate = Number(process.env.NEXUS_VISUAL_MIN_HOOK_BREAK_RATE || 14);
 
     if (
       strictVisualRegeneration &&
       (
         visualQuality.qualityScore < minVisualScore ||
         visualQuality.sourceEvidenceCoverage < minEvidenceCoverage ||
+        visualQuality.hookPatternBreakRate < minHookPatternBreakRate ||
         visualQuality.qualityStatus === 'DEGRADED'
       )
     ) {
@@ -651,6 +653,8 @@ export async function executeVisualGen(
           sourceEvidenceCoverage: visualQuality.sourceEvidenceCoverage,
           minVisualScore,
           minEvidenceCoverage,
+          hookPatternBreakRate: visualQuality.hookPatternBreakRate,
+          minHookPatternBreakRate,
         },
       );
     }

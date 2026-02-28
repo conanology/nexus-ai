@@ -2,7 +2,8 @@
  * Re-export motion and direction types from script-gen for video-studio consumers
  */
 import type React from 'react';
-import type { MotionConfig, WordTiming, EmphasisWord, EmphasisEffect, BrowserAction } from '@nexus-ai/script-gen';
+import { z } from 'zod';
+import type { MotionConfig, WordTiming, EmphasisWord, EmphasisEffect, BrowserAction, MotionPreset } from '@nexus-ai/script-gen';
 import type { BrowserDemoContent, BrowserStyle } from '@nexus-ai/broll-engine';
 
 export type {
@@ -34,7 +35,106 @@ export type {
 
 export type { BrowserDemoContent, BrowserStyle } from '@nexus-ai/broll-engine';
 
-export { MOTION_PRESETS, DirectionDocumentSchema } from '@nexus-ai/script-gen';
+
+/**
+ * Browser-safe motion presets (kept local to avoid pulling server-only deps into Remotion bundle).
+ */
+export const MOTION_PRESETS: Record<MotionPreset, Omit<MotionConfig, 'preset'>> = {
+  subtle: {
+    entrance: { type: 'fade', delay: 0, duration: 20, easing: 'easeOut' },
+    emphasis: { type: 'none', trigger: 'none', intensity: 0, duration: 0 },
+    exit: { type: 'fade', duration: 15, startBeforeEnd: 15 },
+  },
+  standard: {
+    entrance: { type: 'slide', direction: 'up', delay: 0, duration: 15, easing: 'spring' },
+    emphasis: { type: 'pulse', trigger: 'onWord', intensity: 0.3, duration: 10 },
+    exit: { type: 'fade', duration: 15, startBeforeEnd: 15 },
+  },
+  dramatic: {
+    entrance: {
+      type: 'pop',
+      delay: 0,
+      duration: 12,
+      easing: 'spring',
+      springConfig: { damping: 80, stiffness: 300, mass: 1 },
+    },
+    emphasis: { type: 'glow', trigger: 'onWord', intensity: 0.6, duration: 15 },
+    exit: { type: 'shrink', duration: 15, startBeforeEnd: 15 },
+  },
+};
+
+/**
+ * Browser-safe direction document schema (subset needed by video-studio).
+ */
+const SpringConfigSchema = z.object({ damping: z.number(), stiffness: z.number(), mass: z.number() });
+const EntranceSchema = z.object({
+  type: z.enum(['fade','slide','pop','scale','blur','none']),
+  direction: z.enum(['left','right','up','down']).optional(),
+  delay: z.number(),
+  duration: z.number(),
+  easing: z.enum(['spring','linear','easeOut','easeInOut']),
+  springConfig: SpringConfigSchema.optional(),
+});
+const EmphasisSchema = z.object({
+  type: z.enum(['pulse','shake','glow','underline','scale','none']),
+  trigger: z.enum(['onWord','onSegment','continuous','none']),
+  intensity: z.number(),
+  duration: z.number(),
+});
+const ExitSchema = z.object({
+  type: z.enum(['fade','slide','shrink','blur','none']),
+  direction: z.enum(['left','right','up','down']).optional(),
+  duration: z.number(),
+  startBeforeEnd: z.number(),
+});
+
+export const DirectionDocumentSchema = z.object({
+  segments: z.array(
+    z.object({
+      id: z.string(),
+      timing: z.object({
+        estimatedStartSec: z.number().optional(),
+        estimatedDurationSec: z.number().optional(),
+        actualStartSec: z.number().optional(),
+        actualDurationSec: z.number().optional(),
+        wordTimings: z.array(
+          z.object({
+            word: z.string(),
+            startTime: z.number(),
+            endTime: z.number(),
+            confidence: z.number().optional(),
+          })
+        ).optional(),
+      }),
+      visual: z.object({
+        template: z.string(),
+        templateProps: z.record(z.unknown()).optional(),
+        motion: z.object({
+          preset: z.enum(['subtle','standard','dramatic']).optional(),
+          entrance: EntranceSchema,
+          emphasis: EmphasisSchema,
+          exit: ExitSchema,
+        }),
+      }),
+      content: z.object({
+        text: z.string(),
+        emphasis: z.array(
+          z.object({
+            word: z.string(),
+            effect: z.enum(['pulse','shake','glow','underline','scale']),
+            intensity: z.enum(['low','medium','high']),
+          })
+        ).optional(),
+      }),
+      audio: z.object({
+        voiceName: z.string().optional(),
+      }).optional(),
+    })
+  ),
+  metadata: z.record(z.unknown()).optional(),
+  globalAudio: z.record(z.unknown()).optional(),
+});
+
 
 /**
  * Component prop interfaces for visual components

@@ -54,6 +54,9 @@ export const ForegroundScreenshot: React.FC<ForegroundScreenshotProps> = ({ src,
   const translateY = (1 - eased) * 60;
   const opacity = eased;
   const float = interpolate(frame % 120, [0, 60, 120], [0, -6, 0]);
+  const mediaPanX = interpolate(frame % 180, [0, 90, 180], [-10, 10, -10]);
+  const mediaPanY = interpolate(frame % 210, [0, 105, 210], [6, -6, 6]);
+  const mediaScale = 1.03 + Math.sin((frame * 2 * Math.PI) / 160) * 0.015;
 
   const sourceKind = sourceMetadata?.sourceKind || 'unknown';
   const accent = KIND_ACCENT[sourceKind] || '#A3E635';
@@ -140,6 +143,9 @@ export const ForegroundScreenshot: React.FC<ForegroundScreenshotProps> = ({ src,
             width: '100%',
             height: 'calc(100% - 60px)',
             objectFit: 'cover',
+            transform: `translate(${mediaPanX}px, ${mediaPanY}px) scale(${mediaScale})`,
+            transformOrigin: 'center center',
+            filter: 'contrast(1.08) saturate(1.06) brightness(1.03)',
           }}
         />
       </div>

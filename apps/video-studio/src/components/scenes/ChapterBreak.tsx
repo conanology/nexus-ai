@@ -1,7 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
 import { useMotion } from '../../hooks/useMotion.js';
-import { COLORS } from '../../utils/colors.js';
+import { COLORS, withOpacity } from '../../utils/colors.js';
 import { THEME } from '../../theme.js';
 import { BackgroundGradient } from '../shared/BackgroundGradient.js';
 import type { SceneComponentProps } from '../../types/scenes.js';
@@ -17,8 +17,8 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
 
   // --- Animation progress values ---
 
-  // Background fade from black (0-15)
-  const bgOverlayOpacity = interpolate(frame, [0, 15], [1, 0], {
+  // Background fade from black (0-8) — keep cinematic but avoid prolonged dark frames
+  const bgOverlayOpacity = interpolate(frame, [0, 8], [0.68, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -50,6 +50,9 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
 
   // Subtitle (30-45) slides up after title lands
   const subtitleDelay = 30;
+
+  // Ambient energy pulse to avoid static chapter cards
+  const energyPulse = 0.97 + Math.sin((frame * 2 * Math.PI) / 70) * 0.03;
   const subtitleProgress = spring({
     frame: Math.max(0, frame - subtitleDelay),
     fps,
@@ -61,6 +64,17 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
   return (
     <AbsoluteFill>
       <BackgroundGradient variant="intense" backgroundImage={backgroundImage} />
+
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: `radial-gradient(ellipse 62% 58% at 50% 42%, ${withOpacity(COLORS.accentPrimary, 0.18)}, ${withOpacity(COLORS.accentSecondary, 0.08)} 42%, transparent 74%)`,
+          opacity: interpolate(frame, [0, 20], [0.2, 0.62], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Black overlay that fades out */}
       <div
@@ -95,7 +109,7 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
               fontSize: 36,
               fontFamily: THEME.fonts.mono,
               fontWeight: 500,
-              color: COLORS.textSecondary,
+              color: withOpacity(COLORS.textSecondary, 0.96),
               letterSpacing: 6,
               marginBottom: 24,
               opacity: chapterOpacity,
@@ -117,7 +131,7 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
             lineHeight: 1.2,
             maxWidth: '80%',
             opacity: titleProgress,
-            transform: `scale(${titleScale})`,
+            transform: `scale(${titleScale * energyPulse})`,
           }}
         >
           {title}
@@ -142,9 +156,9 @@ export const ChapterBreak: React.FC<SceneComponentProps<'chapter-break'>> = (pro
               fontSize: 36,
               fontFamily: THEME.fonts.body,
               fontWeight: 400,
-              color: COLORS.textSecondary,
+              color: withOpacity(COLORS.textSecondary, 0.96),
               textAlign: 'center',
-              opacity: subtitleProgress,
+              opacity: subtitleProgress * energyPulse,
               transform: `translateY(${subtitleSlideY}px)`,
             }}
           >

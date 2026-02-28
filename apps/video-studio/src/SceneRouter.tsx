@@ -95,6 +95,9 @@ interface SceneEnvelopeProps {
   enterTransition: TransitionType;
   exitTransition: TransitionType;
   durationFrames: number;
+  pacing?: Scene['pacing'];
+  inHookWindow?: boolean;
+  sceneType?: Scene['type'];
   children: React.ReactNode;
 }
 
@@ -114,6 +117,9 @@ interface SceneEnvelopeProps {
  */
 const SceneEnvelope: React.FC<SceneEnvelopeProps> = ({
   enterTransition,
+  pacing = 'normal',
+  inHookWindow = false,
+  sceneType,
   children,
 }) => {
   const frame = useCurrentFrame();
@@ -170,11 +176,67 @@ const SceneEnvelope: React.FC<SceneEnvelopeProps> = ({
   // All transitions use hard cuts on exit — incoming scene covers outgoing.
   // No dissolve fade-out needed (dissolve eliminated).
 
+  const kineticEnabled = sceneType !== 'intro' && sceneType !== 'outro';
+  const beatFrames = inHookWindow ? 16 : pacing === 'punch' ? 24 : pacing === 'dense' ? 30 : 48;
+  const beatPulse = kineticEnabled
+    ? interpolate(frame % beatFrames, [0, 1, 4, beatFrames - 1], [0, 1, 0, 0], CLAMP)
+    : 0;
+
+  const microCutFrames = inHookWindow ? 11 : pacing === 'punch' ? 18 : 26;
+  const microCutPulse = kineticEnabled
+    ? interpolate(frame % microCutFrames, [0, 1, 3, microCutFrames - 1], [1, 0.35, 0, 0], CLAMP)
+    : 0;
+  const microCutDirection = Math.floor(frame / microCutFrames) % 2 === 0 ? 1 : -1;
+
+  const ambientX = kineticEnabled
+    ? Math.sin(frame / (inHookWindow ? 4.9 : 7.8)) * (inHookWindow ? 6.4 : pacing === 'dense' ? 3.8 : 2.2)
+    : 0;
+  const ambientY = kineticEnabled
+    ? Math.cos(frame / (inHookWindow ? 7.2 : 10.6)) * (inHookWindow ? 3.9 : pacing === 'dense' ? 2.4 : 1.4)
+    : 0;
+
+  const hookKickX = inHookWindow ? microCutDirection * microCutPulse * 28 : 0;
+  const hookKickY = inHookWindow ? -microCutPulse * 14 : 0;
+  const hookKickRotate = inHookWindow ? microCutDirection * microCutPulse * 0.95 : 0;
+
+  const beatLift = kineticEnabled ? -beatPulse * (inHookWindow ? 20 : pacing === 'punch' ? 12 : 7) : 0;
+  const kineticScale = kineticEnabled
+    ? 1 +
+      Math.sin(frame / 18) * (inHookWindow ? 0.016 : pacing === 'punch' ? 0.011 : 0.006) +
+      beatPulse * (inHookWindow ? 0.055 : pacing === 'punch' ? 0.032 : 0.018) +
+      microCutPulse * (inHookWindow ? 0.062 : 0.01)
+    : 1;
+
+  const kineticTransform = kineticEnabled
+    ? `translateX(${ambientX + hookKickX}px) translateY(${ambientY + beatLift + hookKickY}px) scale(${kineticScale}) rotate(${hookKickRotate}deg)`
+    : undefined;
+
   const style: React.CSSProperties = { opacity };
-  if (transform) style.transform = transform;
+  const mergedTransform = [transform, kineticTransform].filter(Boolean).join(' ');
+  if (mergedTransform) style.transform = mergedTransform;
   if (clipPath) style.clipPath = clipPath;
 
-  return <AbsoluteFill style={style}>{children}</AbsoluteFill>;
+  const pulseFlashOpacity = kineticEnabled
+    ? Math.max(0, (beatPulse - 0.82) * (inHookWindow ? 0.3 : 0.12)) + (inHookWindow ? microCutPulse * 0.05 : 0)
+    : 0;
+
+  return (
+    <AbsoluteFill style={style}>
+      {children}
+      {pulseFlashOpacity > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: '#FFFFFF',
+            opacity: pulseFlashOpacity,
+            pointerEvents: 'none',
+            mixBlendMode: 'screen',
+          }}
+        />
+      )}
+    </AbsoluteFill>
+  );
 };
 
 // -----------------------------------------------------------------------------
@@ -296,6 +358,9 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl, audi
                 enterTransition="cut"
                 exitTransition={exitTransition}
                 durationFrames={durationInFrames}
+                pacing={scene.pacing}
+                inHookWindow={scene.startFrame < Math.round(15 * fps)}
+                sceneType={scene.type}
               >
                 <ColdOpen
                   hook={{
@@ -322,6 +387,9 @@ export const SceneRouter: React.FC<SceneRouterProps> = ({ scenes, audioUrl, audi
               enterTransition={enterTransition}
               exitTransition={exitTransition}
               durationFrames={durationInFrames}
+              pacing={scene.pacing}
+              inHookWindow={scene.startFrame < Math.round(15 * fps)}
+              sceneType={scene.type}
             >
               <Component
                 visualData={scene.visualData}

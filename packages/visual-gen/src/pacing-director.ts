@@ -60,9 +60,9 @@ function detectHookArchetype(scenes: Scene[], totalFrames: number): HookArchetyp
 
 function chooseHookTransition(index: number, archetype: HookArchetype, retentionProfile: RetentionProfile): Scene['transition'] {
   const premiumPattern: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
-    'shock-stat': ['slam', 'split', 'zoom-in', 'cut'],
-    'contradiction': ['split', 'wipe-down', 'zoom-in', 'cut'],
-    'breaking-shift': ['zoom-in', 'slam', 'split', 'cut'],
+    'shock-stat': ['slam', 'split', 'zoom-in', 'pop-in'],
+    'contradiction': ['split', 'wipe-down', 'zoom-in', 'slam'],
+    'breaking-shift': ['zoom-in', 'slam', 'split', 'wipe-down'],
   };
 
   const aggressivePattern: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
@@ -72,9 +72,9 @@ function chooseHookTransition(index: number, archetype: HookArchetype, retention
   };
 
   const balancedPattern: Record<HookArchetype, Array<NonNullable<Scene['transition']>>> = {
-    'shock-stat': ['slam', 'cut', 'split', 'zoom-in'],
-    'contradiction': ['split', 'cut', 'wipe-down', 'zoom-in'],
-    'breaking-shift': ['zoom-in', 'cut', 'slam', 'split'],
+    'shock-stat': ['slam', 'split', 'zoom-in', 'wipe-down'],
+    'contradiction': ['split', 'wipe-down', 'zoom-in', 'slam'],
+    'breaking-shift': ['zoom-in', 'slam', 'split', 'pop-in'],
   };
 
   const table = retentionProfile === 'aggressive' ? aggressivePattern : retentionProfile === 'balanced' ? balancedPattern : premiumPattern;
@@ -184,12 +184,11 @@ export function applyPacingEnvelope(
 
     if (phase === 'hook') {
       hookSceneCount++;
-      if (!scene.transition || scene.transition === 'cut') {
-        scene.transition = chooseHookTransition(i, hookArchetype, retentionConfig.profile);
-      }
+      scene.transition = chooseHookTransition(i, hookArchetype, retentionConfig.profile);
       if (i === 0) {
         appendSfx(scene, hookSfxForArchetype(hookArchetype));
       }
+      appendSfx(scene, i % 2 === 0 ? 'whoosh-in' : 'impact-hard');
     } else if (phase === 'exposition') {
       expositionSceneCount++;
       if (!scene.transition) {

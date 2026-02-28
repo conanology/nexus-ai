@@ -39,6 +39,7 @@ export const IntroSequence: React.FC<SceneComponentProps<'intro'>> = (props) => 
   const titleOpacity = interpolate(frame, [24, 38], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const titleSheenX = interpolate(frame % 90, [0, 45, 90], [-120, 220, 520]);
   const pulse = 0.95 + Math.sin((frame * 2 * Math.PI) / 110) * 0.05;
+  const hookGlowOpacity = interpolate(frame, [0, 20, 80], [0.42, 0.25, 0.14], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ ...motionStyles.entranceStyle, ...motionStyles.exitStyle }}>
@@ -49,6 +50,16 @@ export const IntroSequence: React.FC<SceneComponentProps<'intro'>> = (props) => 
         particleDensity={styleConfig.profile === 'fireship' ? 'sparse' : 'normal'}
         grid
         gridOpacity={styleConfig.profile === 'fireship' ? 0.035 : 0.05}
+      />
+
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: `radial-gradient(ellipse 68% 56% at 50% 38%, ${withOpacity(COLORS.accentPrimary, 0.24)}, ${withOpacity(COLORS.accentSecondary, 0.14)} 40%, transparent 74%)`,
+          opacity: hookGlowOpacity,
+          pointerEvents: 'none',
+        }}
       />
 
       {styleConfig.profile !== 'fireship' &&

@@ -34,8 +34,12 @@ export const calculateTechExplainerMetadata: CalculateMetadataFunction<TechExpla
 
   // Direction document mode: use metadata.estimatedDurationSec
   if ('directionDocument' in props && props.directionDocument) {
-    const audioDuration = props.directionDocument.metadata.estimatedDurationSec;
-    return { durationInFrames: Math.ceil(audioDuration * FPS) };
+    const maybeMeta = (props.directionDocument as { metadata?: { estimatedDurationSec?: unknown } }).metadata;
+    const estimated = maybeMeta?.estimatedDurationSec;
+    if (typeof estimated === 'number' && Number.isFinite(estimated) && estimated > 0) {
+      return { durationInFrames: Math.ceil(estimated * FPS) };
+    }
+    return { durationInFrames: DEFAULT_PREVIEW_DURATION_FRAMES };
   }
 
   // Default: 5-minute preview
