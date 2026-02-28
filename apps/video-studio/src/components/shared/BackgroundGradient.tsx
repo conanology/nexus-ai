@@ -30,25 +30,25 @@ const GLOW_CONFIG: Record<
     ellipse: '70% 65%',
   },
   cool: {
-    primaryColor: COLORS.accentPrimary,
-    secondaryColor: COLORS.accentBright,
-    multiplier: 1.8,
-    secondaryMult: 0.6,
-    ellipse: '70% 65%',
+    primaryColor: COLORS.accentSecondary,
+    secondaryColor: COLORS.accentTertiary,
+    multiplier: 1.55,
+    secondaryMult: 0.75,
+    ellipse: '76% 68%',
   },
   warm: {
     primaryColor: COLORS.warning,
-    secondaryColor: COLORS.accentSecondaryBright,
-    multiplier: 1.5,
-    secondaryMult: 0.7,
-    ellipse: '70% 65%',
+    secondaryColor: COLORS.accentPrimary,
+    multiplier: 1.45,
+    secondaryMult: 0.68,
+    ellipse: '72% 66%',
   },
   intense: {
     primaryColor: COLORS.accentPrimary,
-    secondaryColor: COLORS.accentSecondary,
-    multiplier: 2.5,
-    secondaryMult: 0.8,
-    ellipse: '80% 60%',
+    secondaryColor: COLORS.accentTertiary,
+    multiplier: 2.1,
+    secondaryMult: 0.95,
+    ellipse: '82% 62%',
   },
 };
 
@@ -75,8 +75,8 @@ export const BackgroundGradient: React.FC<BackgroundGradientProps> = ({
     : 135;
 
   const baseGlowOpacity = animate
-    ? interpolate(frame % 90, [0, 45, 90], [0.08, 0.18, 0.08])
-    : 0.12;
+    ? interpolate(frame % 120, [0, 60, 120], [0.07, 0.16, 0.07])
+    : 0.1;
 
   const glowY = animate
     ? interpolate(frame, [0, durationInFrames], [45, 55], {
@@ -112,7 +112,7 @@ export const BackgroundGradient: React.FC<BackgroundGradientProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          background: `radial-gradient(ellipse 40% 40% at 70% 60%, ${withOpacity(config.secondaryColor, secondaryOpacity)}, transparent)`,
+          background: `radial-gradient(ellipse 44% 42% at 74% 58%, ${withOpacity(config.secondaryColor, secondaryOpacity)}, transparent)`,
         }}
       />
 
@@ -130,7 +130,7 @@ export const BackgroundGradient: React.FC<BackgroundGradientProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          background: `linear-gradient(to bottom, transparent 50%, ${withOpacity(COLORS.bgElevated, 0.25)} 100%)`,
+          background: `linear-gradient(to bottom, transparent 42%, ${withOpacity(COLORS.bgElevated, 0.34)} 100%)`,
         }}
       />
 

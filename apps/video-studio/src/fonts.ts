@@ -9,20 +9,26 @@
 
 import { loadFont as loadInter } from '@remotion/google-fonts/Inter';
 import { loadFont as loadJetBrainsMono } from '@remotion/google-fonts/JetBrainsMono';
+import { loadFont as loadSora } from '@remotion/google-fonts/Sora';
 
-// Load Inter with weights 500 (medium), 700 (bold), and 900 (black)
+// Inter for body and UI text
 const interInfo = loadInter('normal', {
   weights: ['500', '700', '900'],
 });
 
-// Load JetBrains Mono weight 400 (regular) for code
+// JetBrains Mono for code and metrics
 const jetBrainsInfo = loadJetBrainsMono('normal', {
-  weights: ['400'],
+  weights: ['400', '600'],
+});
+
+// Sora for premium display/headline look
+const soraInfo = loadSora('normal', {
+  weights: ['700', '800'],
 });
 
 /** Loaded font family references */
 export const NEXUS_FONTS = {
-  heading: interInfo.fontFamily,
+  heading: soraInfo.fontFamily,
   body: interInfo.fontFamily,
   mono: jetBrainsInfo.fontFamily,
 } as const;
@@ -37,12 +43,12 @@ export function getFontProps(usage: 'headline' | 'body' | 'label' | 'code'): {
 } {
   switch (usage) {
     case 'headline':
-      return { fontFamily: NEXUS_FONTS.heading, fontWeight: 900, letterSpacing: '-0.02em' };
+      return { fontFamily: NEXUS_FONTS.heading, fontWeight: 800, letterSpacing: '-0.018em' };
     case 'body':
       return { fontFamily: NEXUS_FONTS.body, fontWeight: 700 };
     case 'label':
-      return { fontFamily: NEXUS_FONTS.body, fontWeight: 500 };
+      return { fontFamily: NEXUS_FONTS.body, fontWeight: 500, letterSpacing: '0.01em' };
     case 'code':
-      return { fontFamily: NEXUS_FONTS.mono, fontWeight: 400 };
+      return { fontFamily: NEXUS_FONTS.mono, fontWeight: 600 };
   }
 }

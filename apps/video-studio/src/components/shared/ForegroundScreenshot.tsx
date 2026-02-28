@@ -3,6 +3,8 @@ import { AbsoluteFill, Img, interpolate, useCurrentFrame } from 'remotion';
 import type { SceneSourceMetadata } from '../../types/scenes.js';
 
 const ENTRANCE_FRAMES = 15;
+const SAFE_INSET_X = 96;
+const SAFE_INSET_Y = 72;
 
 interface ForegroundScreenshotProps {
   src: string;
@@ -67,20 +69,21 @@ export const ForegroundScreenshot: React.FC<ForegroundScreenshotProps> = ({ src,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: `${SAFE_INSET_Y}px ${SAFE_INSET_X}px`,
         pointerEvents: 'none',
         perspective: 1200,
       }}
     >
       <div
         style={{
-          width: '78%',
-          height: '72%',
-          borderRadius: 12,
+          width: '76%',
+          height: '70%',
+          borderRadius: 16,
           overflow: 'hidden',
           boxShadow: '0 0 30px rgba(170,255,0,0.15), 0 20px 60px rgba(0,0,0,0.6)',
           transform: `perspective(1200px) rotateX(4deg) rotateY(-2deg) translateY(${translateY + float}px)`,
           opacity,
-          border: '3px solid rgba(255, 255, 255, 0.9)',
+          border: '2px solid rgba(255, 255, 255, 0.88)',
           backgroundColor: '#111111',
         }}
       >
@@ -104,7 +107,7 @@ export const ForegroundScreenshot: React.FC<ForegroundScreenshotProps> = ({ src,
         {/* Source evidence strip */}
         <div
           style={{
-            minHeight: 32,
+            minHeight: 34,
             backgroundColor: '#0F1115',
             borderTop: `1px solid ${accent}55`,
             borderBottom: `1px solid ${accent}55`,

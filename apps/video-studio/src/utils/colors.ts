@@ -1,48 +1,43 @@
 import type React from 'react';
 
 /**
- * Target Color Palette — Nexus AI Brand
- *
- * From VIDEO_SYSTEM_SPEC.md Section 4.2.
- * Canonical color source for all scene components.
- * theme.ts has been migrated to match this palette (Phase 10).
+ * Target Color Palette — Nexus AI Premium Visual Pass
  */
 
 export const COLORS = {
-  // Background — Neon Hacker palette
-  bgDeepDark: '#0a0a0a',
-  bgBase: '#111111',
-  bgElevated: '#1a1a1a',
+  // Background
+  bgDeepDark: '#090B10',
+  bgBase: '#0F121A',
+  bgElevated: '#141923',
 
-  // Accent Primary — Neon Green
-  accentPrimary: '#aaff00',
-  accentGlow: 'rgba(170, 255, 0, 0.3)',
-  accentBright: '#88cc00',
+  // Accents
+  accentPrimary: '#AAFF00',
+  accentGlow: 'rgba(170, 255, 0, 0.22)',
+  accentBright: '#C6FF4D',
 
-  // Accent Secondary — Neon Green (unified)
-  accentSecondary: '#88cc00',
-  accentSecondaryBright: '#aaff00',
+  accentSecondary: '#53D1FF',
+  accentSecondaryBright: '#8EE4FF',
+  accentTertiary: '#9B8CFF',
 
   // Text
-  textPrimary: '#ffffff',
-  textSecondary: '#94a3b8',
-  textMuted: '#64748b',
+  textPrimary: '#F8FAFC',
+  textSecondary: '#CBD5E1',
+  textMuted: '#94A3B8',
 
-  // Emphasis
-  warning: '#f59e0b',
-  success: '#10b981',
-  error: '#ef4444',
+  // Semantic
+  warning: '#F59E0B',
+  success: '#22C55E',
+  error: '#EF4444',
 } as const;
 
 export const GRADIENTS = {
-  background: 'linear-gradient(135deg, #0a0a0a, #111111, #0a0a0a)',
-  accent: 'linear-gradient(90deg, #aaff00, #88cc00)',
-  glow: 'radial-gradient(circle, rgba(170,255,0,0.15), transparent)',
+  background: 'linear-gradient(135deg, #090B10, #0F121A, #141923, #0F121A)',
+  accent: 'linear-gradient(90deg, #AAFF00, #53D1FF)',
+  glow: 'radial-gradient(circle, rgba(83,209,255,0.14), transparent)',
 } as const;
 
 /**
  * Convert a hex color to rgba with the given opacity.
- * Accepts 3-digit (#abc) or 6-digit (#aabbcc) hex strings.
  */
 export function withOpacity(hexColor: string, opacity: number): string {
   const hex = hexColor.replace('#', '');
@@ -56,36 +51,32 @@ export function withOpacity(hexColor: string, opacity: number): string {
 }
 
 /**
- * Returns a background gradient string using the target dark palette.
- * @param angle - Gradient angle in degrees (default 135)
+ * Returns a background gradient string using the premium dark palette.
  */
 export function gradientBg(angle: number = 135): string {
-  return `linear-gradient(${angle}deg, ${COLORS.bgDeepDark} 0%, ${COLORS.bgBase} 40%, ${COLORS.bgElevated} 70%, ${COLORS.bgBase} 100%)`;
+  return `linear-gradient(${angle}deg, ${COLORS.bgDeepDark} 0%, ${COLORS.bgBase} 38%, ${COLORS.bgElevated} 68%, ${COLORS.bgBase} 100%)`;
 }
 
 /**
  * Generate a CSS text-shadow string for glow effects.
- *
- * @param color  - Glow color (hex)
- * @param intensity - 'subtle' (readability), 'medium' (emphasis), 'strong' (dramatic)
- * @returns CSS text-shadow value
  */
 export function textGlow(color: string, intensity: 'subtle' | 'medium' | 'strong' = 'subtle'): string {
-  const rgba = withOpacity(color, 0.6);
-  const rgbaOuter = withOpacity(color, 0.3);
+  const rgba = withOpacity(color, 0.55);
+  const rgbaOuter = withOpacity(color, 0.26);
 
   switch (intensity) {
     case 'subtle':
-      return `0 0 6px ${rgba}, 0 2px 4px rgba(0,0,0,0.8)`;
+      return `0 0 5px ${rgba}, 0 2px 4px rgba(0,0,0,0.78)`;
     case 'medium':
-      return `0 0 10px ${rgba}, 0 0 20px ${rgbaOuter}, 0 2px 4px rgba(0,0,0,0.8)`;
+      return `0 0 10px ${rgba}, 0 0 18px ${rgbaOuter}, 0 2px 4px rgba(0,0,0,0.82)`;
     case 'strong':
-      return `0 0 15px ${rgba}, 0 0 30px ${rgbaOuter}, 0 0 45px ${withOpacity(color, 0.15)}, 0 2px 4px rgba(0,0,0,0.9)`;
+      return `0 0 14px ${rgba}, 0 0 28px ${rgbaOuter}, 0 0 42px ${withOpacity(color, 0.14)}, 0 2px 4px rgba(0,0,0,0.9)`;
   }
 }
 
 /** Base dark text shadow for readability on all text over images. */
-export const TEXT_CONTRAST_SHADOW = '0 4px 20px rgba(0,0,0,0.85), 0 2px 8px rgba(0,0,0,0.6), 0 0 40px rgba(0,0,0,0.3)';
+export const TEXT_CONTRAST_SHADOW =
+  '0 4px 20px rgba(0,0,0,0.85), 0 2px 8px rgba(0,0,0,0.6), 0 0 40px rgba(0,0,0,0.3)';
 
 /** White sticker outline — multi-direction text-shadow for bold "sticker" aesthetic */
 export const STICKER_OUTLINE =
@@ -97,12 +88,11 @@ export const STICKER_OUTLINE =
 
 /**
  * Marker highlight — returns CSS for a colored background rectangle behind keywords.
- * Use as `background` on a span with padding.
  */
 export function markerHighlight(color: string = COLORS.accentPrimary): React.CSSProperties {
   return {
-    backgroundColor: withOpacity(color, 0.25),
-    borderRadius: 4,
+    backgroundColor: withOpacity(color, 0.22),
+    borderRadius: 6,
     padding: '2px 6px',
     marginLeft: -6,
     marginRight: -6,

@@ -1,80 +1,83 @@
 /**
- * NEXUS-AI Visual Language Theme
- * Consistent color palette and typography for all visual components
+ * NEXUS-AI Visual Language Theme (Premium Pass)
+ *
+ * Designed for high-end tech-news storytelling:
+ * - deep cinematic dark base
+ * - neon-lime brand anchor + cyan/violet premium accents
+ * - clearer typography hierarchy
  */
 
 export const THEME = {
   colors: {
-    // Primary brand colors — Neon Hacker palette
-    primary: '#aaff00', // Neon Green
-    primaryLight: '#88cc00',
-    primaryDark: '#669900',
+    // Primary brand colors
+    primary: '#AAFF00',
+    primaryLight: '#C6FF4D',
+    primaryDark: '#7BC800',
 
-    // Secondary colors — unified Neon Green
-    secondary: '#88cc00',
-    secondaryLight: '#aaff00',
-    secondaryDark: '#669900',
+    // Secondary / tertiary accents (premium tech look)
+    secondary: '#53D1FF',
+    secondaryLight: '#8EE4FF',
+    secondaryDark: '#1EA7D8',
+    tertiary: '#9B8CFF',
 
-    // Accent colors
-    accent: '#aaff00', // Neon Green
-    accentLight: '#88cc00',
-    accentDark: '#669900',
+    // Accent aliases
+    accent: '#AAFF00',
+    accentLight: '#C6FF4D',
+    accentDark: '#7BC800',
 
-    // Background colors (dark mode default) — Deep Black
-    background: '#0a0a0a', // Deep dark
-    backgroundLight: '#1a1a1a', // Elevated
-    backgroundDark: '#111111', // Base
+    // Background (cinematic)
+    background: '#090B10',
+    backgroundLight: '#141923',
+    backgroundDark: '#0F121A',
 
-    // Text colors
-    text: '#ffffff', // Pure white
-    textSecondary: '#94a3b8', // Slate 400
-    textMuted: '#64748b', // Slate 500
+    // Text
+    text: '#F8FAFC',
+    textSecondary: '#CBD5E1',
+    textMuted: '#94A3B8',
 
-    // UI colors
-    success: '#10b981', // Green
-    warning: '#f59e0b', // Amber
-    error: '#ef4444', // Red
-    info: '#88cc00', // Neon Green
+    // Semantic UI
+    success: '#22C55E',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#53D1FF',
 
-    // Chart/visualization colors
+    // Data-viz palette
     chart: {
-      blue: '#aaff00',
-      green: '#aaff00',
-      yellow: '#f59e0b',
-      red: '#ef4444',
-      purple: '#88cc00',
-      cyan: '#aaff00',
+      blue: '#53D1FF',
+      green: '#AAFF00',
+      yellow: '#F59E0B',
+      red: '#EF4444',
+      purple: '#9B8CFF',
+      cyan: '#22D3EE',
     },
   },
 
   fonts: {
-    /** Inter — regular text, labels, headings */
-    heading: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    /** Inter — body text */
+    // Headline stack favors geometric premium display fonts
+    heading: '"Sora", "Space Grotesk", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     body: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    /** JetBrains Mono — numbers, stats, code */
     mono: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
   },
 
   fontSizes: {
-    xs: 14,      // source citations
-    sm: 17,      // labels
-    base: 25,    // body base
-    lg: 34,      // body lower
-    xl: 45,      // body upper
-    '2xl': 59,   // subheading
-    '3xl': 67,   // heading
-    '4xl': 84,   // large heading
-    '5xl': 101,  // stats
-    '6xl': 112,  // cold-open
-    '7xl': 134,  // impact
-    '8xl': 157,  // hero
+    xs: 14,
+    sm: 17,
+    base: 25,
+    lg: 34,
+    xl: 45,
+    '2xl': 59,
+    '3xl': 67,
+    '4xl': 84,
+    '5xl': 101,
+    '6xl': 112,
+    '7xl': 134,
+    '8xl': 157,
   },
 
   lineHeight: {
-    tight: 1.0,     // stat numbers, impact text
-    cinematic: 1.1,  // headings, emphasis
-    normal: 1.25,    // body text
+    tight: 1.0,
+    cinematic: 1.1,
+    normal: 1.25,
   },
 
   spacing: {
@@ -95,15 +98,20 @@ export const THEME = {
     full: 9999,
   },
 
-  shadows: {
-    sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-    glow: '0 0 20px rgba(170, 255, 0, 0.3)',
+  // Safe area keeps critical text and badges away from crop zones
+  safeArea: {
+    horizontal: 96,
+    vertical: 72,
   },
 
-  // Animation timing
+  shadows: {
+    sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+    md: '0 6px 12px -2px rgba(0, 0, 0, 0.28)',
+    lg: '0 14px 30px -8px rgba(0, 0, 0, 0.45)',
+    xl: '0 24px 48px -12px rgba(0, 0, 0, 0.6)',
+    glow: '0 0 24px rgba(170, 255, 0, 0.22)',
+  },
+
   timing: {
     fast: 200,
     normal: 300,
