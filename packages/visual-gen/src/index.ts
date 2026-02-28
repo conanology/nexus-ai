@@ -38,5 +38,5 @@ export { deriveSourceBadgeOverlay, sourceKindDisplayLabel } from './source-badge
 export { scoreVisualQuality } from './visual-quality-scorer.js';
 export type { VisualQualityScore } from './visual-quality-scorer.js';
 
-export { getRetentionProfile, getRetentionProfileConfig } from './retention-profile.js';
-export type { RetentionProfile, RetentionProfileConfig } from './retention-profile.js';
+export { inferRetentionProfile, getRetentionProfile, getRetentionProfileConfig } from './retention-profile.js';
+export type { RetentionProfile, RetentionProfileConfig, RetentionProfileContext } from './retention-profile.js';

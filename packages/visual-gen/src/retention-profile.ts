@@ -1,5 +1,16 @@
 export type RetentionProfile = 'balanced' | 'premium' | 'aggressive';
 
+export interface RetentionProfileContext {
+  /** Optional direct profile hint from caller */
+  explicitProfile?: RetentionProfile;
+  /** Topic virality score; accepts 0-1 or 0-100 scales */
+  viralityScore?: number;
+  /** Total narration duration in seconds */
+  audioDurationSec?: number;
+  /** Script text used for urgency keyword heuristics */
+  script?: string;
+}
+
 export interface RetentionProfileConfig {
   profile: RetentionProfile;
   hookPatternBreakTargetSec: number;
@@ -56,17 +67,56 @@ const PROFILE_CONFIG: Record<RetentionProfile, RetentionProfileConfig> = {
   },
 };
 
+const URGENCY_REGEX = /\b(?:breaking|urgent|explodes?|surge|panic|crash|wars?|vs\.?|leak|ban|shutdown|now)\b/i;
+
 function readProfileFromEnv(): string | undefined {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.NEXUS_RETENTION_PROFILE;
 }
 
-export function getRetentionProfile(): RetentionProfile {
-  const raw = readProfileFromEnv()?.trim().toLowerCase();
-  if (raw === 'aggressive') return 'aggressive';
-  if (raw === 'balanced') return 'balanced';
+function normalizeVirality(score?: number): number | undefined {
+  if (typeof score !== 'number' || Number.isNaN(score)) return undefined;
+  if (score <= 0) return 0;
+  if (score <= 1) return score;
+  return Math.min(score / 100, 1);
+}
+
+export function inferRetentionProfile(context: RetentionProfileContext = {}): RetentionProfile {
+  if (context.explicitProfile) {
+    return context.explicitProfile;
+  }
+
+  const virality = normalizeVirality(context.viralityScore);
+  const durationSec = context.audioDurationSec ?? 0;
+  const script = (context.script ?? '').toLowerCase();
+  const urgentScript = URGENCY_REGEX.test(script);
+
+  // Short + urgent + high virality needs maximal kinetic pacing.
+  if ((virality ?? 0) >= 0.82 || (durationSec > 0 && durationSec <= 95 && urgentScript)) {
+    return 'aggressive';
+  }
+
+  // Long deep-dives benefit from calmer rhythm to avoid fatigue.
+  if (durationSec >= 7 * 60 && (virality ?? 0) < 0.55) {
+    return 'balanced';
+  }
+
   return 'premium';
 }
 
-export function getRetentionProfileConfig(profile: RetentionProfile = getRetentionProfile()): RetentionProfileConfig {
+export function getRetentionProfile(context: RetentionProfileContext = {}): RetentionProfile {
+  const envRaw = readProfileFromEnv()?.trim().toLowerCase();
+  if (envRaw === 'aggressive') return 'aggressive';
+  if (envRaw === 'balanced') return 'balanced';
+  if (envRaw === 'premium') return 'premium';
+
+  return inferRetentionProfile(context);
+}
+
+export function getRetentionProfileConfig(
+  profileOrContext: RetentionProfile | RetentionProfileContext = {},
+): RetentionProfileConfig {
+  const profile = typeof profileOrContext === 'string'
+    ? profileOrContext
+    : getRetentionProfile(profileOrContext);
   return PROFILE_CONFIG[profile];
 }

@@ -1,5 +1,10 @@
 import type { Scene } from '@nexus-ai/director-agent';
-import { getRetentionProfileConfig, type RetentionProfile } from './retention-profile.js';
+import { getRetentionProfileConfig, type RetentionProfile, type RetentionProfileContext } from './retention-profile.js';
+
+export interface VisualQualityOptions {
+  retentionProfile?: RetentionProfile;
+  retentionContext?: RetentionProfileContext;
+}
 
 export interface VisualQualityScore {
   sourceEvidenceCoverage: number;
@@ -70,8 +75,11 @@ function isHeroMoment(scene: Scene): boolean {
 export function scoreVisualQuality(
   scenes: Scene[],
   audioDurationSec: number,
+  options: VisualQualityOptions = {},
 ): VisualQualityScore {
-  const retention = getRetentionProfileConfig();
+  const retention = options.retentionProfile
+    ? getRetentionProfileConfig(options.retentionProfile)
+    : getRetentionProfileConfig(options.retentionContext ?? {});
   const totalScenes = scenes.length || 1;
   const totalFrames = scenes.length > 0 ? Math.max(...scenes.map((scene) => scene.endFrame), 1) : 1;
 

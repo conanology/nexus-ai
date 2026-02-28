@@ -70,6 +70,12 @@ export async function executeVisualGen(
       );
     }
 
+    const retentionContext = {
+      viralityScore: data.topicData?.viralityScore,
+      audioDurationSec: data.audioDurationSec,
+      script: resolvedScript,
+    };
+
     logger.info({
       msg: 'Visual generation stage started',
       pipelineId,
@@ -137,7 +143,9 @@ export async function executeVisualGen(
         });
       }
 
-      pacingMetrics = applyPacingEnvelope(directorResult.scenes, data.audioDurationSec);
+      pacingMetrics = applyPacingEnvelope(directorResult.scenes, data.audioDurationSec, {
+        retentionContext,
+      });
       pacingCadencePerMin = pacingMetrics.cadencePerMin;
       logger.info({
         msg: 'Applied pacing envelope to director scenes',
@@ -590,7 +598,9 @@ export async function executeVisualGen(
       qualityStatus = 'DEGRADED';
     }
 
-    const visualQuality = scoreVisualQuality(qualityScenes as any, data.audioDurationSec);
+    const visualQuality = scoreVisualQuality(qualityScenes as any, data.audioDurationSec, {
+      retentionContext,
+    });
 
     if (visualQuality.qualityStatus === 'DEGRADED') {
       qualityStatus = 'DEGRADED';

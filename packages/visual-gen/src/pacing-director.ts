@@ -1,8 +1,13 @@
 import type { Scene, ScenePacing } from '@nexus-ai/director-agent';
-import { getRetentionProfileConfig, type RetentionProfile } from './retention-profile.js';
+import { getRetentionProfileConfig, type RetentionProfile, type RetentionProfileContext } from './retention-profile.js';
 
 export type HookArchetype = 'shock-stat' | 'contradiction' | 'breaking-shift';
 type StoryPhase = 'hook' | 'exposition' | 'conclusion';
+
+export interface PacingEnvelopeOptions {
+  retentionProfile?: RetentionProfile;
+  retentionContext?: RetentionProfileContext;
+}
 
 export interface PacingDirectiveMetrics {
   hookSceneCount: number;
@@ -129,8 +134,14 @@ function getPatternBreakTargetSec(phase: StoryPhase, config: ReturnType<typeof g
   return config.expositionPatternBreakTargetSec;
 }
 
-export function applyPacingEnvelope(scenes: Scene[], audioDurationSec: number): PacingDirectiveMetrics {
-  const retentionConfig = getRetentionProfileConfig();
+export function applyPacingEnvelope(
+  scenes: Scene[],
+  audioDurationSec: number,
+  options: PacingEnvelopeOptions = {},
+): PacingDirectiveMetrics {
+  const retentionConfig = options.retentionProfile
+    ? getRetentionProfileConfig(options.retentionProfile)
+    : getRetentionProfileConfig(options.retentionContext ?? {});
 
   if (scenes.length === 0) {
     return {
